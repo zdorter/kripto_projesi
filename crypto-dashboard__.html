@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kripto Dashboard</title>
+
+<!-- Grafik kütüphanesi -->
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+
+<!-- Grid / drag-drop / resize kütüphanesi -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.1.2/dist/gridstack.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/gridstack@10.1.2/dist/gridstack-all.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #0a0e14;
+    --panel: #10151f;
+    --panel-header: #141a26;
+    --border: #1e2634;
+    --text-primary: #e6eaf2;
+    --text-secondary: #7c8699;
+    --accent: #e8a33d;
+    --up: #26a69a;
+    --down: #ef5350;
+    --dot-live: #3ddc84;
+    --target-1: #e8a33d;
+    --target-2: #26a69a;
+    --target-3: #7c8aff;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  #app { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+
+  #toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    background: var(--panel-header);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  #toolbar h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; margin: 0; }
+  #toolbar .sub { font-size: 11px; color: var(--text-secondary); margin-left: 10px; font-family: 'IBM Plex Mono', monospace; }
+  #toolbar-right { display: flex; align-items: center; gap: 8px; }
+
+  #add-panel-btn, #sticky-show-btn {
+    background: var(--accent);
+    color: #1a1305;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+  }
+  #add-panel-btn:hover, #sticky-show-btn:hover { filter: brightness(1.1); }
+  #sticky-show-btn {
+    display: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  #sticky-show-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+  #scene-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 18px;
+    background: var(--panel-header);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #scene-bar label { font-size: 11px; color: var(--text-secondary); }
+  #scene-select {
+    background: var(--panel);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-width: 180px;
+  }
+  .scene-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .scene-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+  .scene-btn.primary { background: var(--accent); color: #1a1305; border-color: var(--accent); }
+  .scene-btn.primary:hover { filter: brightness(1.1); color: #1a1305; }
+  .scene-btn.danger:hover { background: rgba(239,83,80,0.18); color: var(--down); border-color: var(--down); }
+
+  #sticky-bar {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 9px 18px;
+    background: var(--panel-header);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #sticky-symbol { font-size: 13px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
+  .sticky-metric { display: flex; flex-direction: column; gap: 2px; }
+  .sticky-label { font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+  .sticky-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  @keyframes flashUp { 0% { background: rgba(38,166,154,0.45); } 100% { background: transparent; } }
+  @keyframes flashDown { 0% { background: rgba(239,83,80,0.45); } 100% { background: transparent; } }
+  .flash-up { animation: flashUp 0.8s ease-out; }
+  .flash-down { animation: flashDown 0.8s ease-out; }
+
+  #grid-wrapper { flex: 1; min-height: 0; overflow: auto; padding: 10px; }
+  .grid-stack { background: transparent; }
+
+  .grid-stack-item-content.panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    inset: 0;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px 6px 6px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--panel-header);
+  }
+
+  .drag-handle {
+    cursor: grab;
+    color: var(--text-secondary);
+    font-size: 14px;
+    padding: 2px 6px;
+    line-height: 1;
+    user-select: none;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .drag-handle:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+  .drag-handle:active { cursor: grabbing; }
+
+  .target-indicator {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 4px currentColor;
+  }
+
+  .panel-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .target-group { display: flex; gap: 3px; flex-shrink: 0; }
+  .target-btn {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .target-btn:hover { border-color: var(--text-secondary); }
+  .target-btn.active-1 { background: var(--target-1); color: #1a1305; border-color: var(--target-1); }
+  .target-btn.active-2 { background: var(--target-2); color: #04211d; border-color: var(--target-2); }
+  .target-btn.active-3 { background: var(--target-3); color: #0d0f2b; border-color: var(--target-3); }
+
+  .panel-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 13px;
+    width: 24px; height: 24px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .panel-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+  .panel-btn.close-btn:hover { background: rgba(239,83,80,0.18); color: var(--down); }
+
+  .panel-body { flex: 1; min-height: 0; position: relative; }
+
+  .grid-stack-item.maximized {
+    position: fixed !important;
+    top: 14px !important; left: 14px !important; right: 14px !important; bottom: 14px !important;
+    width: auto !important; height: auto !important;
+    z-index: 1000;
+    transform: none !important;
+  }
+
+  #maximize-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 999; }
+  #maximize-backdrop.visible { display: block; }
+
+  .watchlist-body { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+  .wl-col-toggles {
+    display: flex; gap: 4px; padding: 5px 8px; flex-shrink: 0;
+    border-bottom: 1px solid var(--border); background: var(--panel-header);
+  }
+  .wl-col-toggle-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 4px; padding: 2px 8px; font-size: 9px; font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace; cursor: pointer;
+  }
+  .wl-col-toggle-btn.active { border-color: var(--accent); color: var(--accent); }
+  .wl-table-wrap { flex: 1; min-height: 0; overflow: auto; }
+  .wl-table {
+    width: 100%; min-width: 360px; border-collapse: collapse;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  }
+  .wl-table th {
+    position: sticky; top: 0; background: var(--panel-header);
+    text-align: right; font-size: 9px; color: var(--text-secondary); font-weight: 600;
+    padding: 6px 10px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .wl-table td {
+    text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border);
+    color: var(--text-primary); white-space: nowrap;
+  }
+  .wl-table th.col-symbol, .wl-table td.col-symbol { text-align: left; }
+  .wl-table tbody tr { cursor: pointer; transition: background 0.15s ease; }
+  .wl-table tbody tr:last-child td { border-bottom: none; }
+  .wl-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+  .wl-symbol { font-weight: 600; }
+  .wl-table.hide-fr .col-fr, .wl-table.hide-oi .col-oi { display: none; }
+  .wl-warn-icon { font-size: 11px; cursor: help; }
+
+  .chart-container { position: absolute; inset: 0; }
+  .chart-init-msg {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    color: var(--text-secondary); font-size: 12px; font-family: 'IBM Plex Mono', monospace;
+  }
+  .chart-price-tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-secondary); }
+
+  .chart-tf-bar {
+    display: flex; gap: 4px; padding: 5px 8px;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+    background: var(--panel-header);
+  }
+  .chart-tf-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 4px; padding: 3px 8px; font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace; cursor: pointer;
+  }
+  .chart-tf-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+  .chart-tf-btn.active { background: var(--accent); color: #1a1305; border-color: var(--accent); font-weight: 600; }
+
+  .draw-toolbar {
+    position: absolute; top: 8px; left: 8px; z-index: 5;
+    display: flex; flex-direction: column; gap: 3px;
+    background: rgba(16,21,31,0.92); border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px; backdrop-filter: blur(2px);
+  }
+  .draw-tool-btn {
+    width: 28px; height: 24px; background: transparent; border: 1px solid transparent;
+    color: var(--text-secondary); border-radius: 4px; font-size: 9px; font-weight: 700;
+    font-family: 'IBM Plex Mono', monospace; cursor: pointer;
+  }
+  .draw-tool-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+  .draw-tool-btn.active { background: var(--accent); color: #1a1305; }
+  .draw-tool-btn.draw-tool-long { color: var(--up); }
+  .draw-tool-btn.draw-tool-short { color: var(--down); }
+  .draw-tool-btn.draw-tool-long.active { background: var(--up); color: #04211d; }
+  .draw-tool-btn.draw-tool-short.active { background: var(--down); color: #2b0a08; }
+  .draw-toolbar hr { width: 100%; border: none; border-top: 1px solid var(--border); margin: 2px 0; }
+
+  .draw-canvas { position: absolute; inset: 0; z-index: 2; }
+
+  .draw-mini-toolbar {
+    position: absolute; z-index: 6; display: none;
+    align-items: center; gap: 4px; padding: 4px 6px;
+    background: var(--panel-header); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+  }
+  .draw-mini-toolbar.visible { display: flex; }
+  .draw-color-swatch { width: 16px; height: 16px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+  .draw-color-swatch.selected { border-color: var(--text-primary); }
+  .draw-mini-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 4px; padding: 2px 7px; font-size: 10px; cursor: pointer;
+  }
+  .draw-mini-btn:hover { color: var(--text-primary); }
+  .draw-mini-btn.danger:hover { color: var(--down); border-color: var(--down); }
+
+  .ob-body {
+    display: flex; flex-direction: column; height: 100%; overflow: hidden;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  }
+  .ob-header-row {
+    display: flex; justify-content: space-between;
+    padding: 5px 10px; color: var(--text-secondary); font-size: 10px;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .ob-asks, .ob-bids { display: flex; flex-direction: column; overflow: hidden; flex: 1; min-height: 0; }
+  .ob-row {
+    position: relative;
+    display: flex; justify-content: space-between;
+    padding: 2.5px 10px;
+  }
+  .ob-row .ob-bar { position: absolute; top: 0; right: 0; bottom: 0; }
+  .ob-row.ask .ob-bar { background: rgba(239,83,80,0.16); }
+  .ob-row.bid .ob-bar { background: rgba(38,166,154,0.16); }
+  .ob-price, .ob-qty { position: relative; z-index: 1; }
+  .ob-price.ask { color: var(--down); }
+  .ob-price.bid { color: var(--up); }
+  .ob-qty { color: var(--text-secondary); }
+  .ob-spread {
+    text-align: center; padding: 4px; color: var(--text-secondary); font-size: 10px;
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    flex-shrink: 0; background: var(--panel-header);
+  }
+
+  .heatmap-container { position: absolute; inset: 0; }
+  .heatmap-canvas { width: 100%; height: 100%; display: block; }
+
+  #alert-manager-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 6px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  #alert-manager-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+  #alert-manager-btn.has-alerts { border-color: var(--accent); color: var(--accent); }
+
+  #alert-modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000;
+    align-items: center; justify-content: center;
+  }
+  #alert-modal-backdrop.visible { display: flex; }
+  #alert-modal {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    width: min(640px, 92vw); max-height: 84vh; display: flex; flex-direction: column;
+    overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  #alert-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--panel-header); flex-shrink: 0;
+  }
+  #alert-modal-header h2 { margin: 0; font-size: 14px; font-weight: 600; }
+
+  #toast-container {
+    position: fixed; top: 16px; right: 16px; z-index: 3000;
+    display: flex; flex-direction: column; gap: 8px; max-width: 320px;
+  }
+  .toast {
+    background: var(--panel); border: 1px solid var(--accent); border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    animation: toastIn 0.25s ease-out;
+  }
+  .toast .toast-title { font-size: 12px; font-weight: 600; color: var(--text-primary); display: flex; justify-content: space-between; gap: 8px; }
+  .toast .toast-desc { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+  .toast .toast-close { cursor: pointer; color: var(--text-secondary); background: none; border: none; font-size: 12px; flex-shrink: 0; }
+  @keyframes toastIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <div style="display:flex; align-items:baseline;">
+      <h1>Kripto Dashboard</h1>
+      <span class="sub">İzleme Listesi'nde bir sembole tıklayınca aynı Target ID'ye sahip paneller güncellenir</span>
+    </div>
+    <div id="toolbar-right">
+      <button id="sticky-show-btn">Bilgi çubuğunu göster</button>
+      <button id="alert-manager-btn">🔔 Alarmlar</button>
+      <button id="add-panel-btn">+ Panel Ekle</button>
+    </div>
+  </div>
+
+  <div id="scene-bar">
+    <label for="scene-select">Sahne</label>
+    <select id="scene-select"></select>
+    <button class="scene-btn primary" id="scene-save-btn">Kaydet / Güncelle</button>
+    <button class="scene-btn" id="scene-new-btn">+ Yeni Sahne</button>
+    <button class="scene-btn danger" id="scene-delete-btn">Sil</button>
+  </div>
+
+  <div id="sticky-bar">
+    <div class="target-group" id="sticky-target-slot"></div>
+    <span class="target-indicator" id="sticky-indicator"></span>
+    <span id="sticky-symbol">—</span>
+    <div class="sticky-metric">
+      <span class="sticky-label">Funding Rate</span>
+      <span class="sticky-value" id="sticky-funding">—</span>
+    </div>
+    <div class="sticky-metric">
+      <span class="sticky-label">Sonraki Fonlama</span>
+      <span class="sticky-value" id="sticky-countdown" style="color:var(--text-secondary)">—</span>
+    </div>
+    <div class="sticky-metric">
+      <span class="sticky-label">Open Interest</span>
+      <span class="sticky-value" id="sticky-oi">—</span>
+    </div>
+    <button class="panel-btn close-btn" id="sticky-close-btn" style="margin-left:auto;" title="Bilgi çubuğunu kapat">✕</button>
+  </div>
+
+  <div id="grid-wrapper">
+    <div class="grid-stack" id="dashboard-grid"></div>
+  </div>
+</div>
+
+<div id="maximize-backdrop"></div>
+<div id="toast-container"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const STORAGE_KEY = "crypto-dashboard-layout-v3";
+  const STICKY_KEY = "crypto-dashboard-stickybar-v1";
+  const WATCHLIST_SYMBOLS = ["btcusdt", "ethusdt", "bnbusdt", "solusdt", "xrpusdt", "adausdt"];
+  const TARGET_COLORS = { 1: "#e8a33d", 2: "#26a69a", 3: "#7c8aff" };
+  const DEFAULT_TARGET_ID = 1;
+
+  const DRAW_TOOLS = [
+    { id: "select", label: "↖", title: "Seç / Taşı" },
+    { id: "hline", label: "—", title: "Yatay Çizgi" },
+    { id: "trendline", label: "╱", title: "Trend Çizgisi" },
+    { id: "arrow", label: "➔", title: "Ok" },
+    { id: "rectangle", label: "▭", title: "Dikdörtgen" },
+    { id: "channel", label: "═", title: "Paralel Kanal" },
+    { id: "fib", label: "≡", title: "Fibonacci Düzeltmesi" },
+    { id: "measure", label: "📏", title: "Ölçüm Aracı" },
+    { id: "label", label: "💬", title: "Metin Etiketi" },
+    { id: "long", label: "▲", title: "Long Pozisyon", cls: "draw-tool-long" },
+    { id: "short", label: "▼", title: "Short Pozisyon", cls: "draw-tool-short" }
+  ];
+
+  const DRAW_COLORS = ["#e8a33d", "#26a69a", "#ef5350", "#7c8aff", "#e6eaf2"];
+  const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+  const POINTS_NEEDED = { hline: 1, trendline: 2, arrow: 2, rectangle: 2, channel: 3, fib: 2, measure: 2, label: 1, long: 1, short: 1 };
+
+  const panelsMeta = {};
+  const panelInstances = {};
+  let maximizedPanelId = null;
+
+  const backdrop = document.getElementById("maximize-backdrop");
+
+  const marketScanner = {
+    bySymbol: {},
+    listeners: new Set(),
+    subscribe(fn) { this.listeners.add(fn); },
+    unsubscribe(fn) { this.listeners.delete(fn); },
+    notify() { this.listeners.forEach((fn) => fn()); }
+  };
+
+  function showToast(title, desc) {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.innerHTML = `<div class="toast-title"><span>${title}</span><button class="toast-close">✕</button></div><div class="toast-desc">${desc}</div>`;
+    toast.querySelector(".toast-close").onclick = () => toast.remove();
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 6000);
+  }
+
+  function addHistoryEntry(type, desc) {}
+  function renderAlertHistory() {}
+  function playAlertSound() {}
+  function openAlertManager(sym) {}
+  function persistDrawingsStore() {}
+  function getShapesForSymbol(sym) { return []; }
+  function saveLayout() {}
+
+  function drawArrowHead(ctx, x1, y1, x2, y2) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - 10 * Math.cos(angle - Math.PI / 6), y2 - 10 * Math.sin(angle - Math.PI / 6));
+    ctx.lineTo(x2 - 10 * Math.cos(angle + Math.PI / 6), y2 - 10 * Math.sin(angle + Math.PI / 6));
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function distToSegment(px, py, x1, y1, x2, y2) {
+    const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+    if (l2 === 0) return Math.hypot(px - x1, py - y1);
+    let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+  }
+
+  const grid = GridStack.init({
+    column: 12,
+    cellHeight: 58,
+    margin: 8,
+    float: true,
+    handle: ".drag-handle",
+    animate: true,
+  }, "#dashboard-grid");
+
+  const targetBus = {
+    listeners: {},
+    subscribe(targetId, subscriberId, cb) {
+      if (!this.listeners[targetId]) this.listeners[targetId] = new Map();
+      this.listeners[targetId].set(subscriberId, cb);
+    },
+    unsubscribe(targetId, subscriberId) {
+      this.listeners[targetId]?.delete(subscriberId);
+    },
+    emit(targetId, symbol) {
+      this.listeners[targetId]?.forEach((cb) => cb(symbol));
+    },
+  };
+
+  function flashValue(el, isUp) {
+    el.classList.remove("flash-up", "flash-down");
+    void el.offsetWidth;
+    el.classList.add(isUp ? "flash-up" : "flash-down");
+  }
+
+  function createTargetButtonGroup(initialTargetId, indicatorEl, onChange) {
+    const wrap = document.createElement("div");
+    wrap.className = "target-group";
+    const buttons = [1, 2, 3].map((tId) => {
+      const btn = document.createElement("button");
+      btn.className = "target-btn" + (tId === initialTargetId ? ` active-${tId}` : "");
+      btn.textContent = String(tId);
+      btn.title = `Target ${tId}`;
+      btn.dataset.target = String(tId);
+      wrap.appendChild(btn);
+      return btn;
+    });
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tId = Number(btn.dataset.target);
+        buttons.forEach((b) => {
+          b.className = "target-btn" + (Number(b.dataset.target) === tId ? ` active-${tId}` : "");
+        });
+        if (indicatorEl) {
+          indicatorEl.style.background = TARGET_COLORS[tId];
+          indicatorEl.style.color = TARGET_COLORS[tId];
+          indicatorEl.title = `Target ${tId}`;
+        }
+        onChange(tId);
+      });
+    });
+    return wrap;
+  }
+
+  function buildPanelShell(id, title, initialTargetId, onTargetChange, getAlertSymbol) {
+    const item = document.createElement("div");
+    item.className = "grid-stack-item";
+
+    const content = document.createElement("div");
+    content.className = "grid-stack-item-content panel";
+
+    const header = document.createElement("div");
+    header.className = "panel-header";
+
+    const handle = document.createElement("span");
+    handle.className = "drag-handle";
+    handle.textContent = "≡";
+    handle.title = "Sürüklemek için tutun";
+
+    const indicator = document.createElement("span");
+    indicator.className = "target-indicator";
+    indicator.style.background = TARGET_COLORS[initialTargetId];
+    indicator.style.color = TARGET_COLORS[initialTargetId];
+
+    const titleEl = document.createElement("span");
+    titleEl.className = "panel-title";
+    titleEl.textContent = title;
+
+    const targetGroup = createTargetButtonGroup(initialTargetId, indicator, onTargetChange);
+
+    const bellBtn = document.createElement("button");
+    bellBtn.className = "panel-btn";
+    bellBtn.textContent = "🔔";
+
+    const maxBtn = document.createElement("button");
+    maxBtn.className = "panel-btn";
+    maxBtn.textContent = "⤢";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "panel-btn close-btn";
+    closeBtn.textContent = "✕";
+
+    header.append(handle, indicator, titleEl, targetGroup, bellBtn, maxBtn, closeBtn);
+
+    const body = document.createElement("div");
+    body.className = "panel-body";
+
+    content.append(header, body);
+    item.appendChild(content);
+
+    return { item, body, titleEl };
+  }
+
+  // =====================================================================
+  // LIKIDITE ISI HARITASI (HEATMAP) PANELI (Tamamlanan Kısım)
+  // =====================================================================
+  function createHeatmapPanel(id, initialSymbol, initialTargetId) {
+    let symbol = initialSymbol;
+    let targetId = null;
+    let generation = 0;
+
+    const { item, body, titleEl } = buildPanelShell(id, `${symbol} · Likidite Haritası`, initialTargetId, (newId) => {
+      subscribeToTarget(newId);
+      panelsMeta[id].targetId = newId;
+      saveLayout();
+    }, () => symbol);
+    body.style.overflow = "hidden";
+
+    const wrap = document.createElement("div");
+    wrap.className = "heatmap-container";
+    const canvas = document.createElement("canvas");
+    canvas.className = "heatmap-canvas";
+    wrap.appendChild(canvas);
+    body.appendChild(wrap);
+    const ctx = canvas.getContext("2d");
+
+    const ROWS = 60;
+    const MAX_COLUMNS = 90;
+    const SAMPLE_INTERVAL_MS = 1000;
+    const PRICE_RANGE_PCT = 0.004;
+
+    let history = [];
+    let latestDepth = null;
+    let sampleTimer = null;
+
+    function resizeCanvas() {
+      const rect = wrap.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.floor(rect.width));
+      canvas.height = Math.max(1, Math.floor(rect.height));
+      draw();
+    }
+    const resizeObserver = new ResizeObserver(resizeCanvas);
+    resizeObserver.observe(wrap);
+
+    function heatColor(t) {
+      const stops = [
+        [0.0, [8, 10, 18]],
+        [0.22, [24, 48, 105]],
+        [0.48, [96, 40, 130]],
+        [0.72, [210, 55, 55]],
+        [1.0, [255, 221, 74]],
+      ];
+      let a = stops[0], b = stops[stops.length - 1];
+      for (let i = 0; i < stops.length - 1; i++) {
+        if (t >= stops[i][0] && t <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
+      }
+      const span = b[0] - a[0] || 1;
+      const lt = (t - a[0]) / span;
+      const r = Math.round(a[1][0] + (b[1][0] - a[1][0]) * lt);
+      const g = Math.round(a[1][1] + (b[1][1] - a[1][1]) * lt);
+      const bch = Math.round(a[1][2] + (b[1][2] - a[1][2]) * lt);
+      return `rgb(${r},${g},${bch})`;
+    }
+
+    function commitSample() {
+      if (!latestDepth) return;
+      const rawBids = latestDepth.b || latestDepth.bids;
+      const rawAsks = latestDepth.a || latestDepth.asks;
+      if (!rawBids || !rawAsks || !rawBids.length || !rawAsks.length) return;
+
+      const bestBid = Math.max(...rawBids.map((l) => parseFloat(l[0])));
+      const bestAsk = Math.min(...rawAsks.map((l) => parseFloat(l[0])));
+      const mid = (bestBid + bestAsk) / 2;
+      const rowMin = mid * (1 - PRICE_RANGE_PCT);
+      const rowMax = mid * (1 + PRICE_RANGE_PCT);
+      const rowHeight = (rowMax - rowMin) / ROWS;
+      const values = new Float64Array(ROWS);
+
+      [...rawBids, ...rawAsks].forEach(([price, qty]) => {
+        const p = parseFloat(price);
+        const q = parseFloat(qty);
+        if (q <= 0) return;
+        const rowIndex = Math.floor((p - rowMin) / rowHeight);
+        if (rowIndex >= 0 && rowIndex < ROWS) {
+          values[rowIndex] += q;
+        }
+      });
+
+      history.push({ rowMin, rowHeight, values, mid });
+      if (history.length > MAX_COLUMNS) history.shift();
+      draw();
+    }
+
+    function draw() {
+      const W = canvas.width, H = canvas.height;
+      ctx.fillStyle = "#0a0e14";
+      ctx.fillRect(0, 0, W, H);
+      if (history.length === 0) return;
+
+      let maxVal = 0.00001;
+      history.forEach((col) => {
+        col.values.forEach((v) => { if (v > maxVal) maxVal = v; });
+      });
+
+      const colW = W / MAX_COLUMNS;
+      const rowH = H / ROWS;
+
+      history.forEach((col, cIdx) => {
+        const x = cIdx * colW;
+        for (let r = 0; r < ROWS; r++) {
+          const val = col.values[r];
+          const norm = Math.min(1, val / maxVal);
+          ctx.fillStyle = heatColor(norm);
+          const y = H - (r + 1) * rowH;
+          ctx.fillRect(x, y, colW + 0.5, rowH + 0.5);
+        }
+      });
+    }
+
+    let ws = null;
+    let stopped = false;
+
+    function connectWs() {
+      if (stopped) return;
+      const myGen = generation;
+      const mySymbol = symbol;
+      ws = new WebSocket(`wss://fstream.binance.com/public/ws/${mySymbol.toLowerCase()}@depth20@100ms`);
+      ws.onmessage = (evt) => {
+        try { latestDepth = JSON.parse(evt.data); } catch {}
+      };
+      ws.onclose = () => {
+        if (!stopped && myGen === generation) setTimeout(connectWs, 2000);
+      };
+    }
+
+    function changeSymbol(newSymbolRaw) {
+      symbol = newSymbolRaw.toUpperCase();
+      generation++;
+      history = [];
+      latestDepth = null;
+      if (ws) ws.close();
+      titleEl.textContent = `${symbol} · Likidite Haritası`;
+      panelsMeta[id].symbol = symbol;
+      saveLayout();
+      connectWs();
+    }
+
+    function subscribeToTarget(newTargetId) {
+      if (targetId !== null) targetBus.unsubscribe(targetId, id);
+      targetId = newTargetId;
+      targetBus.subscribe(targetId, id, changeSymbol);
+    }
+
+    subscribeToTarget(initialTargetId);
+    connectWs();
+    sampleTimer = setInterval(commitSample, SAMPLE_INTERVAL_MS);
+
+    panelInstances[id] = {
+      destroy() {
+        stopped = true;
+        if (sampleTimer) clearInterval(sampleTimer);
+        if (ws) ws.close();
+        if (targetId !== null) targetBus.unsubscribe(targetId, id);
+        resizeObserver.disconnect();
+      }
+    };
+
+    return item;
+  }
+
+  // Varsayılan Panel Ekleme İşlevleri ve Başlatıcı
+  function addPanel(type, symbol = "BTCUSDT", targetId = DEFAULT_TARGET_ID) {
+    const id = "panel-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4);
+    panelsMeta[id] = { type, symbol, targetId };
+
+    let el;
+    if (type === "heatmap") el = createHeatmapPanel(id, symbol, targetId);
+
+    if (el) grid.addWidget(el, { w: 6, h: 6, id });
+  }
+
+  document.getElementById("add-panel-btn").addEventListener("click", () => {
+    addPanel("heatmap", "BTCUSDT", 1);
+  });
+
+})();
+</script>
+</body>
+</html>

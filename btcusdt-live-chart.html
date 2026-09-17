@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BTCUSDT · Canlı Grafik</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --panel: #10151f;
+    --border: #1e2634;
+    --text-primary: #e6eaf2;
+    --text-secondary: #7c8699;
+    --accent: #e8a33d;
+    --up: #26a69a;
+    --down: #ef5350;
+    --dot-live: #3ddc84;
+    --dot-down: #ef5350;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .symbol-block {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+
+  .symbol-name {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text-primary);
+  }
+
+  .symbol-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .price-block {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  #live-price {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    transition: color 0.15s ease;
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+    transition: background 0.2s ease;
+  }
+
+  .status-dot.live {
+    background: var(--dot-live);
+    box-shadow: 0 0 6px var(--dot-live);
+  }
+
+  .status-dot.down {
+    background: var(--dot-down);
+  }
+
+  #chart-container {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+  }
+
+  #chart-container .init-msg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+</style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="symbol-block">
+        <span class="symbol-name">BTC/USDT</span>
+        <span class="symbol-sub">1 dakika · Binance</span>
+      </div>
+      <div class="price-block">
+        <span id="live-price">—</span>
+        <div class="status">
+          <span id="status-dot" class="status-dot"></span>
+          <span id="status-text">bağlanılıyor</span>
+        </div>
+      </div>
+    </header>
+    <div id="chart-container">
+      <div class="init-msg" id="init-msg">geçmiş veriler yükleniyor...</div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const SYMBOL = "btcusdt";
+  const REST_URL = `https://api.binance.com/api/v3/klines?symbol=${SYMBOL.toUpperCase()}&interval=1m&limit=100`;
+  const WS_URL = `wss://stream.binance.com:9443/ws/${SYMBOL}@kline_1m`;
+
+  const container = document.getElementById("chart-container");
+  const initMsg = document.getElementById("init-msg");
+  const priceEl = document.getElementById("live-price");
+  const statusDot = document.getElementById("status-dot");
+  const statusText = document.getElementById("status-text");
+
+  let lastClose = null;
+
+  // --- Grafik kurulumu -----------------------------------------------
+  const chart = LightweightCharts.createChart(container, {
+    layout: {
+      background: { type: "solid", color: "transparent" },
+      textColor: "#7c8699",
+      fontFamily: "'IBM Plex Mono', monospace",
+      fontSize: 11,
+    },
+    grid: {
+      vertLines: { color: "#151b28" },
+      horzLines: { color: "#151b28" },
+    },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    rightPriceScale: { borderColor: "#1e2634" },
+    timeScale: {
+      borderColor: "#1e2634",
+      timeVisible: true,
+      secondsVisible: false,
+    },
+  });
+
+  const candleSeries = chart.addCandlestickSeries({
+    upColor: "#26a69a",
+    downColor: "#ef5350",
+    borderVisible: false,
+    wickUpColor: "#26a69a",
+    wickDownColor: "#ef5350",
+  });
+
+  // --- Responsive boyutlandirma ---------------------------------------
+  const resizeObserver = new ResizeObserver((entries) => {
+    const { width, height } = entries[0].contentRect;
+    chart.resize(width, height);
+  });
+  resizeObserver.observe(container);
+
+  function setStatus(text, mode) {
+    statusText.textContent = text;
+    statusDot.className = "status-dot" + (mode ? ` ${mode}` : "");
+  }
+
+  function updatePriceDisplay(close) {
+    priceEl.textContent = close.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    if (lastClose !== null) {
+      priceEl.style.color = close >= lastClose ? "#26a69a" : "#ef5350";
+    }
+    lastClose = close;
+  }
+
+  // --- 1) REST API'den son 100 mumu cek ve ilk yuklemeyi yap -----------
+  async function loadInitialData() {
+    try {
+      const res = await fetch(REST_URL);
+      if (!res.ok) throw new Error(`REST istegi basarisiz: ${res.status}`);
+      const raw = await res.json();
+
+      const candles = raw.map((d) => ({
+        time: d[0] / 1000, // Binance ms -> Lightweight Charts saniye
+        open: parseFloat(d[1]),
+        high: parseFloat(d[2]),
+        low: parseFloat(d[3]),
+        close: parseFloat(d[4]),
+      }));
+
+      candleSeries.setData(candles);
+      chart.timeScale().fitContent();
+
+      const last = candles[candles.length - 1];
+      updatePriceDisplay(last.close);
+      initMsg.remove();
+    } catch (err) {
+      initMsg.textContent = "geçmiş veri yüklenemedi, yeniden deneniyor...";
+      console.error("[REST] Gecmis veri yuklenemedi:", err);
+      setTimeout(loadInitialData, 3000);
+    }
+  }
+
+  // --- 2) WebSocket: canli kline stream'i dinle -------------------------
+  //     kline mesaji zaten o/h/l/c iceriyor; candleSeries.update() ayni
+  //     dakika icin son mumu gunceller, yeni dakika basladiginda ise
+  //     otomatik olarak yeni bir mum ekler (time ilerledigi icin).
+  let ws = null;
+  let retryDelayMs = 1000;
+  const MAX_RETRY_DELAY_MS = 30000;
+  let heartbeatTimer = null;
+
+  function connectWebSocket() {
+    setStatus("bağlanılıyor", "");
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+      setStatus("canlı", "live");
+      retryDelayMs = 1000;
+      resetHeartbeat();
+    };
+
+    ws.onmessage = (event) => {
+      resetHeartbeat();
+      let msg;
+      try {
+        msg = JSON.parse(event.data);
+      } catch (err) {
+        console.error("[WS] JSON ayristirma hatasi:", err);
+        return;
+      }
+
+      const k = msg.k;
+      if (!k) return;
+
+      const candle = {
+        time: k.t / 1000,
+        open: parseFloat(k.o),
+        high: parseFloat(k.h),
+        low: parseFloat(k.l),
+        close: parseFloat(k.c),
+      };
+
+      candleSeries.update(candle);
+      updatePriceDisplay(candle.close);
+    };
+
+    ws.onclose = () => {
+      clearHeartbeat();
+      setStatus("bağlantı koptu, yeniden bağlanılıyor", "down");
+      scheduleReconnect();
+    };
+
+    ws.onerror = (err) => {
+      console.error("[WS] Hata:", err);
+      ws.close();
+    };
+  }
+
+  // Binance'ten belirli bir sure hic mesaj gelmezse baglantiyi zorla
+  // yenile (donmus baglanti korumasi).
+  function resetHeartbeat() {
+    clearHeartbeat();
+    heartbeatTimer = setTimeout(() => {
+      console.warn("[WS] Zaman asimi, baglanti yenileniyor.");
+      ws.close();
+    }, 60000);
+  }
+
+  function clearHeartbeat() {
+    if (heartbeatTimer) {
+      clearTimeout(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  }
+
+  function scheduleReconnect() {
+    setTimeout(connectWebSocket, retryDelayMs);
+    retryDelayMs = Math.min(retryDelayMs * 2, MAX_RETRY_DELAY_MS);
+  }
+
+  // --- Baslat ------------------------------------------------------------
+  loadInitialData();
+  connectWebSocket();
+})();
+</script>
+</body>
+</html>

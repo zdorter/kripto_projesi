@@ -1,0 +1,4075 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kripto Dashboard</title>
+
+<!-- Grafik kütüphanesi -->
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+
+<!-- Grid / drag-drop / resize kütüphanesi (react-grid-layout'un vanilla JS karsiligi) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.1.2/dist/gridstack.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/gridstack@10.1.2/dist/gridstack-all.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #0a0e14;
+    --panel: #10151f;
+    --panel-header: #141a26;
+    --border: #1e2634;
+    --text-primary: #e6eaf2;
+    --text-secondary: #7c8699;
+    --accent: #e8a33d;
+    --up: #26a69a;
+    --down: #ef5350;
+    --dot-live: #3ddc84;
+    --target-1: #e8a33d;
+    --target-2: #26a69a;
+    --target-3: #7c8aff;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  #app { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+
+  /* ---------- Ust toolbar ---------- */
+  #toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    background: var(--panel-header);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  #toolbar h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; margin: 0; }
+  #toolbar .sub { font-size: 11px; color: var(--text-secondary); margin-left: 10px; font-family: 'IBM Plex Mono', monospace; }
+  #toolbar-right { display: flex; align-items: center; gap: 8px; }
+
+  #add-panel-btn, #sticky-show-btn {
+    background: var(--accent);
+    color: #1a1305;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+  }
+  #add-panel-btn:hover, #sticky-show-btn:hover { filter: brightness(1.1); }
+  #sticky-show-btn {
+    display: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  #sticky-show-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+  /* ---------- Sahne cubugu (Scene Bar) ---------- */
+  #scene-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 18px;
+    background: var(--panel-header);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #scene-bar label { font-size: 11px; color: var(--text-secondary); }
+  #scene-select {
+    background: var(--panel);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-width: 180px;
+  }
+  .scene-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .scene-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+  .scene-btn.primary { background: var(--accent); color: #1a1305; border-color: var(--accent); }
+  .scene-btn.primary:hover { filter: brightness(1.1); color: #1a1305; }
+  .scene-btn.danger:hover { background: rgba(239,83,80,0.18); color: var(--down); border-color: var(--down); }
+
+  /* ---------- Sticky bar ---------- */
+  #sticky-bar {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 9px 18px;
+    background: var(--panel-header);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #sticky-symbol { font-size: 13px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
+  .sticky-metric { display: flex; flex-direction: column; gap: 2px; }
+  .sticky-label { font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+  .sticky-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  /* ---------- Deger degisince yesil/kirmizi kisa parlama ---------- */
+  @keyframes flashUp { 0% { background: rgba(38,166,154,0.45); } 100% { background: transparent; } }
+  @keyframes flashDown { 0% { background: rgba(239,83,80,0.45); } 100% { background: transparent; } }
+  .flash-up { animation: flashUp 0.8s ease-out; }
+  .flash-down { animation: flashDown 0.8s ease-out; }
+
+  /* ---------- Grid alani ---------- */
+  #grid-wrapper { flex: 1; min-height: 0; overflow: auto; padding: 10px; }
+  .grid-stack { background: transparent; }
+
+  /* ---------- Panel govdesi ---------- */
+  .grid-stack-item-content.panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    inset: 0;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px 6px 6px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--panel-header);
+  }
+
+  .drag-handle {
+    cursor: grab;
+    color: var(--text-secondary);
+    font-size: 14px;
+    padding: 2px 6px;
+    line-height: 1;
+    user-select: none;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .drag-handle:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+  .drag-handle:active { cursor: grabbing; }
+
+  .target-indicator {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 4px currentColor;
+  }
+
+  .panel-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .target-group { display: flex; gap: 3px; flex-shrink: 0; }
+  .target-btn {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .target-btn:hover { border-color: var(--text-secondary); }
+  .target-btn.active-1 { background: var(--target-1); color: #1a1305; border-color: var(--target-1); }
+  .target-btn.active-2 { background: var(--target-2); color: #04211d; border-color: var(--target-2); }
+  .target-btn.active-3 { background: var(--target-3); color: #0d0f2b; border-color: var(--target-3); }
+
+  .panel-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 13px;
+    width: 24px; height: 24px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .panel-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+  .panel-btn.close-btn:hover { background: rgba(239,83,80,0.18); color: var(--down); }
+
+  .panel-body { flex: 1; min-height: 0; position: relative; }
+
+  /* ---------- Maksimize modu ---------- */
+  .grid-stack-item.maximized {
+    position: fixed !important;
+    top: 14px !important; left: 14px !important; right: 14px !important; bottom: 14px !important;
+    width: auto !important; height: auto !important;
+    z-index: 1000;
+    transform: none !important;
+  }
+
+  #maximize-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 999; }
+  #maximize-backdrop.visible { display: block; }
+
+  /* ---------- Watchlist paneli (tablo) ---------- */
+  .watchlist-body { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+  .wl-col-toggles {
+    display: flex; gap: 4px; padding: 5px 8px; flex-shrink: 0;
+    border-bottom: 1px solid var(--border); background: var(--panel-header);
+  }
+  .wl-col-toggle-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 4px; padding: 2px 8px; font-size: 9px; font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace; cursor: pointer;
+  }
+  .wl-col-toggle-btn.active { border-color: var(--accent); color: var(--accent); }
+  .wl-table-wrap { flex: 1; min-height: 0; overflow: auto; }
+  .wl-table {
+    width: 100%; min-width: 360px; border-collapse: collapse;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  }
+  .wl-table th {
+    position: sticky; top: 0; background: var(--panel-header);
+    text-align: right; font-size: 9px; color: var(--text-secondary); font-weight: 600;
+    padding: 6px 10px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .wl-table td {
+    text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border);
+    color: var(--text-primary); white-space: nowrap;
+  }
+  .wl-table th.col-symbol, .wl-table td.col-symbol { text-align: left; }
+  .wl-table tbody tr { cursor: pointer; transition: background 0.15s ease; }
+  .wl-table tbody tr:last-child td { border-bottom: none; }
+  .wl-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+  .wl-symbol { font-weight: 600; }
+  .wl-table.hide-fr .col-fr, .wl-table.hide-oi .col-oi { display: none; }
+  .wl-warn-icon { font-size: 11px; cursor: help; }
+
+  /* ---------- Grafik paneli ---------- */
+  .chart-container { position: absolute; inset: 0; }
+  .chart-init-msg {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    color: var(--text-secondary); font-size: 12px; font-family: 'IBM Plex Mono', monospace;
+  }
+  .chart-price-tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-secondary); }
+
+  .chart-tf-bar {
+    display: flex; gap: 4px; padding: 5px 8px;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+    background: var(--panel-header);
+  }
+  .chart-tf-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 4px; padding: 3px 8px; font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace; cursor: pointer;
+  }
+  .chart-tf-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+  .chart-tf-btn.active { background: var(--accent); color: #1a1305; border-color: var(--accent); font-weight: 600; }
+
+  /* ---------- Cizim (Drawing) araç çubuğu ve katmanı ---------- */
+  .draw-toolbar {
+    position: absolute; top: 8px; left: 8px; z-index: 5;
+    display: flex; flex-direction: column; gap: 3px;
+    background: rgba(16,21,31,0.92); border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px; backdrop-filter: blur(2px);
+  }
+  .draw-tool-btn {
+    width: 28px; height: 24px; background: transparent; border: 1px solid transparent;
+    color: var(--text-secondary); border-radius: 4px; font-size: 9px; font-weight: 700;
+    font-family: 'IBM Plex Mono', monospace; cursor: pointer;
+  }
+  .draw-tool-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+  .draw-tool-btn.active { background: var(--accent); color: #1a1305; }
+  .draw-tool-btn.draw-tool-long { color: var(--up); }
+  .draw-tool-btn.draw-tool-short { color: var(--down); }
+  .draw-tool-btn.draw-tool-long.active { background: var(--up); color: #04211d; }
+  .draw-tool-btn.draw-tool-short.active { background: var(--down); color: #2b0a08; }
+  .draw-toolbar hr { width: 100%; border: none; border-top: 1px solid var(--border); margin: 2px 0; }
+
+  .draw-canvas { position: absolute; inset: 0; z-index: 2; }
+
+  .draw-mini-toolbar {
+    position: absolute; z-index: 6; display: none;
+    align-items: center; gap: 4px; padding: 4px 6px;
+    background: var(--panel-header); border: 1px solid var(--border); border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+  }
+  .draw-mini-toolbar.visible { display: flex; }
+  .draw-color-swatch { width: 16px; height: 16px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+  .draw-color-swatch.selected { border-color: var(--text-primary); }
+  .draw-mini-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 4px; padding: 2px 7px; font-size: 10px; cursor: pointer;
+  }
+  .draw-mini-btn:hover { color: var(--text-primary); }
+  .draw-mini-btn.danger:hover { color: var(--down); border-color: var(--down); }
+
+  /* ---------- Emir defteri (Order Book) paneli ---------- */
+  .ob-body {
+    display: flex; flex-direction: column; height: 100%; overflow: hidden;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  }
+  .ob-header-row {
+    display: flex; justify-content: space-between;
+    padding: 5px 10px; color: var(--text-secondary); font-size: 10px;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .ob-asks, .ob-bids { display: flex; flex-direction: column; overflow: hidden; flex: 1; min-height: 0; }
+  .ob-row {
+    position: relative;
+    display: flex; justify-content: space-between;
+    padding: 2.5px 10px;
+  }
+  .ob-row .ob-bar { position: absolute; top: 0; right: 0; bottom: 0; }
+  .ob-row.ask .ob-bar { background: rgba(239,83,80,0.16); }
+  .ob-row.bid .ob-bar { background: rgba(38,166,154,0.16); }
+  .ob-price, .ob-qty { position: relative; z-index: 1; }
+  .ob-price.ask { color: var(--down); }
+  .ob-price.bid { color: var(--up); }
+  .ob-qty { color: var(--text-secondary); }
+  .ob-spread {
+    text-align: center; padding: 4px; color: var(--text-secondary); font-size: 10px;
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    flex-shrink: 0; background: var(--panel-header);
+  }
+
+  /* ---------- Likidite Isi Haritasi (Heatmap) paneli ---------- */
+  .heatmap-container { position: absolute; inset: 0; }
+  .heatmap-canvas { width: 100%; height: 100%; display: block; }
+
+  /* ---------- Bot Kontrol paneli ---------- */
+  .bot-body {
+    padding: 10px; display: flex; flex-direction: column; gap: 10px;
+    height: 100%; overflow-y: auto; font-size: 12px;
+  }
+  .bot-select {
+    background: var(--panel); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 8px; font-size: 11px; font-family: 'IBM Plex Sans', sans-serif; width: 100%;
+  }
+  .bot-controls { display: flex; align-items: center; gap: 10px; }
+  .bot-toggle-btn {
+    flex-shrink: 0; padding: 8px 14px; border-radius: 6px; border: none;
+    font-weight: 600; cursor: pointer; font-size: 11px; transition: filter 0.15s ease;
+  }
+  .bot-toggle-btn:hover { filter: brightness(1.1); }
+  .bot-toggle-btn.start { background: var(--up); color: #04211d; }
+  .bot-toggle-btn.stop { background: var(--down); color: #2b0a08; }
+  .bot-status {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-secondary);
+  }
+  .bot-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-secondary); flex-shrink: 0; }
+  .bot-status-dot.running { background: var(--dot-live); box-shadow: 0 0 5px var(--dot-live); }
+  .bot-pnl {
+    font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 600;
+    text-align: center; padding: 8px; border-radius: 6px; background: var(--panel-header);
+  }
+  .bot-trades-table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 10px; }
+  .bot-trades-table th, .bot-trades-table td { padding: 4px 5px; text-align: right; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  .bot-trades-table th { font-weight: 600; color: var(--text-secondary); }
+  .bot-trades-table td { color: var(--text-primary); }
+  .bot-trades-table th:first-child, .bot-trades-table td:first-child { text-align: left; }
+  .bot-disclaimer { font-size: 9px; color: var(--text-secondary); text-align: center; line-height: 1.4; }
+
+  /* ---------- Alarm Yoneticisi butonu ---------- */
+  #alert-manager-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 6px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  #alert-manager-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+  #alert-manager-btn.has-alerts { border-color: var(--accent); color: var(--accent); }
+
+  /* ---------- Panel turu secici (dropdown) ---------- */
+  #add-panel-wrap { position: relative; }
+  #panel-type-menu {
+    display: none;
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 50;
+    width: 300px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    padding: 6px;
+  }
+  #panel-type-menu.open { display: block; }
+  .panel-type-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    width: 100%; background: transparent; border: none; border-radius: 7px;
+    padding: 8px 10px; cursor: pointer; text-align: left;
+  }
+  .panel-type-item:hover { background: rgba(255,255,255,0.06); }
+  .panel-type-item .pt-icon { font-size: 17px; line-height: 1.3; flex-shrink: 0; }
+  .panel-type-item .pt-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+  .panel-type-item .pt-desc { font-size: 10.5px; color: var(--text-secondary); margin-top: 2px; line-height: 1.35; }
+
+  /* ---------- Alarm Yoneticisi modali ---------- */
+  #alert-modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000;
+    align-items: center; justify-content: center;
+  }
+  #alert-modal-backdrop.visible { display: flex; }
+  #alert-modal {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    width: min(640px, 92vw); max-height: 84vh; display: flex; flex-direction: column;
+    overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  #alert-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--panel-header); flex-shrink: 0;
+  }
+  #alert-modal-header h2 { margin: 0; font-size: 14px; font-weight: 600; }
+  .alert-tabs { display: flex; gap: 4px; padding: 10px 18px 0; flex-shrink: 0; }
+  .alert-tab {
+    background: transparent; border: none; border-bottom: 2px solid transparent;
+    color: var(--text-secondary); padding: 8px 4px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .alert-tab.active { color: var(--text-primary); border-bottom-color: var(--accent); }
+  #alert-modal-body { padding: 14px 18px 18px; overflow-y: auto; flex: 1; }
+
+  .alert-form-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+  .alert-form-row label { font-size: 11px; color: var(--text-secondary); min-width: 80px; flex-shrink: 0; }
+  .alert-input, .alert-select {
+    background: var(--bg); color: var(--text-primary); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px; font-size: 12px; font-family: 'IBM Plex Sans', sans-serif;
+    flex: 1; min-width: 0;
+  }
+  .condition-row {
+    display: flex; gap: 6px; align-items: center; margin-bottom: 6px;
+    background: var(--panel-header); padding: 8px; border-radius: 6px; border: 1px solid var(--border);
+  }
+  .condition-remove-btn {
+    background: transparent; border: none; color: var(--text-secondary); cursor: pointer;
+    font-size: 14px; flex-shrink: 0; width: 22px; height: 22px; border-radius: 4px;
+  }
+  .condition-remove-btn:hover { color: var(--down); background: rgba(239,83,80,0.15); }
+  .alert-logic-toggle { display: flex; gap: 4px; margin: 6px 0 12px; }
+  .alert-logic-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 4px; padding: 4px 10px; font-size: 10px; font-weight: 600; cursor: pointer;
+  }
+  .alert-logic-btn.active { background: var(--accent); color: #1a1305; border-color: var(--accent); }
+
+  .alert-btn {
+    background: var(--accent); color: #1a1305; border: none; border-radius: 6px;
+    padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .alert-btn:hover { filter: brightness(1.1); }
+  .alert-btn.secondary { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+  .alert-btn.secondary:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+  .alert-list-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px; margin-bottom: 8px;
+    background: var(--panel-header); border: 1px solid var(--border); border-radius: 8px; font-size: 12px;
+  }
+  .alert-list-item .info { flex: 1; min-width: 0; }
+  .alert-list-item .info .name { font-weight: 600; color: var(--text-primary); }
+  .alert-list-item .info .desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .alert-list-item.disabled { opacity: 0.5; }
+  .alert-toggle-switch {
+    width: 34px; height: 18px; border-radius: 9px; border: 1px solid var(--border);
+    background: var(--bg); position: relative; cursor: pointer; flex-shrink: 0;
+  }
+  .alert-toggle-switch .knob {
+    position: absolute; top: 1px; left: 1px; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--text-secondary); transition: left 0.15s ease, background 0.15s ease;
+  }
+  .alert-toggle-switch.on { border-color: var(--up); }
+  .alert-toggle-switch.on .knob { left: 17px; background: var(--up); }
+
+  .alert-history-row {
+    display: flex; justify-content: space-between; gap: 10px; padding: 8px 0;
+    border-bottom: 1px solid var(--border); font-size: 11px;
+  }
+  .alert-history-row .time { color: var(--text-secondary); font-family: 'IBM Plex Mono', monospace; flex-shrink: 0; }
+  .alert-empty-note { color: var(--text-secondary); font-size: 12px; text-align: center; padding: 20px 0; }
+
+  /* ---------- Toast bildirimleri ---------- */
+  #toast-container {
+    position: fixed; top: 16px; right: 16px; z-index: 3000;
+    display: flex; flex-direction: column; gap: 8px; max-width: 320px;
+  }
+  .toast {
+    background: var(--panel); border: 1px solid var(--accent); border-left: 4px solid var(--accent);
+    border-radius: 8px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    animation: toastIn 0.25s ease-out;
+  }
+  .toast .toast-title { font-size: 12px; font-weight: 600; color: var(--text-primary); display: flex; justify-content: space-between; gap: 8px; }
+  .toast .toast-desc { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+  .toast .toast-close { cursor: pointer; color: var(--text-secondary); background: none; border: none; font-size: 12px; flex-shrink: 0; }
+  @keyframes toastIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+</style>
+
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <div style="display:flex; align-items:baseline;">
+      <h1>Kripto Dashboard</h1>
+      <span class="sub">İzleme Listesi'nde bir sembole tıklayınca aynı Target ID'ye sahip paneller güncellenir</span>
+    </div>
+    <div id="toolbar-right">
+      <button id="sticky-show-btn">Bilgi çubuğunu göster</button>
+      <button id="alert-manager-btn">🔔 Alarmlar</button>
+      <div id="add-panel-wrap">
+        <button id="add-panel-btn">+ Panel Ekle</button>
+        <div id="panel-type-menu"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="scene-bar">
+    <label for="scene-select">Sahne</label>
+    <select id="scene-select"></select>
+    <button class="scene-btn primary" id="scene-save-btn">Kaydet / Güncelle</button>
+    <button class="scene-btn" id="scene-new-btn">+ Yeni Sahne</button>
+    <button class="scene-btn danger" id="scene-delete-btn">Sil</button>
+  </div>
+
+  <div id="sticky-bar">
+    <div class="target-group" id="sticky-target-slot"></div>
+    <span class="target-indicator" id="sticky-indicator"></span>
+    <span id="sticky-symbol">—</span>
+    <div class="sticky-metric">
+      <span class="sticky-label">Funding Rate</span>
+      <span class="sticky-value" id="sticky-funding">—</span>
+    </div>
+    <div class="sticky-metric">
+      <span class="sticky-label">Sonraki Fonlama</span>
+      <span class="sticky-value" id="sticky-countdown" style="color:var(--text-secondary)">—</span>
+    </div>
+    <div class="sticky-metric">
+      <span class="sticky-label">Open Interest</span>
+      <span class="sticky-value" id="sticky-oi">—</span>
+    </div>
+    <button class="panel-btn close-btn" id="sticky-close-btn" style="margin-left:auto;" title="Bilgi çubuğunu kapat">✕</button>
+  </div>
+
+  <div id="grid-wrapper">
+    <div class="grid-stack" id="dashboard-grid"></div>
+  </div>
+</div>
+
+<div id="maximize-backdrop"></div>
+<div id="toast-container"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // =====================================================================
+  // Genel ayarlar / durum
+  // =====================================================================
+  const STORAGE_KEY = "crypto-dashboard-layout-v3";
+  const STICKY_KEY = "crypto-dashboard-stickybar-v1";
+  const WATCHLIST_SYMBOLS = ["btcusdt", "ethusdt", "bnbusdt", "solusdt", "xrpusdt", "adausdt"];
+  const TARGET_COLORS = { 1: "#e8a33d", 2: "#26a69a", 3: "#7c8aff" };
+  const DEFAULT_TARGET_ID = 1;
+
+  const panelsMeta = {};      // id -> { type: 'watchlist' | 'chart' | 'orderbook', symbol?, targetId }
+  const panelInstances = {};  // id -> { destroy() }
+  let maximizedPanelId = null;
+
+  const backdrop = document.getElementById("maximize-backdrop");
+
+  // =====================================================================
+  // IndexedDB tabanli kalici depo (localStorage yerine)
+  //
+  // localStorage senkron ve ~5-10MB sinirli; IndexedDB asenkron ama cok
+  // daha genis kapasiteli ve yapisal veriyi (JSON.stringify gerekmeden)
+  // dogrudan saklayabiliyor. Asagidaki idbGet/idbSet, eski kodun geri
+  // kalaninin degismeden calismasi icin basit bir anahtar-deger arayuzu
+  // sunuyor. Ilk calistirmada, eger IndexedDB'de veri yoksa ama eski
+  // localStorage'da varsa, otomatik olarak IndexedDB'ye tasinir (tek
+  // seferlik gecis) - boylece daha once olusturulmus sahneler, alarmlar
+  // ve cizimler kaybolmaz.
+  // =====================================================================
+  const IDB_NAME = "crypto-dashboard-db";
+  const IDB_STORE = "kv";
+  let idbOpenPromise = null;
+
+  function openIdb() {
+    if (idbOpenPromise) return idbOpenPromise;
+    idbOpenPromise = new Promise((resolve, reject) => {
+      if (!window.indexedDB) { reject(new Error("IndexedDB desteklenmiyor")); return; }
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = () => {
+        if (!req.result.objectStoreNames.contains(IDB_STORE)) req.result.createObjectStore(IDB_STORE);
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return idbOpenPromise;
+  }
+
+  async function idbGet(key) {
+    try {
+      const db = await openIdb();
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, "readonly");
+        const req = tx.objectStore(IDB_STORE).get(key);
+        req.onsuccess = () => resolve(req.result === undefined ? null : req.result);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      console.error("[IndexedDB] Okuma hatasi, localStorage'a dusuluyor:", e);
+      return null;
+    }
+  }
+
+  async function idbSet(key, value) {
+    try {
+      const db = await openIdb();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, "readwrite");
+        tx.objectStore(IDB_STORE).put(value, key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch (e) {
+      console.error("[IndexedDB] Yazma hatasi:", e);
+    }
+  }
+
+  // Bir anahtar icin: once IndexedDB'ye bak; yoksa eski localStorage
+  // kaydini oku, IndexedDB'ye tasi, localStorage'daki eski kopyayi sil.
+  async function loadWithMigration(key, isValid) {
+    const fromIdb = await idbGet(key);
+    if (fromIdb !== null && isValid(fromIdb)) return fromIdb;
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (isValid(parsed)) {
+          await idbSet(key, parsed);
+          localStorage.removeItem(key);
+          return parsed;
+        }
+      }
+    } catch { /* eski veri okunamadi, onemli degil */ }
+    return null;
+  }
+
+  const grid = GridStack.init({
+    column: 12,
+    cellHeight: 58,
+    margin: 8,
+    float: true,
+    handle: ".drag-handle",
+    animate: true,
+  }, "#dashboard-grid");
+
+  // =====================================================================
+  // Target bus: Watchlist -> ayni Target ID'deki Grafik/Emir Defteri/
+  // Sticky Bar hedeflerine yayin
+  // =====================================================================
+  const targetBus = {
+    listeners: {}, // targetId -> Map(subscriberId -> callback)
+    subscribe(targetId, subscriberId, cb) {
+      if (!this.listeners[targetId]) this.listeners[targetId] = new Map();
+      this.listeners[targetId].set(subscriberId, cb);
+    },
+    unsubscribe(targetId, subscriberId) {
+      this.listeners[targetId]?.delete(subscriberId);
+    },
+    emit(targetId, symbol) {
+      this.listeners[targetId]?.forEach((cb) => cb(symbol));
+    },
+  };
+
+  // Deger degisince kisa yesil/kirmizi parlama efekti
+  function flashValue(el, isUp) {
+    el.classList.remove("flash-up", "flash-down");
+    void el.offsetWidth; // reflow - animasyonu yeniden baslatmak icin
+    el.classList.add(isUp ? "flash-up" : "flash-down");
+  }
+
+  // Target 1/2/3 buton grubunu olusturur; hem panel basliklarinda hem
+  // Sticky Bar'da ayni mantikla kullanilir.
+  function createTargetButtonGroup(initialTargetId, indicatorEl, onChange) {
+    const wrap = document.createElement("div");
+    wrap.className = "target-group";
+    const buttons = [1, 2, 3].map((tId) => {
+      const btn = document.createElement("button");
+      btn.className = "target-btn" + (tId === initialTargetId ? ` active-${tId}` : "");
+      btn.textContent = String(tId);
+      btn.title = `Target ${tId}`;
+      btn.dataset.target = String(tId);
+      wrap.appendChild(btn);
+      return btn;
+    });
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tId = Number(btn.dataset.target);
+        buttons.forEach((b) => {
+          b.className = "target-btn" + (Number(b.dataset.target) === tId ? ` active-${tId}` : "");
+        });
+        if (indicatorEl) {
+          indicatorEl.style.background = TARGET_COLORS[tId];
+          indicatorEl.style.color = TARGET_COLORS[tId];
+          indicatorEl.title = `Target ${tId}`;
+        }
+        onChange(tId);
+      });
+    });
+    return wrap;
+  }
+
+  // =====================================================================
+  // Ortak panel govdesi (baslik + tutamac + target secici + butonlar)
+  // =====================================================================
+  function buildPanelShell(id, title, initialTargetId, onTargetChange, getAlertSymbol) {
+    const item = document.createElement("div");
+    item.className = "grid-stack-item";
+
+    const content = document.createElement("div");
+    content.className = "grid-stack-item-content panel";
+
+    const header = document.createElement("div");
+    header.className = "panel-header";
+
+    const handle = document.createElement("span");
+    handle.className = "drag-handle";
+    handle.textContent = "≡";
+    handle.title = "Sürüklemek için tutun";
+
+    const indicator = document.createElement("span");
+    indicator.className = "target-indicator";
+    indicator.style.background = TARGET_COLORS[initialTargetId];
+    indicator.style.color = TARGET_COLORS[initialTargetId];
+    indicator.title = `Target ${initialTargetId}`;
+
+    const titleEl = document.createElement("span");
+    titleEl.className = "panel-title";
+    titleEl.textContent = title;
+
+    const targetGroup = createTargetButtonGroup(initialTargetId, indicator, onTargetChange);
+
+    const bellBtn = document.createElement("button");
+    bellBtn.className = "panel-btn";
+    bellBtn.textContent = "🔔";
+    bellBtn.title = "Alarm ekle";
+    bellBtn.addEventListener("click", () => {
+      const sym = (typeof getAlertSymbol === "function" ? getAlertSymbol() : getAlertSymbol) || "BTCUSDT";
+      openAlertManager(sym);
+    });
+
+    const maxBtn = document.createElement("button");
+    maxBtn.className = "panel-btn";
+    maxBtn.textContent = "⤢";
+    maxBtn.title = "Tam ekran";
+    maxBtn.addEventListener("click", () => toggleMaximize(id));
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "panel-btn close-btn";
+    closeBtn.textContent = "✕";
+    closeBtn.title = "Paneli kapat";
+    closeBtn.addEventListener("click", () => closePanel(id));
+
+    header.append(handle, indicator, titleEl, targetGroup, bellBtn, maxBtn, closeBtn);
+
+    const body = document.createElement("div");
+    body.className = "panel-body";
+
+    content.append(header, body);
+    item.appendChild(content);
+
+    return { item, body, titleEl };
+  }
+
+  function toggleMaximize(id) {
+    const item = grid.engine.nodes.find((n) => n.id === id)?.el;
+    if (!item) return;
+
+    if (maximizedPanelId === id) {
+      item.classList.remove("maximized");
+      backdrop.classList.remove("visible");
+      grid.movable(item, true);
+      grid.resizable(item, true);
+      maximizedPanelId = null;
+    } else {
+      if (maximizedPanelId) toggleMaximize(maximizedPanelId);
+      item.classList.add("maximized");
+      backdrop.classList.add("visible");
+      grid.movable(item, false);
+      grid.resizable(item, false);
+      maximizedPanelId = id;
+    }
+  }
+
+  function closePanel(id) {
+    const node = grid.engine.nodes.find((n) => n.id === id);
+    if (!node) return;
+    panelInstances[id]?.destroy?.();
+    delete panelInstances[id];
+    delete panelsMeta[id];
+    if (maximizedPanelId === id) {
+      backdrop.classList.remove("visible");
+      maximizedPanelId = null;
+    }
+    grid.removeWidget(node.el);
+    saveLayout();
+  }
+
+  // =====================================================================
+  // WATCHLIST PANELI
+  // =====================================================================
+  function createWatchlistPanel(id, initialTargetId) {
+    let targetId = initialTargetId;
+
+    const { item, body } = buildPanelShell(id, "İzleme Listesi", targetId, (newId) => {
+      targetId = newId;
+      panelsMeta[id].targetId = newId;
+      saveLayout();
+    }, () => "BTCUSDT");
+    body.classList.add("watchlist-body");
+
+    // --- Sutun goster/gizle kontrolleri ---
+    const colBar = document.createElement("div");
+    colBar.className = "wl-col-toggles";
+    const wrap = document.createElement("div");
+    wrap.className = "wl-table-wrap";
+    const table = document.createElement("table");
+    table.className = "wl-table";
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th class="col-symbol">Sembol</th>
+          <th class="col-price">Fiyat</th>
+          <th class="col-fr">FR (Fonlama)</th>
+          <th class="col-oi">OI (Açık Pozisyon)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>`;
+    wrap.appendChild(table);
+    const tbody = table.querySelector("tbody");
+
+    ["fr", "oi"].forEach((col) => {
+      const btn = document.createElement("button");
+      btn.className = "wl-col-toggle-btn active";
+      btn.textContent = col.toUpperCase();
+      btn.title = `${col.toUpperCase()} sütununu göster/gizle`;
+      btn.addEventListener("click", () => {
+        const hidden = table.classList.toggle(`hide-${col}`);
+        btn.classList.toggle("active", !hidden);
+      });
+      colBar.appendChild(btn);
+    });
+
+    body.appendChild(colBar);
+    body.appendChild(wrap);
+
+    // sym -> { price, fundingRate, oiQty }, hucreleri yeniden hesaplamak icin
+    const state = {};
+    const rows = {};
+
+    WATCHLIST_SYMBOLS.forEach((sym) => {
+      const symbolUpper = sym.toUpperCase();
+      state[sym] = { price: null, fundingRate: null, oiQty: null };
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="col-symbol wl-symbol">${sym.replace("usdt", "").toUpperCase()}/USDT<span class="wl-warn-icon"></span></td>
+        <td class="col-price wl-price">—</td>
+        <td class="col-fr wl-fr">—</td>
+        <td class="col-oi wl-oi">—</td>`;
+      tr.addEventListener("click", () => {
+        tr.style.background = "rgba(232,163,61,0.18)";
+        setTimeout(() => { tr.style.background = ""; }, 250);
+        targetBus.emit(targetId, symbolUpper);
+      });
+      tbody.appendChild(tr);
+      rows[sym] = {
+        priceCell: tr.querySelector(".wl-price"),
+        frCell: tr.querySelector(".wl-fr"),
+        oiCell: tr.querySelector(".wl-oi"),
+        warnIcon: tr.querySelector(".wl-warn-icon"),
+      };
+    });
+
+    function renderScannerIcons() {
+      WATCHLIST_SYMBOLS.forEach((sym) => {
+        const entry = marketScanner.bySymbol[sym];
+        const row = rows[sym];
+        if (!entry || !row) return;
+        const reasons = [];
+        if (entry.extremeLevel > 0) reasons.push("Ekstrem FR");
+        if (entry.oiDivergence) reasons.push("OI Diverjansı");
+        row.warnIcon.textContent = reasons.length ? " ⚠️" : "";
+        row.warnIcon.title = reasons.join(" + ");
+      });
+    }
+    marketScanner.subscribe(renderScannerIcons);
+    renderScannerIcons();
+
+    function formatCompactUsd(v) {
+      if (v >= 1e9) return "$" + (v / 1e9).toFixed(2) + "B";
+      if (v >= 1e6) return "$" + (v / 1e6).toFixed(1) + "M";
+      if (v >= 1e3) return "$" + (v / 1e3).toFixed(1) + "K";
+      return "$" + v.toFixed(0);
+    }
+
+    function renderOi(sym) {
+      const s = state[sym];
+      if (s.price === null || s.oiQty === null) return;
+      rows[sym].oiCell.textContent = formatCompactUsd(s.oiQty * s.price);
+    }
+
+    // --- Fiyat (spot miniTicker, coklu sembol tek baglanti) ---
+    let priceWs = null;
+    let priceRetryMs = 1000;
+    let priceHeartbeat = null;
+    let stopped = false;
+
+    function connectPrice() {
+      if (stopped) return;
+      const streams = WATCHLIST_SYMBOLS.map((s) => `${s}@miniTicker`).join("/");
+      priceWs = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
+      priceWs.onopen = () => { priceRetryMs = 1000; resetPriceHeartbeat(); };
+      priceWs.onmessage = (event) => {
+        resetPriceHeartbeat();
+        let msg; try { msg = JSON.parse(event.data); } catch { return; }
+        const d = msg.data;
+        if (!d) return;
+        const sym = d.s.toLowerCase();
+        const s = state[sym];
+        if (!s) return;
+        const close = parseFloat(d.c);
+        const prevPrice = s.price;
+        s.price = close;
+        rows[sym].priceCell.textContent = close.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+        if (prevPrice !== null && close !== prevPrice) flashValue(rows[sym].priceCell, close >= prevPrice);
+        renderOi(sym);
+      };
+      priceWs.onclose = () => { clearPriceHeartbeat(); if (!stopped) schedulePriceReconnect(); };
+      priceWs.onerror = () => priceWs.close();
+    }
+    function resetPriceHeartbeat() { clearPriceHeartbeat(); priceHeartbeat = setTimeout(() => priceWs && priceWs.close(), 60000); }
+    function clearPriceHeartbeat() { if (priceHeartbeat) { clearTimeout(priceHeartbeat); priceHeartbeat = null; } }
+    function schedulePriceReconnect() {
+      setTimeout(connectPrice, priceRetryMs);
+      priceRetryMs = Math.min(priceRetryMs * 2, 30000);
+    }
+
+    // --- Funding Rate (futures markPrice@1s, coklu sembol tek baglanti) ---
+    let fundingWs = null;
+    let fundingRetryMs = 1000;
+    let fundingHeartbeat = null;
+
+    function connectFunding() {
+      if (stopped) return;
+      const streams = WATCHLIST_SYMBOLS.map((s) => `${s}@markPrice@1s`).join("/");
+      fundingWs = new WebSocket(`wss://fstream.binance.com/market/stream?streams=${streams}`);
+      fundingWs.onopen = () => { fundingRetryMs = 1000; resetFundingHeartbeat(); };
+      fundingWs.onmessage = (event) => {
+        resetFundingHeartbeat();
+        let msg; try { msg = JSON.parse(event.data); } catch { return; }
+        const d = msg.data;
+        if (!d || d.r === undefined) return;
+        const sym = d.s.toLowerCase();
+        const s = state[sym];
+        if (!s) return;
+        const rate = parseFloat(d.r) * 100;
+        const prevRate = s.fundingRate;
+        s.fundingRate = rate;
+        const cell = rows[sym].frCell;
+        cell.textContent = `%${rate.toFixed(4)}`;
+        cell.style.color = rate >= 0 ? "var(--up)" : "var(--down)";
+        if (prevRate !== null && rate !== prevRate) flashValue(cell, rate >= prevRate);
+      };
+      fundingWs.onclose = () => { clearFundingHeartbeat(); if (!stopped) scheduleFundingReconnect(); };
+      fundingWs.onerror = () => fundingWs.close();
+    }
+    function resetFundingHeartbeat() { clearFundingHeartbeat(); fundingHeartbeat = setTimeout(() => fundingWs && fundingWs.close(), 60000); }
+    function clearFundingHeartbeat() { if (fundingHeartbeat) { clearTimeout(fundingHeartbeat); fundingHeartbeat = null; } }
+    function scheduleFundingReconnect() {
+      setTimeout(connectFunding, fundingRetryMs);
+      fundingRetryMs = Math.min(fundingRetryMs * 2, 30000);
+    }
+
+    // --- Open Interest (REST polling - Binance'de canli push stream yok) ---
+    let oiPollTimer = null;
+    async function pollOpenInterest() {
+      try {
+        const results = await Promise.all(
+          WATCHLIST_SYMBOLS.map(async (sym) => {
+            try {
+              const res = await fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${sym.toUpperCase()}`);
+              if (!res.ok) throw new Error("HTTP " + res.status);
+              const data = await res.json();
+              return { sym, oi: parseFloat(data.openInterest) };
+            } catch (e) {
+              console.error(`[Watchlist] ${sym.toUpperCase()} OI alinamadi:`, e.message);
+              return null;
+            }
+          })
+        );
+        results.forEach((r) => {
+          if (!r) return;
+          state[r.sym].oiQty = r.oi;
+          renderOi(r.sym);
+        });
+      } catch (e) { /* bireysel hatalar zaten yukarida yakalandi */ }
+    }
+    function startOiPolling() {
+      pollOpenInterest();
+      oiPollTimer = setInterval(pollOpenInterest, 10000);
+    }
+
+    connectPrice();
+    connectFunding();
+    startOiPolling();
+
+    panelInstances[id] = {
+      destroy() {
+        stopped = true;
+        clearPriceHeartbeat();
+        clearFundingHeartbeat();
+        if (priceWs) priceWs.close();
+        if (fundingWs) fundingWs.close();
+        if (oiPollTimer) clearInterval(oiPollTimer);
+        marketScanner.unsubscribe(renderScannerIcons);
+      },
+    };
+
+    return item;
+  }
+
+  // =====================================================================
+  // GRAFIK PANELI
+  // =====================================================================
+  function createChartPanel(id, initialSymbol, initialTargetId) {
+    let symbol = initialSymbol;
+    let interval = (panelsMeta[id] && panelsMeta[id].interval) || "1m";
+    if (panelsMeta[id]) panelsMeta[id].interval = interval; // eski sahnelerde alan yoksa varsayilanla doldur
+    let targetId = null;
+    let generation = 0;
+
+    const { item, body, titleEl } = buildPanelShell(id, `${symbol} · ${interval}`, initialTargetId, (newId) => {
+      subscribeToTarget(newId);
+      panelsMeta[id].targetId = newId;
+      saveLayout();
+    }, () => symbol);
+    body.style.display = "flex";
+    body.style.flexDirection = "column";
+    body.style.overflow = "hidden";
+
+    // --- Zaman dilimi (timeframe) secici ---
+    const TIMEFRAMES = [
+      { label: "1m", value: "1m" },
+      { label: "5m", value: "5m" },
+      { label: "15m", value: "15m" },
+      { label: "1h", value: "1h" },
+      { label: "4h", value: "4h" },
+      { label: "1D", value: "1d" },
+    ];
+    const tfBar = document.createElement("div");
+    tfBar.className = "chart-tf-bar";
+    const tfButtons = TIMEFRAMES.map((tf) => {
+      const btn = document.createElement("button");
+      btn.className = "chart-tf-btn" + (tf.value === interval ? " active" : "");
+      btn.textContent = tf.label;
+      btn.dataset.value = tf.value;
+      btn.addEventListener("click", () => changeInterval(tf.value));
+      tfBar.appendChild(btn);
+      return btn;
+    });
+    body.appendChild(tfBar);
+
+    const haBtn = document.createElement("button");
+    haBtn.className = "chart-tf-btn";
+    haBtn.textContent = "HA";
+    haBtn.title = "Heikin Ashi mum modu";
+    haBtn.style.marginLeft = "auto";
+    tfBar.appendChild(haBtn);
+    haBtn.addEventListener("click", () => {
+      haMode = !haMode;
+      haBtn.classList.toggle("active", haMode);
+      applyDisplayData();
+    });
+
+    const chartArea = document.createElement("div");
+    chartArea.style.position = "relative";
+    chartArea.style.flex = "1";
+    chartArea.style.minHeight = "0";
+    body.appendChild(chartArea);
+
+    const container = document.createElement("div");
+    container.className = "chart-container";
+    const initMsg = document.createElement("div");
+    initMsg.className = "chart-init-msg";
+    initMsg.textContent = "geçmiş veriler yükleniyor...";
+    container.appendChild(initMsg);
+    chartArea.appendChild(container);
+
+    const chart = LightweightCharts.createChart(container, {
+      layout: {
+        background: { type: "solid", color: "transparent" },
+        textColor: "#7c8699",
+        fontFamily: "'IBM Plex Mono', monospace",
+        fontSize: 11,
+      },
+      grid: { vertLines: { color: "#151b28" }, horzLines: { color: "#151b28" } },
+      rightPriceScale: { borderColor: "#1e2634" },
+      timeScale: { borderColor: "#1e2634", timeVisible: true, secondsVisible: false, rightOffset: 25 },
+      crosshair: {
+        mode: LightweightCharts.CrosshairMode.Normal,
+        horzLine: {
+          labelVisible: true,
+          color: "#7c8699",
+          labelBackgroundColor: "#1e2634",
+        },
+        vertLine: {
+          color: "#7c8699",
+          labelBackgroundColor: "#1e2634",
+        },
+      },
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: "#26a69a", downColor: "#ef5350", borderVisible: false,
+      wickUpColor: "#26a69a", wickDownColor: "#ef5350",
+    });
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      if (width > 0 && height > 0) {
+        chart.resize(width, height);
+        drawCanvas.width = width;
+        drawCanvas.height = height;
+      }
+    });
+    resizeObserver.observe(container);
+
+    // =====================================================================
+    // CIZIM ARAC CUBUGU VE CANVAS KATMANI
+    // =====================================================================
+    const drawCanvas = document.createElement("canvas");
+    drawCanvas.className = "draw-canvas";
+    chartArea.appendChild(drawCanvas);
+    const dctx = drawCanvas.getContext("2d");
+
+    const drawToolbar = document.createElement("div");
+    drawToolbar.className = "draw-toolbar";
+    const toolButtons = {};
+    DRAW_TOOLS.forEach((tool, i) => {
+      if (i === 1 || i === 7 || i === 9) { // gruplar arasi ayrac: secim | cizgiler | fib&olcum | pozisyon
+        const hr = document.createElement("hr");
+        drawToolbar.appendChild(hr);
+      }
+      const btn = document.createElement("button");
+      btn.className = "draw-tool-btn" + (tool.cls ? ` ${tool.cls}` : "") + (tool.id === "select" ? " active" : "");
+      btn.textContent = tool.label;
+      btn.title = tool.title;
+      btn.addEventListener("click", () => setActiveTool(tool.id));
+      toolButtons[tool.id] = btn;
+      drawToolbar.appendChild(btn);
+    });
+    const clearHr = document.createElement("hr");
+    drawToolbar.appendChild(clearHr);
+    const clearBtn = document.createElement("button");
+    clearBtn.className = "draw-tool-btn";
+    clearBtn.textContent = "🗑";
+    clearBtn.title = "Bu semboldeki tüm çizimleri temizle";
+    clearBtn.addEventListener("click", () => {
+      const shapes = getShapesForSymbol(symbol);
+      if (shapes.length === 0) return;
+      if (!window.confirm(`${symbol} için ${shapes.length} çizimin tamamını silmek istediğinize emin misiniz?`)) return;
+      shapes.length = 0;
+      selectedShape = null;
+      renderMiniToolbar();
+      persistDrawingsStore();
+    });
+    drawToolbar.appendChild(clearBtn);
+    chartArea.appendChild(drawToolbar);
+
+    const miniToolbar = document.createElement("div");
+    miniToolbar.className = "draw-mini-toolbar";
+    miniToolbar.innerHTML =
+      DRAW_COLORS.map((c) => `<button class="draw-color-swatch" data-color="${c}" style="background:${c}"></button>`).join("") +
+      `<button class="draw-mini-btn" id="mini-width-btn">Kalınlık</button>` +
+      `<button class="draw-mini-btn danger" id="mini-delete-btn">Sil</button>`;
+    chartArea.appendChild(miniToolbar);
+    miniToolbar.querySelectorAll(".draw-color-swatch").forEach((sw) => {
+      sw.addEventListener("click", () => {
+        if (!selectedShape) return;
+        selectedShape.color = sw.dataset.color;
+        persistDrawingsStore();
+        renderMiniToolbar();
+      });
+    });
+    miniToolbar.querySelector("#mini-width-btn").addEventListener("click", () => {
+      if (!selectedShape) return;
+      selectedShape.lineWidth = (selectedShape.lineWidth % 4) + 1;
+      persistDrawingsStore();
+    });
+    miniToolbar.querySelector("#mini-delete-btn").addEventListener("click", () => {
+      if (!selectedShape) return;
+      const shapes = getShapesForSymbol(symbol);
+      const idx = shapes.indexOf(selectedShape);
+      if (idx !== -1) shapes.splice(idx, 1);
+      persistDrawingsStore();
+      selectedShape = null;
+      renderMiniToolbar();
+    });
+
+    let activeTool = "select";
+    let pendingPoints = [];
+    let previewPoint = null;
+    let selectedShape = null;
+    let dragTarget = null; // {shape, kind, index}
+    let drawStopped = false;
+
+    function setActiveTool(toolId) {
+      activeTool = toolId;
+      pendingPoints = [];
+      selectedShape = null;
+      renderMiniToolbar();
+      Object.entries(toolButtons).forEach(([id, btn]) => btn.classList.toggle("active", id === toolId));
+      const isDrawing = toolId !== "select";
+      // Cizim modunda canvas TUM fare olaylarini yakalar (yanlislikla grafik
+      // kaymasin diye). Secim modunda ise varsayilan olarak "none" - fare
+      // bir cizimin uzerine gelmedigi surece olaylar seffaf sekilde alttaki
+      // grafige gecer, boylece pan/zoom calismaya devam eder. Bir cizimin
+      // uzerine gelince mousemove dinleyicisi "auto"ya ceviriyor (asagida).
+      drawCanvas.style.pointerEvents = isDrawing ? "auto" : "none";
+    }
+
+    function canvasPos(evt) {
+      const rect = drawCanvas.getBoundingClientRect();
+      return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+    }
+
+    function H() {
+      return {
+        width: drawCanvas.width,
+        height: drawCanvas.height,
+        timeToX: (t) => chart.timeScale().timeToCoordinate(t),
+        priceToY: (p) => candleSeries.priceToCoordinate(p),
+      };
+    }
+
+    function visibleRangeSeconds() {
+      const r = chart.timeScale().getVisibleRange();
+      if (!r) return 3600;
+      return Math.max(60, r.to - r.from);
+    }
+
+    // --- Cizim (render) ------------------------------------------------
+    function drawOneShape(ctx, shape, h, isSelected) {
+      ctx.save();
+      ctx.strokeStyle = shape.color;
+      ctx.fillStyle = shape.color;
+      ctx.lineWidth = shape.lineWidth || 2;
+      ctx.font = "10px 'IBM Plex Mono', monospace";
+      if (isSelected) { ctx.setLineDash([5, 3]); ctx.lineWidth = (shape.lineWidth || 2) + 1; }
+
+      const pts = shape.points;
+      if (shape.type === "hline") {
+        const y = h.priceToY(pts[0].price);
+        if (y === null) { ctx.restore(); return; }
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(h.width, y); ctx.stroke();
+        ctx.fillText(pts[0].price.toLocaleString("en-US", { maximumFractionDigits: 4 }), h.width - 70, y - 4);
+      } else if (shape.type === "trendline" || shape.type === "arrow") {
+        const x1 = h.timeToX(pts[0].time), y1 = h.priceToY(pts[0].price);
+        const x2 = h.timeToX(pts[1].time), y2 = h.priceToY(pts[1].price);
+        if ([x1, y1, x2, y2].some((v) => v === null)) { ctx.restore(); return; }
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        if (shape.type === "arrow") { ctx.setLineDash([]); drawArrowHead(ctx, x1, y1, x2, y2); }
+      } else if (shape.type === "rectangle") {
+        const x1 = h.timeToX(pts[0].time), y1 = h.priceToY(pts[0].price);
+        const x2 = h.timeToX(pts[1].time), y2 = h.priceToY(pts[1].price);
+        if ([x1, y1, x2, y2].some((v) => v === null)) { ctx.restore(); return; }
+        ctx.globalAlpha = 0.15;
+        ctx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+        ctx.globalAlpha = 1;
+        ctx.strokeRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+      } else if (shape.type === "channel") {
+        const x1 = h.timeToX(pts[0].time), y1 = h.priceToY(pts[0].price);
+        const x2 = h.timeToX(pts[1].time), y2 = h.priceToY(pts[1].price);
+        if ([x1, y1, x2, y2].some((v) => v === null)) { ctx.restore(); return; }
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        if (pts[2]) {
+          const y3 = h.priceToY(pts[2].price);
+          if (y3 !== null) {
+            const dy = y3 - y1;
+            ctx.beginPath(); ctx.moveTo(x1, y1 + dy); ctx.lineTo(x2, y2 + dy); ctx.stroke();
+          }
+        }
+      } else if (shape.type === "fib") {
+        const x1 = h.timeToX(pts[0].time), x2 = h.timeToX(pts[1].time);
+        if (x1 === null || x2 === null) { ctx.restore(); return; }
+        const xMin = Math.min(x1, x2);
+        ctx.setLineDash(isSelected ? [5, 3] : []);
+        FIB_LEVELS.forEach((lv) => {
+          const price = pts[0].price + (pts[1].price - pts[0].price) * lv;
+          const y = h.priceToY(price);
+          if (y === null) return;
+          ctx.globalAlpha = 0.55;
+          ctx.beginPath(); ctx.moveTo(xMin, y); ctx.lineTo(h.width, y); ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.fillText(`${(lv * 100).toFixed(1)}%  ${price.toLocaleString("en-US", { maximumFractionDigits: 2 })}`, xMin + 4, y - 3);
+        });
+      } else if (shape.type === "measure") {
+        const x1 = h.timeToX(pts[0].time), y1 = h.priceToY(pts[0].price);
+        const x2 = h.timeToX(pts[1].time), y2 = h.priceToY(pts[1].price);
+        if ([x1, y1, x2, y2].some((v) => v === null)) { ctx.restore(); return; }
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        ctx.setLineDash([]);
+        const dPrice = pts[1].price - pts[0].price;
+        const dPct = (dPrice / pts[0].price) * 100;
+        const label = `${dPrice >= 0 ? "+" : ""}${dPrice.toFixed(2)}  (${dPct >= 0 ? "+" : ""}${dPct.toFixed(2)}%)`;
+        const midX = (x1 + x2) / 2, midY = (y1 + y2) / 2;
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = dPrice >= 0 ? "#26a69a" : "#ef5350";
+        ctx.fillRect(midX - tw / 2 - 5, midY - 17, tw + 10, 16);
+        ctx.fillStyle = "#0a0e14";
+        ctx.fillText(label, midX - tw / 2, midY - 5);
+      } else if (shape.type === "label") {
+        const x = h.timeToX(pts[0].time), y = h.priceToY(pts[0].price);
+        if (x === null || y === null) { ctx.restore(); return; }
+        const text = shape.text || "";
+        const tw = ctx.measureText(text).width;
+        ctx.fillStyle = shape.color;
+        ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(x + 6, y - 17, tw + 10, 16);
+        ctx.fillStyle = "#0a0e14";
+        ctx.fillText(text, x + 11, y - 5);
+      } else if (shape.type === "long" || shape.type === "short") {
+        const x1 = h.timeToX(pts[0].time);
+        const yEntry = h.priceToY(pts[0].price);
+        const yTp = h.priceToY(shape.tp);
+        const ySl = h.priceToY(shape.sl);
+        if ([x1, yEntry, yTp, ySl].some((v) => v === null)) { ctx.restore(); return; }
+        const width = shape.widthPx || 120;
+        const left = x1;
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = "#26a69a";
+        ctx.fillRect(left, Math.min(yEntry, yTp), width, Math.abs(yEntry - yTp));
+        ctx.fillStyle = "#ef5350";
+        ctx.fillRect(left, Math.min(yEntry, ySl), width, Math.abs(yEntry - ySl));
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = "#e6eaf2"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(left, yEntry); ctx.lineTo(left + width, yEntry); ctx.stroke();
+        const risk = Math.abs(pts[0].price - shape.sl);
+        const reward = Math.abs(shape.tp - pts[0].price);
+        const rr = risk ? reward / risk : 0;
+        ctx.fillStyle = "#e6eaf2";
+        ctx.fillText(`Giriş ${pts[0].price.toFixed(2)}  ·  R:R 1:${rr.toFixed(2)}`, left + 4, Math.min(yEntry, yTp) - 4);
+        ctx.fillStyle = "#26a69a"; ctx.fillText(`TP ${shape.tp.toFixed(2)}`, left + 4, Math.min(yEntry, yTp) + 12);
+        ctx.fillStyle = "#ef5350"; ctx.fillText(`SL ${shape.sl.toFixed(2)}`, left + 4, Math.max(yEntry, ySl) - 4);
+      }
+      ctx.restore();
+    }
+
+    function render() {
+      if (drawStopped) return;
+      dctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+      const h = H();
+      const shapes = getShapesForSymbol(symbol);
+      shapes.forEach((s) => drawOneShape(dctx, s, h, s === selectedShape));
+
+      if (pendingPoints.length > 0 && previewPoint) {
+        const previewShape = { ...POINT_SHAPE_DEFAULTS(activeTool), points: [...pendingPoints, previewPoint] };
+        dctx.save(); dctx.globalAlpha = 0.6;
+        drawOneShape(dctx, previewShape, h, false);
+        dctx.restore();
+      }
+      requestAnimationFrame(render);
+    }
+    function POINT_SHAPE_DEFAULTS(type) {
+      return { type, color: currentColor, lineWidth: currentWidth };
+    }
+
+    let currentColor = DRAW_COLORS[0];
+    let currentWidth = 2;
+
+    function finalizeShape(shape) {
+      getShapesForSymbol(symbol).push(shape);
+      persistDrawingsStore();
+    }
+
+    // --- Hit-testing ------------------------------------------------------
+    function hitTestShape(shape, x, y) {
+      const h = H();
+      const pts = shape.points;
+      const tol = 8;
+
+      // once nokta tutamaclarini kontrol et (surukleme icin)
+      for (let i = 0; i < pts.length; i++) {
+        const px = h.timeToX(pts[i].time), py = h.priceToY(pts[i].price);
+        if (px !== null && py !== null && Math.hypot(x - px, y - py) <= tol) {
+          return { kind: "point", index: i };
+        }
+      }
+      if (shape.type === "long" || shape.type === "short") {
+        const yEntry = h.priceToY(pts[0].price), yTp = h.priceToY(shape.tp), ySl = h.priceToY(shape.sl);
+        if (yEntry !== null && Math.abs(y - yEntry) <= tol) return { kind: "entry" };
+        if (yTp !== null && Math.abs(y - yTp) <= tol) return { kind: "tp" };
+        if (ySl !== null && Math.abs(y - ySl) <= tol) return { kind: "sl" };
+        return null;
+      }
+      if (shape.type === "hline") {
+        const py = h.priceToY(pts[0].price);
+        return py !== null && Math.abs(y - py) <= tol ? { kind: "point", index: 0 } : null;
+      }
+      if (shape.type === "trendline" || shape.type === "arrow" || shape.type === "measure") {
+        const x1 = h.timeToX(pts[0].time), y1 = h.priceToY(pts[0].price);
+        const x2 = h.timeToX(pts[1].time), y2 = h.priceToY(pts[1].price);
+        if ([x1, y1, x2, y2].some((v) => v === null)) return null;
+        return distToSegment(x, y, x1, y1, x2, y2) <= tol ? { kind: "body" } : null;
+      }
+      if (shape.type === "rectangle") {
+        const x1 = h.timeToX(pts[0].time), y1 = h.priceToY(pts[0].price);
+        const x2 = h.timeToX(pts[1].time), y2 = h.priceToY(pts[1].price);
+        if ([x1, y1, x2, y2].some((v) => v === null)) return null;
+        const inX = x >= Math.min(x1, x2) - tol && x <= Math.max(x1, x2) + tol;
+        const inY = y >= Math.min(y1, y2) - tol && y <= Math.max(y1, y2) + tol;
+        return inX && inY ? { kind: "body" } : null;
+      }
+      if (shape.type === "channel" || shape.type === "fib") {
+        const x1 = h.timeToX(pts[0].time), y1 = h.priceToY(pts[0].price);
+        const x2 = h.timeToX(pts[1].time), y2 = h.priceToY(pts[1].price);
+        if ([x1, y1, x2, y2].some((v) => v === null)) return null;
+        return distToSegment(x, y, x1, y1, x2, y2) <= tol ? { kind: "body" } : null;
+      }
+      if (shape.type === "label") {
+        const x1 = h.timeToX(pts[0].time), y1 = h.priceToY(pts[0].price);
+        if (x1 === null || y1 === null) return null;
+        return (x >= x1 - tol && x <= x1 + 120 && y >= y1 - 20 && y <= y1 + tol) ? { kind: "body" } : null;
+      }
+      return null;
+    }
+
+    function hitTestAll(x, y) {
+      const shapes = getShapesForSymbol(symbol);
+      for (let i = shapes.length - 1; i >= 0; i--) {
+        const res = hitTestShape(shapes[i], x, y);
+        if (res) return { shape: shapes[i], ...res };
+      }
+      return null;
+    }
+
+    function renderMiniToolbar() {
+      if (!selectedShape) { miniToolbar.classList.remove("visible"); return; }
+      const h = H();
+      const p = selectedShape.points[0];
+      const x = h.timeToX(p.time), y = h.priceToY(p.price);
+      if (x === null || y === null) { miniToolbar.classList.remove("visible"); return; }
+      miniToolbar.style.left = Math.min(x, h.width - 180) + "px";
+      miniToolbar.style.top = Math.max(0, y - 40) + "px";
+      miniToolbar.classList.add("visible");
+      miniToolbar.querySelectorAll(".draw-color-swatch").forEach((sw) => {
+        sw.classList.toggle("selected", sw.dataset.color === selectedShape.color);
+      });
+    }
+
+    // --- Fare olaylari ------------------------------------------------------
+    // NOT: mousemove dinleyicisi CANVAS'a degil chartArea'ya bagli - cunku
+    // sec modunda canvas'in pointer-events'i "none" oldugunda olaylar dogrudan
+    // alttaki grafige gidiyor (grafik boylece serbestce kaydirilip
+    // yakinlastirilabiliyor), ama olay yine de DOM agacinda yukari (bubbling)
+    // chartArea'ya kadar ulasiyor. Fare bir cizimin uzerine geldiginde canvas'i
+    // aninda "auto" yapiyoruz ki bir sonraki mousedown/click canvas'a gitsin;
+    // uzaklasinca tekrar "none" yapip grafigi serbest birakiyoruz.
+    chartArea.addEventListener("mousemove", (evt) => {
+      if (evt.target.closest(".draw-mini-toolbar, .draw-toolbar")) return;
+      const rect = chartArea.getBoundingClientRect();
+      const x = evt.clientX - rect.left, y = evt.clientY - rect.top;
+
+      if (pendingPoints.length > 0) {
+        const time = chart.timeScale().coordinateToTime(x);
+        const price = candleSeries.coordinateToPrice(y);
+        if (time !== null && price !== null) previewPoint = { time, price };
+      }
+
+      if (dragTarget) {
+        const time = chart.timeScale().coordinateToTime(x);
+        const price = candleSeries.coordinateToPrice(y);
+        if (time === null || price === null) return;
+        const s = dragTarget.shape;
+        if (dragTarget.kind === "point") s.points[dragTarget.index] = { time, price };
+        else if (dragTarget.kind === "tp") s.tp = price;
+        else if (dragTarget.kind === "sl") s.sl = price;
+        else if (dragTarget.kind === "entry") {
+          s.points[0] = { time, price };
+        } else if (dragTarget.kind === "body") {
+          const dPrice = price - dragTarget.startPrice;
+          const dTime = time - dragTarget.startTime;
+          s.points = dragTarget.origPoints.map((pt) => ({ time: pt.time + dTime, price: pt.price + dPrice }));
+        }
+        return;
+      }
+
+      if (activeTool === "select") {
+        const hit = hitTestAll(x, y);
+        drawCanvas.style.pointerEvents = hit ? "auto" : "none";
+        drawCanvas.style.cursor = hit ? (hit.kind === "body" || hit.kind === "entry" ? "move" : "pointer") : "default";
+      }
+    });
+
+    chartArea.addEventListener("mousedown", (evt) => {
+      if (activeTool !== "select") return;
+      // Mini arac cubugu veya sol dikey arac cubugu uzerindeki bir
+      // tiklama (orn. "Sil" butonu) buraya bubbling ile sizmasin - yoksa
+      // secim aninda sifirlanip butonun kendi click'i bosa cikiyordu.
+      if (evt.target.closest(".draw-mini-toolbar, .draw-toolbar")) return;
+      const rect = chartArea.getBoundingClientRect();
+      const x = evt.clientX - rect.left, y = evt.clientY - rect.top;
+      const hit = hitTestAll(x, y);
+      if (!hit) { selectedShape = null; renderMiniToolbar(); return; }
+      // Bir cizime tam isabet ettik: grafigin bu surukleme boyunca pan/zoom
+      // yapmasini engellemek icin canvas'i hemen "auto" yapiyoruz - onceki
+      // mousemove'un bunu zaten yapmis olmasina guvenmiyoruz (hizli
+      // tiklamalarda o sira kacabiliyordu).
+      drawCanvas.style.pointerEvents = "auto";
+      evt.preventDefault();
+      selectedShape = hit.shape;
+      renderMiniToolbar();
+      if (hit.kind === "body") {
+        const time = chart.timeScale().coordinateToTime(x);
+        const price = candleSeries.coordinateToPrice(y);
+        dragTarget = { shape: hit.shape, kind: "body", startTime: time, startPrice: price, origPoints: hit.shape.points.map((p) => ({ ...p })) };
+      } else {
+        dragTarget = { shape: hit.shape, kind: hit.kind, index: hit.index };
+      }
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (dragTarget) {
+        persistDrawingsStore();
+        dragTarget = null;
+        renderMiniToolbar();
+        // surukleme bittiginde fare artik cizimin uzerinde olmayabilir;
+        // grafigi tekrar serbest birakmak icin sonraki mousemove karar verecek.
+        if (activeTool === "select") drawCanvas.style.pointerEvents = "none";
+      }
+    });
+
+    drawCanvas.addEventListener("click", (evt) => {
+      if (activeTool === "select" || dragTarget) return;
+      const { x, y } = canvasPos(evt);
+      const time = chart.timeScale().coordinateToTime(x);
+      const price = candleSeries.coordinateToPrice(y);
+      if (time === null || price === null) return;
+
+      if (activeTool === "label") {
+        const text = window.prompt("Etiket metni:", "Not");
+        if (text === null) return;
+        finalizeShape({ type: "label", points: [{ time, price }], text, color: currentColor, lineWidth: currentWidth });
+        setActiveTool("select");
+        return;
+      }
+      if (activeTool === "long" || activeTool === "short") {
+        const isLong = activeTool === "long";
+        finalizeShape({
+          type: activeTool,
+          points: [{ time, price }],
+          tp: price * (isLong ? 1.02 : 0.98),
+          sl: price * (isLong ? 0.99 : 1.01),
+          widthPx: drawCanvas.width * 0.18,
+          color: isLong ? "#26a69a" : "#ef5350",
+          lineWidth: currentWidth,
+        });
+        setActiveTool("select");
+        return;
+      }
+
+      pendingPoints.push({ time, price });
+      const needed = POINTS_NEEDED[activeTool];
+      if (pendingPoints.length >= needed) {
+        finalizeShape({ type: activeTool, points: [...pendingPoints], color: currentColor, lineWidth: currentWidth });
+        pendingPoints = [];
+        previewPoint = null;
+        setActiveTool("select");
+      }
+    });
+
+    // Baslangicta sec modundayiz: canvas seffaf (pointer-events: none), grafik
+    // serbestce kaydirilip yakinlastirilabilir. Fare bir cizimin uzerine
+    // geldiginde yukaridaki chartArea mousemove dinleyicisi "auto"ya cevirir.
+    drawCanvas.style.pointerEvents = "none";
+
+    requestAnimationFrame(render);
+
+    let lastClose = null;
+    let haMode = false;
+    let rawCandles = []; // her zaman HAM (normal) mumlar - HA bundan hesaplanir
+    let lastHaReversalTime = null; // ayni mum icin tekrar bildirim gondermemek icin
+
+    function computeHeikinAshi(raw) {
+      const out = [];
+      let prevOpen = null, prevClose = null;
+      raw.forEach((c) => {
+        const haClose = (c.open + c.high + c.low + c.close) / 4;
+        const haOpen = prevOpen === null ? (c.open + c.close) / 2 : (prevOpen + prevClose) / 2;
+        const haHigh = Math.max(c.high, haOpen, haClose);
+        const haLow = Math.min(c.low, haOpen, haClose);
+        out.push({ time: c.time, open: haOpen, high: haHigh, low: haLow, close: haClose });
+        prevOpen = haOpen; prevClose = haClose;
+      });
+      return out;
+    }
+
+    function checkReversalConfirmation(haArray) {
+      if (!haMode || haArray.length < 2) return;
+      const entry = marketScanner.bySymbol[symbol.toLowerCase()];
+      if (!entry || entry.extremeLevel === 0 || !entry.oiDivergence) return;
+      const last = haArray[haArray.length - 1];
+      const prev = haArray[haArray.length - 2];
+      const lastRed = last.close < last.open;
+      const prevRed = prev.close < prev.open;
+      if (lastRed && !prevRed && lastHaReversalTime !== last.time) {
+        lastHaReversalTime = last.time;
+        const desc = `${symbol} · Ekstrem FR + OI Diverjansı sonrası ilk kırmızı Heikin Ashi mumu kapandı`;
+        showToast("Dönüş Teyit Edildi", desc);
+        addHistoryEntry("Heikin Ashi Dönüş", desc);
+        renderAlertHistory();
+        playAlertSound();
+      }
+    }
+
+    // --- PDH/PDL/PWH/PWL likidasyon temizlik seviyeleri --------------------
+    let priceLines = [];
+    let liqLevels = { pdh: null, pdl: null, pwh: null, pwl: null };
+    let sweptFlags = { pdh: false, pdl: false, pwh: false, pwl: false };
+    let chartMarkers = [];
+
+    function clearPriceLines() {
+      priceLines.forEach((pl) => { try { candleSeries.removePriceLine(pl); } catch (e) { /* chart zaten kapanmis olabilir */ } });
+      priceLines = [];
+    }
+
+    function drawLiquidityLevels() {
+      clearPriceLines();
+      const defs = [
+        { price: liqLevels.pdh, color: "#ef5350", title: "PDH" },
+        { price: liqLevels.pdl, color: "#26a69a", title: "PDL" },
+        { price: liqLevels.pwh, color: "#ff9f43", title: "PWH" },
+        { price: liqLevels.pwl, color: "#4fc3f7", title: "PWL" },
+      ];
+      defs.forEach((d) => {
+        if (d.price === null) return;
+        const line = candleSeries.createPriceLine({
+          price: d.price,
+          color: d.color,
+          lineWidth: 1,
+          lineStyle: LightweightCharts.LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: d.title,
+        });
+        priceLines.push(line);
+      });
+    }
+
+    // PDH/PDL/PWH/PWL sadece SEMBOLE bagli (takvim gunu/haftasi), grafigin
+    // kendi zaman dilimi (1m/1h/...) secimiyle ilgisiz - o yuzden sadece
+    // sembol degisince yeniden cekilir, interval degisince degil.
+    async function loadLiquidityLevels() {
+      const mySymbol = symbol;
+      try {
+        const [dailyRes, weeklyRes] = await Promise.all([
+          fetch(`https://api.binance.com/api/v3/klines?symbol=${mySymbol}&interval=1d&limit=3`),
+          fetch(`https://api.binance.com/api/v3/klines?symbol=${mySymbol}&interval=1w&limit=3`),
+        ]);
+        if (!dailyRes.ok || !weeklyRes.ok) throw new Error("REST hatasi");
+        const daily = await dailyRes.json();
+        const weekly = await weeklyRes.json();
+        if (mySymbol !== symbol) return;
+        // son eleman bugun/bu hafta icin hala olusuyor olabilir - ondan
+        // onceki TAMAMLANMIS gunu/haftayi al (PDH/PDL/PWH/PWL tanimi budur).
+        const prevDay = daily.length >= 2 ? daily[daily.length - 2] : null;
+        const prevWeek = weekly.length >= 2 ? weekly[weekly.length - 2] : null;
+        liqLevels = {
+          pdh: prevDay ? parseFloat(prevDay[2]) : null,
+          pdl: prevDay ? parseFloat(prevDay[3]) : null,
+          pwh: prevWeek ? parseFloat(prevWeek[2]) : null,
+          pwl: prevWeek ? parseFloat(prevWeek[3]) : null,
+        };
+        sweptFlags = { pdh: false, pdl: false, pwh: false, pwl: false };
+        drawLiquidityLevels();
+      } catch (e) {
+        console.error("[Likidite Seviyeleri] PDH/PDL/PWH/PWL alinamadi:", e);
+      }
+    }
+
+    // Bir mum, seviyeyi ignesiyle (wick) delip KAPANISTA geri donduyse
+    // "sweep" (likidasyon temizligi) olarak kabul edilir - klasik stop-avi
+    // / likidite toplama paterni.
+    function checkLiquiditySweep(candle) {
+      const checks = [
+        { key: "pdh", swept: liqLevels.pdh !== null && candle.high > liqLevels.pdh && candle.close < liqLevels.pdh, label: "PDH (Önceki Gün Zirvesi)", dir: "down" },
+        { key: "pdl", swept: liqLevels.pdl !== null && candle.low < liqLevels.pdl && candle.close > liqLevels.pdl, label: "PDL (Önceki Gün Dibi)", dir: "up" },
+        { key: "pwh", swept: liqLevels.pwh !== null && candle.high > liqLevels.pwh && candle.close < liqLevels.pwh, label: "PWH (Önceki Hafta Zirvesi)", dir: "down" },
+        { key: "pwl", swept: liqLevels.pwl !== null && candle.low < liqLevels.pwl && candle.close > liqLevels.pwl, label: "PWL (Önceki Hafta Dibi)", dir: "up" },
+      ];
+      checks.forEach((c) => {
+        if (!c.swept || sweptFlags[c.key]) return;
+        sweptFlags[c.key] = true;
+        const desc = `${symbol} · ${c.label} seviyesi iğnelendi (sweep) ve fiyat içeri döndü`;
+        showToast("⚡ Liquidation Swept", desc);
+        addHistoryEntry("Likidite Temizliği", desc);
+        renderAlertHistory();
+        playAlertSound();
+        chartMarkers.push({
+          time: candle.time,
+          position: c.dir === "down" ? "aboveBar" : "belowBar",
+          color: c.dir === "down" ? "#ef5350" : "#26a69a",
+          shape: c.dir === "down" ? "arrowDown" : "arrowUp",
+          text: `⚡ ${c.key.toUpperCase()}`,
+        });
+        candleSeries.setMarkers(chartMarkers.slice(-30));
+      });
+    }
+
+    function applyDisplayData() {
+      if (rawCandles.length === 0) return;
+      if (haMode) {
+        const haArray = computeHeikinAshi(rawCandles);
+        candleSeries.setData(haArray);
+      } else {
+        candleSeries.setData(rawCandles);
+      }
+      chart.timeScale().fitContent();
+    }
+
+    function scannerBadgeHtml() {
+      const entry = marketScanner.bySymbol[symbol.toLowerCase()];
+      if (!entry || (entry.extremeLevel === 0 && !entry.oiDivergence)) return "";
+      const reasons = [];
+      if (entry.extremeLevel > 0) reasons.push("Ekstrem FR");
+      if (entry.oiDivergence) reasons.push("OI Diverjansı");
+      return ` <span title="${reasons.join(" + ")}" style="color:#ef5350;">⚠️</span>`;
+    }
+
+    function updateTitlePrice(close) {
+      const color = lastClose !== null && close < lastClose ? "var(--down)" : "var(--up)";
+      titleEl.innerHTML = `${symbol} · ${interval}${haMode ? " · HA" : ""} <span class="chart-price-tag" style="color:${color}">${close.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>${scannerBadgeHtml()}`;
+      lastClose = close;
+    }
+    function refreshScannerBadge() { if (lastClose !== null) updateTitlePrice(lastClose); }
+    marketScanner.subscribe(refreshScannerBadge);
+
+    async function loadInitialData() {
+      const mySymbol = symbol;
+      const myInterval = interval;
+      try {
+        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${mySymbol}&interval=${myInterval}&limit=1000`);
+        if (!res.ok) throw new Error("REST hatasi: " + res.status);
+        const raw = await res.json();
+        if (mySymbol !== symbol || myInterval !== interval) return; // bu sirada sembol/periyot tekrar degismis olabilir
+        const candles = raw.map((d) => ({
+          time: d[0] / 1000,
+          open: parseFloat(d[1]), high: parseFloat(d[2]),
+          low: parseFloat(d[3]), close: parseFloat(d[4]),
+        }));
+        rawCandles = candles;
+        applyDisplayData();
+        updateTitlePrice(candles[candles.length - 1].close);
+        initMsg.remove();
+      } catch (err) {
+        if (mySymbol !== symbol || myInterval !== interval) return;
+        initMsg.textContent = "geçmiş veri yüklenemedi, yeniden deneniyor...";
+        setTimeout(() => { if (mySymbol === symbol && myInterval === interval) loadInitialData(); }, 3000);
+      }
+    }
+
+    let ws = null;
+    let retryDelayMs = 1000;
+    let heartbeatTimer = null;
+    let stopped = false;
+
+    function connectWs() {
+      if (stopped) return;
+      const myGen = generation;
+      const mySymbol = symbol;
+      const myInterval = interval;
+      ws = new WebSocket(`wss://stream.binance.com:9443/ws/${mySymbol.toLowerCase()}@kline_${myInterval}`);
+      ws.onopen = () => { retryDelayMs = 1000; resetHeartbeat(); };
+      ws.onmessage = (event) => {
+        resetHeartbeat();
+        let msg;
+        try { msg = JSON.parse(event.data); } catch { return; }
+        const k = msg.k;
+        if (!k) return;
+        const candle = {
+          time: k.t / 1000,
+          open: parseFloat(k.o), high: parseFloat(k.h),
+          low: parseFloat(k.l), close: parseFloat(k.c),
+        };
+
+        // rawCandles'i guncel tut: ayni zaman damgasiysa son mumu degistir,
+        // yeni bir zaman ise ekle - hem HA hesaplamasi hem sembol/periyot
+        // degisiminde dogru gecmis icin bu gerekli.
+        const lastRaw = rawCandles[rawCandles.length - 1];
+        if (lastRaw && lastRaw.time === candle.time) rawCandles[rawCandles.length - 1] = candle;
+        else rawCandles.push(candle);
+        if (rawCandles.length > 1500) rawCandles.shift();
+
+        if (haMode) {
+          const haArray = computeHeikinAshi(rawCandles);
+          candleSeries.setData(haArray);
+          updateTitlePrice(haArray[haArray.length - 1].close);
+          if (k.x) checkReversalConfirmation(haArray); // sadece KAPANAN mumda teyit kontrolu
+        } else {
+          candleSeries.update(candle);
+          updateTitlePrice(candle.close);
+        }
+        if (k.x) checkLiquiditySweep(candle); // PDH/PDL/PWH/PWL sweep kontrolu - her zaman HAM mumla
+      };
+      ws.onclose = () => {
+        clearHeartbeat();
+        if (!stopped && myGen === generation) scheduleReconnect(myGen);
+      };
+      ws.onerror = () => ws.close();
+    }
+
+    function resetHeartbeat() {
+      clearHeartbeat();
+      heartbeatTimer = setTimeout(() => ws && ws.close(), 60000);
+    }
+    function clearHeartbeat() {
+      if (heartbeatTimer) { clearTimeout(heartbeatTimer); heartbeatTimer = null; }
+    }
+    function scheduleReconnect(myGen) {
+      setTimeout(() => { if (!stopped && myGen === generation) connectWs(); }, retryDelayMs);
+      retryDelayMs = Math.min(retryDelayMs * 2, 30000);
+    }
+
+    function resetChartForReload() {
+      generation++;
+      clearHeartbeat();
+      if (ws) { try { ws.close(); } catch (e) { /* yoksay */ } }
+      retryDelayMs = 1000;
+      lastClose = null;
+      rawCandles = [];
+      lastHaReversalTime = null;
+      candleSeries.setData([]);
+      if (!container.contains(initMsg)) container.appendChild(initMsg);
+      initMsg.textContent = "geçmiş veriler yükleniyor...";
+    }
+
+    function changeSymbol(newSymbolRaw) {
+      const newSymbol = newSymbolRaw.toUpperCase();
+      if (newSymbol === symbol) return;
+      symbol = newSymbol;
+      resetChartForReload();
+      titleEl.textContent = `${symbol} · ${interval}`;
+
+      // Cizimler sembole bagli oldugu icin secim/surukleme/bekleyen-nokta
+      // durumunu sifirla - yeni sembolun kendi cizim kumesi otomatik
+      // olarak render() icinde getShapesForSymbol(symbol) ile yuklenecek.
+      pendingPoints = [];
+      previewPoint = null;
+      selectedShape = null;
+      dragTarget = null;
+      renderMiniToolbar();
+
+      panelsMeta[id].symbol = symbol;
+      saveLayout();
+
+      loadInitialData();
+      connectWs();
+      loadLiquidityLevels();
+    }
+
+    function changeInterval(newInterval) {
+      if (newInterval === interval) return;
+      interval = newInterval;
+      tfButtons.forEach((b) => b.classList.toggle("active", b.dataset.value === interval));
+      resetChartForReload();
+      titleEl.textContent = `${symbol} · ${interval}`;
+
+      panelsMeta[id].interval = interval;
+      saveLayout();
+
+      loadInitialData();
+      connectWs();
+    }
+
+    function subscribeToTarget(newTargetId) {
+      if (targetId !== null) targetBus.unsubscribe(targetId, id);
+      targetId = newTargetId;
+      targetBus.subscribe(targetId, id, changeSymbol);
+    }
+
+    subscribeToTarget(initialTargetId);
+    loadInitialData();
+    connectWs();
+    loadLiquidityLevels();
+
+    panelInstances[id] = {
+      destroy() {
+        stopped = true;
+        drawStopped = true;
+        clearHeartbeat();
+        if (ws) ws.close();
+        if (targetId !== null) targetBus.unsubscribe(targetId, id);
+        marketScanner.unsubscribe(refreshScannerBadge);
+        resizeObserver.disconnect();
+        chart.remove();
+      },
+    };
+
+    return item;
+  }
+
+  // =====================================================================
+  // EMIR DEFTERI (ORDER BOOK) PANELI
+  // =====================================================================
+  function createOrderBookPanel(id, initialSymbol, initialTargetId) {
+    let symbol = initialSymbol;
+    let targetId = null;
+    let generation = 0;
+
+    const { item, body, titleEl } = buildPanelShell(id, `${symbol} · Emir Defteri`, initialTargetId, (newId) => {
+      subscribeToTarget(newId);
+      panelsMeta[id].targetId = newId;
+      saveLayout();
+    }, () => symbol);
+
+    const obBody = document.createElement("div");
+    obBody.className = "ob-body";
+    obBody.innerHTML = `
+      <div class="ob-header-row"><span>Fiyat</span><span>Miktar</span></div>
+      <div class="ob-asks"></div>
+      <div class="ob-spread">—</div>
+      <div class="ob-bids"></div>
+    `;
+    body.appendChild(obBody);
+    const asksEl = obBody.querySelector(".ob-asks");
+    const bidsEl = obBody.querySelector(".ob-bids");
+    const spreadEl = obBody.querySelector(".ob-spread");
+
+    function priceDecimals(p) {
+      if (p >= 100) return 2;
+      if (p >= 1) return 4;
+      return 6;
+    }
+
+    function renderSide(container, levels, side) {
+      const qtys = levels.map((l) => parseFloat(l[1]));
+      const maxQty = Math.max(...qtys, 0.0001);
+      container.innerHTML = "";
+      levels.forEach(([price, qty]) => {
+        const p = parseFloat(price);
+        const q = parseFloat(qty);
+        const pct = Math.min(100, (q / maxQty) * 100);
+        const row = document.createElement("div");
+        row.className = `ob-row ${side}`;
+        row.innerHTML = `
+          <div class="ob-bar" style="width:${pct}%"></div>
+          <span class="ob-price ${side}">${p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: priceDecimals(p) })}</span>
+          <span class="ob-qty">${q.toLocaleString("en-US", { maximumFractionDigits: 4 })}</span>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // Binance'in depth10 yayinindaki alan adlari; esnek kontrol istendigi
+    // icin hem futures kisa alan adlari (b/a) hem olasi alternatif isimler
+    // (bids/asks) destekleniyor.
+    function handleDepthMessage(data) {
+      const rawBids = data.b || data.bids;
+      const rawAsks = data.a || data.asks;
+      if (!rawBids || !rawAsks) return;
+
+      const bids = rawBids.filter(([, q]) => parseFloat(q) > 0);
+      const asks = rawAsks.filter(([, q]) => parseFloat(q) > 0);
+      if (!bids.length || !asks.length) return;
+
+      // Ikisi de yuksekten dusuge siralaniyor: boylece en iyi (en dusuk)
+      // ask listenin EN ALTINDA, en iyi (en yuksek) bid listenin EN
+      // USTUNDE gorunuyor - spread ortada kaliyor.
+      const asksSorted = [...asks].sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
+      const bidsSorted = [...bids].sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
+
+      renderSide(asksEl, asksSorted, "ask");
+      renderSide(bidsEl, bidsSorted, "bid");
+
+      const bestAsk = parseFloat(asksSorted[asksSorted.length - 1][0]);
+      const bestBid = parseFloat(bidsSorted[0][0]);
+      const spread = bestAsk - bestBid;
+      const spreadPct = bestBid ? (spread / bestBid) * 100 : 0;
+      spreadEl.textContent = `Spread: ${spread.toLocaleString("en-US", { maximumFractionDigits: 4 })} (${spreadPct.toFixed(3)}%)`;
+    }
+
+    let ws = null;
+    let retryDelayMs = 1000;
+    let heartbeatTimer = null;
+    let stopped = false;
+
+    function connectWs() {
+      if (stopped) return;
+      const myGen = generation;
+      const mySymbol = symbol;
+      ws = new WebSocket(`wss://fstream.binance.com/public/ws/${mySymbol.toLowerCase()}@depth10@100ms`);
+      ws.onopen = () => { retryDelayMs = 1000; resetHeartbeat(); };
+      ws.onmessage = (event) => {
+        resetHeartbeat();
+        let data;
+        try { data = JSON.parse(event.data); } catch { return; }
+        handleDepthMessage(data);
+      };
+      ws.onclose = () => {
+        clearHeartbeat();
+        if (!stopped && myGen === generation) scheduleReconnect(myGen);
+      };
+      ws.onerror = () => ws.close();
+    }
+
+    function resetHeartbeat() {
+      clearHeartbeat();
+      heartbeatTimer = setTimeout(() => ws && ws.close(), 60000);
+    }
+    function clearHeartbeat() {
+      if (heartbeatTimer) { clearTimeout(heartbeatTimer); heartbeatTimer = null; }
+    }
+    function scheduleReconnect(myGen) {
+      setTimeout(() => { if (!stopped && myGen === generation) connectWs(); }, retryDelayMs);
+      retryDelayMs = Math.min(retryDelayMs * 2, 30000);
+    }
+
+    function changeSymbol(newSymbolRaw) {
+      const newSymbol = newSymbolRaw.toUpperCase();
+      if (newSymbol === symbol) return;
+
+      symbol = newSymbol;
+      generation++;
+      clearHeartbeat();
+      if (ws) { try { ws.close(); } catch (e) { /* yoksay */ } }
+      retryDelayMs = 1000;
+
+      asksEl.innerHTML = "";
+      bidsEl.innerHTML = "";
+      spreadEl.textContent = "—";
+      titleEl.textContent = `${symbol} · Emir Defteri`;
+
+      panelsMeta[id].symbol = symbol;
+      saveLayout();
+
+      connectWs();
+    }
+
+    function subscribeToTarget(newTargetId) {
+      if (targetId !== null) targetBus.unsubscribe(targetId, id);
+      targetId = newTargetId;
+      targetBus.subscribe(targetId, id, changeSymbol);
+    }
+
+    subscribeToTarget(initialTargetId);
+    connectWs();
+
+    panelInstances[id] = {
+      destroy() {
+        stopped = true;
+        clearHeartbeat();
+        if (ws) ws.close();
+        if (targetId !== null) targetBus.unsubscribe(targetId, id);
+      },
+    };
+
+    return item;
+  }
+
+  // =====================================================================
+  // LIKIDITE ISI HARITASI (HEATMAP) PANELI
+  // =====================================================================
+  function createHeatmapPanel(id, initialSymbol, initialTargetId) {
+    let symbol = initialSymbol;
+    let targetId = null;
+    let generation = 0;
+
+    const { item, body, titleEl } = buildPanelShell(id, `${symbol} · Likidite Haritası`, initialTargetId, (newId) => {
+      subscribeToTarget(newId);
+      panelsMeta[id].targetId = newId;
+      saveLayout();
+    }, () => symbol);
+    body.style.overflow = "hidden";
+
+    const wrap = document.createElement("div");
+    wrap.className = "heatmap-container";
+    const canvas = document.createElement("canvas");
+    canvas.className = "heatmap-canvas";
+    wrap.appendChild(canvas);
+    body.appendChild(wrap);
+    const ctx = canvas.getContext("2d");
+
+    const ROWS = 60;              // Y ekseni (fiyat) cozunurlugu
+    const MAX_COLUMNS = 90;       // X ekseni (zaman) - gorunen gecmis kolon sayisi
+    const SAMPLE_INTERVAL_MS = 1000; // her ~1 saniyede bir yeni kolon
+    const PRICE_RANGE_PCT = 0.004;   // orta fiyatin +-%0.4'u araligi goster
+
+    let history = [];      // {rowMin, rowHeight, values: Float64Array(ROWS), mid}
+    let latestDepth = null;
+    let sampleTimer = null;
+
+    function resizeCanvas() {
+      const rect = wrap.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.floor(rect.width));
+      canvas.height = Math.max(1, Math.floor(rect.height));
+      draw();
+    }
+    const resizeObserver = new ResizeObserver(resizeCanvas);
+    resizeObserver.observe(wrap);
+
+    // Koyu mavi/siyah (dusuk hacim) -> mor -> kirmizi -> parlak sari (yuksek hacim)
+    function heatColor(t) {
+      const stops = [
+        [0.0, [8, 10, 18]],
+        [0.22, [24, 48, 105]],
+        [0.48, [96, 40, 130]],
+        [0.72, [210, 55, 55]],
+        [1.0, [255, 221, 74]],
+      ];
+      let a = stops[0], b = stops[stops.length - 1];
+      for (let i = 0; i < stops.length - 1; i++) {
+        if (t >= stops[i][0] && t <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
+      }
+      const span = b[0] - a[0] || 1;
+      const lt = (t - a[0]) / span;
+      const r = Math.round(a[1][0] + (b[1][0] - a[1][0]) * lt);
+      const g = Math.round(a[1][1] + (b[1][1] - a[1][1]) * lt);
+      const bch = Math.round(a[1][2] + (b[1][2] - a[1][2]) * lt);
+      return `rgb(${r},${g},${bch})`;
+    }
+
+    function commitSample() {
+      if (!latestDepth) return;
+      const rawBids = latestDepth.b || latestDepth.bids;
+      const rawAsks = latestDepth.a || latestDepth.asks;
+      if (!rawBids || !rawAsks || !rawBids.length || !rawAsks.length) return;
+
+      const bestBid = Math.max(...rawBids.map((l) => parseFloat(l[0])));
+      const bestAsk = Math.min(...rawAsks.map((l) => parseFloat(l[0])));
+      const mid = (bestBid + bestAsk) / 2;
+      const rowMin = mid * (1 - PRICE_RANGE_PCT);
+      const rowMax = mid * (1 + PRICE_RANGE_PCT);
+      const rowHeight = (rowMax - rowMin) / ROWS;
+      const values = new Float64Array(ROWS);
+
+      [...rawBids, ...rawAsks].forEach(([price, qty]) => {
+        const p = parseFloat(price);
+        const q = parseFloat(qty);
+        if (q <= 0) return;
+        const rowIndex = Math.floor((p - rowMin) / rowHeight);
+        if (rowIndex >= 0 && rowIndex < ROWS) values[rowIndex] += q;
+      });
+
+      history.push({ rowMin, rowHeight, values, mid });
+      if (history.length > MAX_COLUMNS) history.shift();
+      draw();
+    }
+
+    function draw() {
+      const w = canvas.width, h = canvas.height;
+      ctx.fillStyle = "#0a0e14";
+      ctx.fillRect(0, 0, w, h);
+      if (!history.length) return;
+
+      let maxQty = 0.0001;
+      history.forEach((col) => col.values.forEach((v) => { if (v > maxQty) maxQty = v; }));
+
+      const colWidth = w / MAX_COLUMNS;
+      const rowH = h / ROWS;
+      const startIdx = MAX_COLUMNS - history.length;
+
+      history.forEach((col, i) => {
+        const x = (startIdx + i) * colWidth;
+        for (let r = 0; r < ROWS; r++) {
+          const v = col.values[r];
+          if (v <= 0) continue;
+          const t = Math.min(1, Math.log(1 + v) / Math.log(1 + maxQty));
+          ctx.fillStyle = heatColor(t);
+          const y = h - (r + 1) * rowH; // dusuk fiyat alta, yuksek fiyat usta
+          ctx.fillRect(x, y, Math.ceil(colWidth) + 1, Math.ceil(rowH) + 1);
+        }
+      });
+
+      const last = history[history.length - 1];
+      ctx.fillStyle = "rgba(230,234,242,0.85)";
+      ctx.font = "10px 'IBM Plex Mono', monospace";
+      ctx.textAlign = "right";
+      ctx.fillText(last.mid.toLocaleString("en-US", { maximumFractionDigits: 2 }), w - 4, 12);
+    }
+
+    let ws = null;
+    let retryDelayMs = 1000;
+    let heartbeatTimer = null;
+    let stopped = false;
+
+    function connectWs() {
+      if (stopped) return;
+      const myGen = generation;
+      const mySymbol = symbol;
+      ws = new WebSocket(`wss://fstream.binance.com/public/ws/${mySymbol.toLowerCase()}@depth10@100ms`);
+      ws.onopen = () => { retryDelayMs = 1000; resetHeartbeat(); };
+      ws.onmessage = (event) => {
+        resetHeartbeat();
+        try { latestDepth = JSON.parse(event.data); } catch { /* yoksay */ }
+      };
+      ws.onclose = () => { clearHeartbeat(); if (!stopped && myGen === generation) scheduleReconnect(myGen); };
+      ws.onerror = () => ws.close();
+    }
+    function resetHeartbeat() { clearHeartbeat(); heartbeatTimer = setTimeout(() => ws && ws.close(), 60000); }
+    function clearHeartbeat() { if (heartbeatTimer) { clearTimeout(heartbeatTimer); heartbeatTimer = null; } }
+    function scheduleReconnect(myGen) {
+      setTimeout(() => { if (!stopped && myGen === generation) connectWs(); }, retryDelayMs);
+      retryDelayMs = Math.min(retryDelayMs * 2, 30000);
+    }
+
+    function changeSymbol(newSymbolRaw) {
+      const newSymbol = newSymbolRaw.toUpperCase();
+      if (newSymbol === symbol) return;
+      symbol = newSymbol;
+      generation++;
+      clearHeartbeat();
+      if (ws) { try { ws.close(); } catch (e) { /* yoksay */ } }
+      retryDelayMs = 1000;
+      history = [];
+      latestDepth = null;
+      titleEl.textContent = `${symbol} · Likidite Haritası`;
+      panelsMeta[id].symbol = symbol;
+      saveLayout();
+      connectWs();
+      draw();
+    }
+
+    function subscribeToTarget(newTargetId) {
+      if (targetId !== null) targetBus.unsubscribe(targetId, id);
+      targetId = newTargetId;
+      targetBus.subscribe(targetId, id, changeSymbol);
+    }
+
+    subscribeToTarget(initialTargetId);
+    connectWs();
+    sampleTimer = setInterval(commitSample, SAMPLE_INTERVAL_MS);
+    requestAnimationFrame(resizeCanvas);
+
+    panelInstances[id] = {
+      destroy() {
+        stopped = true;
+        clearHeartbeat();
+        if (ws) ws.close();
+        if (sampleTimer) clearInterval(sampleTimer);
+        if (targetId !== null) targetBus.unsubscribe(targetId, id);
+        resizeObserver.disconnect();
+      },
+    };
+
+    return item;
+  }
+
+  // =====================================================================
+  // BOT KONTROL PANELI (Paper Trading simulasyonu)
+  //
+  // NOT: Bu tamamen istemci tarafinda calisan bir SIMULASYONDUR. Gercek
+  // emir gonderilmez, gercek para kullanilmaz. Kapanan 1 dakikalik mumlar
+  // uzerinden basit RSI/SMA/trailing-stop kurallariyla ornek al/sat
+  // sinyalleri uretir ve varsayimsal PnL hesaplar - egitim/gosterim
+  // amaclidir, yatirim tavsiyesi degildir.
+  // =====================================================================
+  function createBotPanel(id, initialSymbol, initialTargetId) {
+    let symbol = initialSymbol;
+    let targetId = null;
+    let generation = 0;
+
+    const { item, body, titleEl } = buildPanelShell(id, `${symbol} · Bot`, initialTargetId, (newId) => {
+      subscribeToTarget(newId);
+      panelsMeta[id].targetId = newId;
+      saveLayout();
+    }, () => symbol);
+
+    const botBody = document.createElement("div");
+    botBody.className = "bot-body";
+    botBody.innerHTML = `
+      <select class="bot-select">
+        <option value="rsi">RSI &lt; 30 ise Al (RSI &gt; 60 Sat)</option>
+        <option value="trailing">20 Mum Zirvesi Kırılımı + Trailing Stop %1</option>
+        <option value="sma">SMA(9) / SMA(21) Kesişimi</option>
+      </select>
+      <div class="bot-controls">
+        <button class="bot-toggle-btn start">BAŞLAT</button>
+        <div class="bot-status"><span class="bot-status-dot"></span><span class="bot-status-text">Beklemede</span></div>
+      </div>
+      <div class="bot-pnl">+0.00%</div>
+      <table class="bot-trades-table">
+        <thead><tr><th>Zaman</th><th>Giriş</th><th>Çıkış</th><th>PnL</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="bot-disclaimer">Simülasyon (Paper Trading) — gerçek emir gönderilmez, yatırım tavsiyesi değildir.</div>
+    `;
+    body.appendChild(botBody);
+
+    const selectEl = botBody.querySelector(".bot-select");
+    const toggleBtn = botBody.querySelector(".bot-toggle-btn");
+    const statusDot = botBody.querySelector(".bot-status-dot");
+    const statusText = botBody.querySelector(".bot-status-text");
+    const pnlEl = botBody.querySelector(".bot-pnl");
+    const tradesBody = botBody.querySelector(".bot-trades-table tbody");
+
+    let strategy = "rsi";
+    let running = false;
+    let closes = [];   // kapanan 1dk mumlarin close fiyatlari
+    let equity = 100;  // bilesik simule edilmis oz sermaye (baslangic = 100)
+    let trades = [];   // {time, entry, exit, pnlPct}
+    let position = null; // {entryPrice, peak}
+
+    function fmtPct(v) { return `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`; }
+
+    function renderStatus() {
+      statusDot.className = "bot-status-dot" + (running ? " running" : "");
+      statusText.textContent = running ? "Çalışıyor" : "Beklemede";
+      toggleBtn.textContent = running ? "DURDUR" : "BAŞLAT";
+      toggleBtn.className = "bot-toggle-btn " + (running ? "stop" : "start");
+    }
+
+    function renderPnl() {
+      const pct = equity - 100;
+      pnlEl.textContent = fmtPct(pct);
+      pnlEl.style.color = pct >= 0 ? "var(--up)" : "var(--down)";
+    }
+
+    function renderTrades() {
+      tradesBody.innerHTML = "";
+      trades.slice(0, 5).forEach((t) => {
+        const tr = document.createElement("tr");
+        const pnlColor = t.pnlPct >= 0 ? "var(--up)" : "var(--down)";
+        tr.innerHTML = `
+          <td>${t.time}</td>
+          <td>${t.entry.toLocaleString("en-US", { maximumFractionDigits: 2 })}</td>
+          <td>${t.exit.toLocaleString("en-US", { maximumFractionDigits: 2 })}</td>
+          <td style="color:${pnlColor}">${fmtPct(t.pnlPct)}</td>`;
+        tradesBody.appendChild(tr);
+      });
+    }
+
+    function sma(period) {
+      if (closes.length < period) return null;
+      const slice = closes.slice(-period);
+      return slice.reduce((a, b) => a + b, 0) / period;
+    }
+
+    function rsi(period = 14) {
+      if (closes.length < period + 1) return null;
+      const slice = closes.slice(-(period + 1));
+      let gain = 0, loss = 0;
+      for (let i = 1; i < slice.length; i++) {
+        const diff = slice[i] - slice[i - 1];
+        if (diff >= 0) gain += diff; else loss -= diff;
+      }
+      const avgGain = gain / period, avgLoss = loss / period;
+      if (avgLoss === 0) return 100;
+      const rs = avgGain / avgLoss;
+      return 100 - 100 / (1 + rs);
+    }
+
+    function closePosition(exitPrice) {
+      const pnlPct = ((exitPrice - position.entryPrice) / position.entryPrice) * 100;
+      equity = equity * (1 + pnlPct / 100);
+      trades.unshift({
+        time: new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }),
+        entry: position.entryPrice,
+        exit: exitPrice,
+        pnlPct,
+      });
+      trades = trades.slice(0, 5);
+      position = null;
+      renderPnl();
+      renderTrades();
+    }
+
+    function evaluateStrategy() {
+      if (!running || closes.length < 2) return;
+      const price = closes[closes.length - 1];
+
+      if (strategy === "rsi") {
+        const r = rsi(14);
+        if (r === null) return;
+        if (!position && r < 30) position = { entryPrice: price, peak: price };
+        else if (position && r > 60) closePosition(price);
+      } else if (strategy === "trailing") {
+        const recent20 = closes.slice(-21, -1);
+        const prevHigh = recent20.length ? Math.max(...recent20) : null;
+        if (!position && prevHigh !== null && price > prevHigh) {
+          position = { entryPrice: price, peak: price };
+        } else if (position) {
+          position.peak = Math.max(position.peak, price);
+          if (price <= position.peak * 0.99) closePosition(price);
+        }
+      } else if (strategy === "sma") {
+        const fast = sma(9), slow = sma(21);
+        if (fast === null || slow === null) return;
+        if (!position && fast > slow) position = { entryPrice: price, peak: price };
+        else if (position && fast < slow) closePosition(price);
+      }
+    }
+
+    selectEl.addEventListener("change", () => {
+      strategy = selectEl.value;
+      position = null; // strateji degisince acik pozisyon islenmeden sifirlanir
+    });
+
+    toggleBtn.addEventListener("click", () => {
+      running = !running;
+      renderStatus();
+    });
+
+    async function loadInitialCloses() {
+      const mySymbol = symbol;
+      try {
+        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${mySymbol}&interval=1m&limit=100`);
+        if (!res.ok) throw new Error("REST hatasi: " + res.status);
+        const raw = await res.json();
+        if (mySymbol !== symbol) return;
+        closes = raw.map((d) => parseFloat(d[4]));
+      } catch (e) {
+        console.error("[Bot] Gecmis kapanislar alinamadi:", e);
+      }
+    }
+
+    let ws = null;
+    let retryDelayMs = 1000;
+    let heartbeatTimer = null;
+    let stopped = false;
+
+    function connectWs() {
+      if (stopped) return;
+      const myGen = generation;
+      const mySymbol = symbol;
+      ws = new WebSocket(`wss://stream.binance.com:9443/ws/${mySymbol.toLowerCase()}@kline_1m`);
+      ws.onopen = () => { retryDelayMs = 1000; resetHeartbeat(); };
+      ws.onmessage = (event) => {
+        resetHeartbeat();
+        let msg; try { msg = JSON.parse(event.data); } catch { return; }
+        const k = msg.k;
+        if (!k || !k.x) return; // sadece KAPANAN mumlari indikatore ekle
+        closes.push(parseFloat(k.c));
+        if (closes.length > 200) closes.shift();
+        evaluateStrategy();
+      };
+      ws.onclose = () => { clearHeartbeat(); if (!stopped && myGen === generation) scheduleReconnect(myGen); };
+      ws.onerror = () => ws.close();
+    }
+    function resetHeartbeat() { clearHeartbeat(); heartbeatTimer = setTimeout(() => ws && ws.close(), 60000); }
+    function clearHeartbeat() { if (heartbeatTimer) { clearTimeout(heartbeatTimer); heartbeatTimer = null; } }
+    function scheduleReconnect(myGen) {
+      setTimeout(() => { if (!stopped && myGen === generation) connectWs(); }, retryDelayMs);
+      retryDelayMs = Math.min(retryDelayMs * 2, 30000);
+    }
+
+    function changeSymbol(newSymbolRaw) {
+      const newSymbol = newSymbolRaw.toUpperCase();
+      if (newSymbol === symbol) return;
+      symbol = newSymbol;
+      generation++;
+      clearHeartbeat();
+      if (ws) { try { ws.close(); } catch (e) { /* yoksay */ } }
+      retryDelayMs = 1000;
+      closes = [];
+      position = null;
+      titleEl.textContent = `${symbol} · Bot`;
+      panelsMeta[id].symbol = symbol;
+      saveLayout();
+      loadInitialCloses();
+      connectWs();
+    }
+
+    function subscribeToTarget(newTargetId) {
+      if (targetId !== null) targetBus.unsubscribe(targetId, id);
+      targetId = newTargetId;
+      targetBus.subscribe(targetId, id, changeSymbol);
+    }
+
+    subscribeToTarget(initialTargetId);
+    renderStatus();
+    renderPnl();
+    loadInitialCloses();
+    connectWs();
+
+    panelInstances[id] = {
+      destroy() {
+        stopped = true;
+        clearHeartbeat();
+        if (ws) ws.close();
+        if (targetId !== null) targetBus.unsubscribe(targetId, id);
+      },
+    };
+
+    return item;
+  }
+
+  // =====================================================================
+  // PIYASA TARAMA MODULU (marketScanner)
+  //
+  // Izleme Listesi sembolleri icin surekli calisan, paylasilan bir arka
+  // plan tarayici: her sembolun Funding Rate'ini, Open Interest gecmisini
+  // ve fiyat gecmisini takip eder; "Ekstrem FR" ve "OI/Fiyat Uyumsuzlugu"
+  // durumlarini hesaplar. Watchlist satirlari, Grafik basligi ve FR
+  // Tarama paneli hepsi buradan okur - tek kaynak, tekrar baglanti yok.
+  //
+  // NOT: OI/Fiyat uyumsuzlugu tespiti basitlestirilmis bir sezgisel
+  // yontemdir (son ~20 ornekte fiyat kendi tepesine yakinken OI kendi
+  // tepesinden belirgin geri cekilmis mi) - profesyonel bir "swing high"
+  // uyumsuzluk analizi degil, egitim/gosterim amacli bir yaklasimdir.
+  // =====================================================================
+  const FR_EXTREME_LEVELS = [-0.5, -1.0, -2.0]; // % - hafif, orta, asiri esikler
+  const OI_DIVERGENCE_WINDOW = 20; // ornek sayisi (~10sn araliklarla ~3-4 dakika)
+
+  const marketScanner = {
+    bySymbol: {}, // sym -> {price, fundingRate, oiHistory:[], priceHistory:[], extremeLevel, oiDivergence}
+    listeners: new Set(),
+    subscribe(cb) { this.listeners.add(cb); },
+    unsubscribe(cb) { this.listeners.delete(cb); },
+    notify() { this.listeners.forEach((cb) => { try { cb(); } catch (e) { /* dinleyici hatasi taramayi durdurmasin */ } }); },
+  };
+
+  function scannerEntry(sym) {
+    if (!marketScanner.bySymbol[sym]) {
+      marketScanner.bySymbol[sym] = { price: null, fundingRate: null, oiHistory: [], priceHistory: [], extremeLevel: 0, oiDivergence: false };
+    }
+    return marketScanner.bySymbol[sym];
+  }
+
+  function recomputeDivergence(entry) {
+    const ph = entry.priceHistory, oh = entry.oiHistory;
+    if (ph.length < OI_DIVERGENCE_WINDOW || oh.length < OI_DIVERGENCE_WINDOW) { entry.oiDivergence = false; return; }
+    const recentP = ph.slice(-OI_DIVERGENCE_WINDOW);
+    const recentO = oh.slice(-OI_DIVERGENCE_WINDOW);
+    const maxPrice = Math.max(...recentP.map((p) => p.v));
+    const maxOi = Math.max(...recentO.map((p) => p.v));
+    const lastPrice = recentP[recentP.length - 1].v;
+    const lastOi = recentO[recentO.length - 1].v;
+    // Fiyat kendi son tepesinin en fazla %0.3 altinda (hala guclu/yakin),
+    // ama OI kendi tepesinden en az %3 gerilemis -> alicilar tukenmis olabilir.
+    const priceNearPeak = lastPrice >= maxPrice * 0.997;
+    const oiDroppedFromPeak = lastOi <= maxOi * 0.97;
+    entry.oiDivergence = priceNearPeak && oiDroppedFromPeak && maxOi > 0;
+  }
+
+  function scannerUpdateExtreme(entry) {
+    if (entry.fundingRate === null) { entry.extremeLevel = 0; return; }
+    let level = 0;
+    FR_EXTREME_LEVELS.forEach((th, i) => { if (entry.fundingRate <= th) level = i + 1; });
+    entry.extremeLevel = level; // 0=normal, 1=-0.5, 2=-1.0, 3=-2.0
+  }
+
+  function initMarketScanner() {
+    // --- Fiyat (spot miniTicker, coklu sembol) ---
+    (function connectPrice(retryMs) {
+      retryMs = retryMs || 1000;
+      const streams = WATCHLIST_SYMBOLS.map((s) => `${s}@miniTicker`).join("/");
+      const ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
+      ws.onopen = () => { retryMs = 1000; };
+      ws.onmessage = (event) => {
+        let msg; try { msg = JSON.parse(event.data); } catch { return; }
+        const d = msg.data;
+        if (!d) return;
+        const sym = d.s.toLowerCase();
+        const entry = scannerEntry(sym);
+        entry.price = parseFloat(d.c);
+        entry.priceHistory.push({ t: Date.now(), v: entry.price });
+        if (entry.priceHistory.length > 200) entry.priceHistory.shift();
+        recomputeDivergence(entry);
+        marketScanner.notify();
+      };
+      ws.onclose = () => setTimeout(() => connectPrice(Math.min(retryMs * 2, 30000)), retryMs);
+      ws.onerror = () => ws.close();
+    })();
+
+    // --- Funding Rate (futures markPrice@1s, coklu sembol) ---
+    (function connectFunding(retryMs) {
+      retryMs = retryMs || 1000;
+      const streams = WATCHLIST_SYMBOLS.map((s) => `${s}@markPrice@1s`).join("/");
+      const ws = new WebSocket(`wss://fstream.binance.com/market/stream?streams=${streams}`);
+      ws.onopen = () => { retryMs = 1000; };
+      ws.onmessage = (event) => {
+        let msg; try { msg = JSON.parse(event.data); } catch { return; }
+        const d = msg.data;
+        if (!d || d.r === undefined) return;
+        const sym = d.s.toLowerCase();
+        const entry = scannerEntry(sym);
+        entry.fundingRate = parseFloat(d.r) * 100;
+        scannerUpdateExtreme(entry);
+        marketScanner.notify();
+      };
+      ws.onclose = () => setTimeout(() => connectFunding(Math.min(retryMs * 2, 30000)), retryMs);
+      ws.onerror = () => ws.close();
+    })();
+
+    // --- Open Interest (REST polling, coklu sembol) ---
+    async function pollOi() {
+      const results = await Promise.all(
+        WATCHLIST_SYMBOLS.map(async (sym) => {
+          try {
+            const res = await fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${sym.toUpperCase()}`);
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const data = await res.json();
+            return { sym, oi: parseFloat(data.openInterest) };
+          } catch (e) {
+            console.error(`[Tarama] ${sym.toUpperCase()} OI alinamadi:`, e.message);
+            return null;
+          }
+        })
+      );
+      results.forEach((r) => {
+        if (!r) return;
+        const entry = scannerEntry(r.sym);
+        entry.oiHistory.push({ t: Date.now(), v: r.oi });
+        if (entry.oiHistory.length > 200) entry.oiHistory.shift();
+        recomputeDivergence(entry);
+      });
+      marketScanner.notify();
+      setTimeout(pollOi, 10000);
+    }
+    pollOi();
+  }
+
+  // =====================================================================
+  // EKSTREM FR & SHORT SQUEEZE RISKI PANELI
+  // =====================================================================
+  function createFrScanPanel(id, initialTargetId) {
+    let targetId = initialTargetId;
+
+    const { item, body } = buildPanelShell(id, "Ekstrem FR & Squeeze Riski", targetId, (newId) => {
+      targetId = newId;
+      panelsMeta[id].targetId = newId;
+      saveLayout();
+    }, () => "BTCUSDT");
+    body.classList.add("watchlist-body");
+
+    const wrap = document.createElement("div");
+    wrap.className = "wl-table-wrap";
+    const table = document.createElement("table");
+    table.className = "wl-table";
+    table.innerHTML = `
+      <thead><tr><th class="col-symbol">Sembol</th><th>FR</th><th>Durum</th></tr></thead>
+      <tbody></tbody>`;
+    wrap.appendChild(table);
+    body.appendChild(wrap);
+    const tbody = table.querySelector("tbody");
+
+    const LEVEL_LABELS = ["Normal", "Dikkat", "Uyarı", "Squeeze Riski"];
+    const LEVEL_COLORS = ["var(--text-secondary)", "#e8a33d", "#ef5350", "#ff3b3b"];
+
+    const rows = {};
+    WATCHLIST_SYMBOLS.forEach((sym) => {
+      const symbolUpper = sym.toUpperCase();
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="col-symbol wl-symbol">${sym.replace("usdt", "").toUpperCase()}/USDT</td>
+        <td class="wl-fr">—</td>
+        <td style="text-align:right;font-weight:600;">—</td>`;
+      tr.addEventListener("click", () => targetBus.emit(targetId, symbolUpper));
+      tbody.appendChild(tr);
+      rows[sym] = { frCell: tr.querySelectorAll("td")[1], statusCell: tr.querySelectorAll("td")[2], rowEl: tr };
+    });
+
+    function render() {
+      WATCHLIST_SYMBOLS.forEach((sym) => {
+        const entry = marketScanner.bySymbol[sym];
+        const row = rows[sym];
+        if (!entry || entry.fundingRate === null) return;
+        row.frCell.textContent = `%${entry.fundingRate.toFixed(4)}`;
+        row.frCell.style.color = entry.fundingRate >= 0 ? "var(--up)" : "var(--down)";
+        row.statusCell.textContent = LEVEL_LABELS[entry.extremeLevel] + (entry.oiDivergence ? " · ⚠️ OI Div." : "");
+        row.statusCell.style.color = LEVEL_COLORS[entry.extremeLevel];
+        row.rowEl.style.background = entry.extremeLevel >= 2 ? "rgba(239,83,80,0.08)" : "";
+      });
+    }
+    marketScanner.subscribe(render);
+    render();
+
+    const note = document.createElement("div");
+    note.style.cssText = "flex-shrink:0; padding:8px 10px; font-size:10px; color:var(--text-secondary); border-top:1px solid var(--border); line-height:1.5;";
+    note.textContent = "Negatif FR ekstrem seviyelere ulaştığında hemen short açmak yerine dikkatli olun: fonlama short'ları cezalandırıyor olabilir, bu da ani yukarı sıkışma (short squeeze) riskini artırır.";
+    body.appendChild(note);
+
+    panelInstances[id] = {
+      destroy() { marketScanner.unsubscribe(render); },
+    };
+
+    return item;
+  }
+
+  // =====================================================================
+  // ISLEM ONCESI KONTROL LISTESI (Pre-Trade Checklist)
+  // =====================================================================
+  function createChecklistPanel(id, initialTargetId) {
+    let targetId = null;
+    let symbol = (panelsMeta[id] && panelsMeta[id].symbol) || "BTCUSDT";
+    let checked = (panelsMeta[id] && panelsMeta[id].checked) || [false, false, false, false];
+    if (panelsMeta[id]) { panelsMeta[id].symbol = symbol; panelsMeta[id].checked = checked; }
+
+    const CHECKLIST_ITEMS = [
+      "Ekstrem FR seviyesi mevcut mu? (-%2 vb.)",
+      "OI artışı ve ardından uyumsuzluk görüldü mü?",
+      "Heikin Ashi kırmızı dönüş mumu kapandı mı?",
+      "Risk/Ödül (R:R) oranı hesaplandı ve Stop-Loss belirlendi mi?",
+    ];
+
+    const { item, body, titleEl } = buildPanelShell(id, `Kontrol Listesi · ${symbol}`, initialTargetId, (newId) => {
+      subscribeToTarget(newId);
+      panelsMeta[id].targetId = newId;
+      saveLayout();
+    }, () => symbol);
+
+    const listWrap = document.createElement("div");
+    listWrap.style.cssText = "padding:12px; display:flex; flex-direction:column; gap:12px; height:100%; overflow-y:auto; box-sizing:border-box;";
+    body.appendChild(listWrap);
+
+    const checkboxEls = [];
+    CHECKLIST_ITEMS.forEach((text, i) => {
+      const row = document.createElement("label");
+      row.style.cssText = "display:flex; align-items:flex-start; gap:8px; font-size:12px; cursor:pointer; color:var(--text-primary); line-height:1.4;";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = checked[i];
+      cb.style.cssText = "margin-top:2px; width:16px; height:16px; accent-color:var(--accent); cursor:pointer; flex-shrink:0;";
+      cb.addEventListener("change", () => {
+        checked[i] = cb.checked;
+        panelsMeta[id].checked = checked;
+        saveLayout();
+        updateProgress();
+      });
+      const span = document.createElement("span");
+      span.textContent = text;
+      row.append(cb, span);
+      listWrap.appendChild(row);
+      checkboxEls.push(cb);
+    });
+
+    const progressEl = document.createElement("div");
+    progressEl.style.cssText = "margin-top:4px; font-size:11px; font-family:'IBM Plex Mono',monospace; color:var(--text-secondary); text-align:center; padding-top:10px; border-top:1px solid var(--border);";
+    listWrap.appendChild(progressEl);
+
+    function updateProgress() {
+      const doneCount = checked.filter(Boolean).length;
+      progressEl.textContent = `${doneCount} / ${CHECKLIST_ITEMS.length} tamamlandı`;
+      progressEl.style.color = doneCount === CHECKLIST_ITEMS.length ? "var(--up)" : "var(--text-secondary)";
+    }
+    updateProgress();
+
+    // Target uzerinden sembol degisince kontrol listesi sifirlanir - yeni
+    // bir trade fikri icin temiz bir "disiplin listesi" ile baslanir.
+    function resetChecklist(newSymbol) {
+      symbol = newSymbol;
+      checked = [false, false, false, false];
+      panelsMeta[id].symbol = symbol;
+      panelsMeta[id].checked = checked;
+      checkboxEls.forEach((cb) => { cb.checked = false; });
+      titleEl.textContent = `Kontrol Listesi · ${symbol}`;
+      updateProgress();
+      saveLayout();
+    }
+
+    function subscribeToTarget(newTargetId) {
+      if (targetId !== null) targetBus.unsubscribe(targetId, id);
+      targetId = newTargetId;
+      targetBus.subscribe(targetId, id, resetChecklist);
+    }
+    subscribeToTarget(initialTargetId);
+
+    panelInstances[id] = {
+      destroy() { if (targetId !== null) targetBus.unsubscribe(targetId, id); },
+    };
+
+    return item;
+  }
+
+  // =====================================================================
+  // HACIM SICRAMA RADARI (Volume Spike Alert Widget)
+  // =====================================================================
+  function createVolRadarPanel(id, initialTargetId) {
+    let targetId = initialTargetId;
+
+    const { item, body } = buildPanelShell(id, "Hacim Sıçrama Radarı", targetId, (newId) => {
+      targetId = newId;
+      panelsMeta[id].targetId = newId;
+      saveLayout();
+    }, () => "BTCUSDT");
+    body.style.overflow = "hidden";
+
+    const listWrap = document.createElement("div");
+    listWrap.style.cssText = "height:100%; overflow-y:auto; padding:8px;";
+    body.appendChild(listWrap);
+
+    const emptyNote = document.createElement("div");
+    emptyNote.className = "alert-empty-note";
+    emptyNote.textContent = "Şu an 3x üzeri hacim sıçraması tespit edilmedi.";
+    listWrap.appendChild(emptyNote);
+
+    // sym -> { closedVolumes:[son 20 kapanan mumun hacmi], currentVolume, currentIsUp, ratio }
+    const state = {};
+    WATCHLIST_SYMBOLS.forEach((sym) => {
+      state[sym] = { closedVolumes: [], currentVolume: null, currentIsUp: null, ratio: 0 };
+    });
+
+    function computeRatio(entry) {
+      if (entry.closedVolumes.length === 0 || entry.currentVolume === null) { entry.ratio = 0; return; }
+      const avg = entry.closedVolumes.reduce((a, b) => a + b, 0) / entry.closedVolumes.length;
+      entry.ratio = avg > 0 ? entry.currentVolume / avg : 0;
+    }
+
+    function render() {
+      const spikes = WATCHLIST_SYMBOLS
+        .map((sym) => ({ sym, ...state[sym] }))
+        .filter((e) => e.ratio >= 3)
+        .sort((a, b) => b.ratio - a.ratio);
+
+      listWrap.innerHTML = "";
+      if (spikes.length === 0) { listWrap.appendChild(emptyNote); return; }
+
+      spikes.forEach((e) => {
+        const symbolUpper = e.sym.toUpperCase();
+        const isUp = e.currentIsUp;
+        const flame = e.ratio >= 5 ? "🔥🔥" : "🔥";
+        const row = document.createElement("div");
+        row.className = "alert-list-item";
+        row.style.cursor = "pointer";
+        row.style.borderLeft = `4px solid ${isUp ? "var(--up)" : "var(--down)"}`;
+        row.innerHTML = `
+          <div class="info">
+            <div class="name" style="color:${isUp ? "var(--up)" : "var(--down)"}">${flame} ${symbolUpper.replace("USDT", "")}/USDT</div>
+            <div class="desc">${e.ratio.toFixed(2)}x Volume Spike · ${isUp ? "Alım ağırlıklı" : "Satım ağırlıklı"}</div>
+          </div>`;
+        row.addEventListener("click", () => targetBus.emit(targetId, symbolUpper));
+        listWrap.appendChild(row);
+      });
+    }
+
+    async function seedHistory() {
+      await Promise.all(WATCHLIST_SYMBOLS.map(async (sym) => {
+        try {
+          const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym.toUpperCase()}&interval=1m&limit=21`);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const raw = await res.json();
+          // son eleman muhtemelen hala olusmakta olan mum - kapanan kabul edilen
+          // ilk 20'yi al ki "son 20 mumluk ortalama" gercekten kapali mumlardan gelsin.
+          state[sym].closedVolumes = raw.slice(0, -1).map((d) => parseFloat(d[5])).slice(-20);
+        } catch (e) {
+          console.error(`[Hacim Radarı] ${sym.toUpperCase()} geçmiş hacim alınamadı:`, e.message);
+        }
+      }));
+      render();
+    }
+
+    let ws = null;
+    let retryDelayMs = 1000;
+    let heartbeatTimer = null;
+    let stopped = false;
+
+    function connect() {
+      if (stopped) return;
+      const streams = WATCHLIST_SYMBOLS.map((s) => `${s}@kline_1m`).join("/");
+      ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
+      ws.onopen = () => { retryDelayMs = 1000; resetHeartbeat(); };
+      ws.onmessage = (event) => {
+        resetHeartbeat();
+        let msg; try { msg = JSON.parse(event.data); } catch { return; }
+        const d = msg.data;
+        if (!d || !d.k) return;
+        const k = d.k;
+        const sym = d.s.toLowerCase();
+        const entry = state[sym];
+        if (!entry) return;
+
+        const vol = parseFloat(k.v);
+        if (k.x) {
+          // mum kapandi: bu hacmi "son 20 kapanan mum" penceresine ekle,
+          // yeni acilan mum icin currentVolume'u sifirla (bir sonraki
+          // mesajda guncel deger gelecek).
+          entry.closedVolumes.push(vol);
+          if (entry.closedVolumes.length > 20) entry.closedVolumes.shift();
+          entry.currentVolume = null;
+        } else {
+          entry.currentVolume = vol;
+          entry.currentIsUp = parseFloat(k.c) >= parseFloat(k.o);
+        }
+        computeRatio(entry);
+        render();
+      };
+      ws.onclose = () => { clearHeartbeat(); if (!stopped) scheduleReconnect(); };
+      ws.onerror = () => ws.close();
+    }
+    function resetHeartbeat() { clearHeartbeat(); heartbeatTimer = setTimeout(() => ws && ws.close(), 60000); }
+    function clearHeartbeat() { if (heartbeatTimer) { clearTimeout(heartbeatTimer); heartbeatTimer = null; } }
+    function scheduleReconnect() {
+      setTimeout(connect, retryDelayMs);
+      retryDelayMs = Math.min(retryDelayMs * 2, 30000);
+    }
+
+    seedHistory().then(connect);
+
+    panelInstances[id] = {
+      destroy() {
+        stopped = true;
+        clearHeartbeat();
+        if (ws) ws.close();
+      },
+    };
+
+    return item;
+  }
+
+  // =====================================================================
+  // CIZIM KATMANI - PAYLASILAN VERI VE GEOMETRI YARDIMCILARI
+  //
+  // Cizimler PANELE degil SEMBOLE bagli tutulur: ayni sembolu gosteren
+  // butun grafik panelleri ayni cizim kumesini paylasir, sembol/sahne
+  // degistiginde kaybolmaz (localStorage'da sembol bazinda saklanir).
+  // =====================================================================
+  const DRAWINGS_KEY = "crypto-dashboard-drawings-v1";
+  let drawingsStore = {}; // symbol -> [shape, shape, ...] - IndexedDB'den asenkron yuklenecek
+  loadDrawingsStore().then((d) => { drawingsStore = d; });
+
+  async function loadDrawingsStore() {
+    const migrated = await loadWithMigration(DRAWINGS_KEY, (v) => v && typeof v === "object");
+    return migrated || {};
+  }
+  function persistDrawingsStore() {
+    idbSet(DRAWINGS_KEY, drawingsStore); // fire-and-forget - cagiran taraf beklemek zorunda degil
+  }
+  function getShapesForSymbol(symbol) {
+    if (!drawingsStore[symbol]) drawingsStore[symbol] = [];
+    return drawingsStore[symbol];
+  }
+
+  const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+  const DRAW_COLORS = ["#e8a33d", "#26a69a", "#ef5350", "#7c8aff", "#e6eaf2"];
+
+  const DRAW_TOOLS = [
+    { id: "select", label: "SEL", title: "Seç / Taşı" },
+    { id: "trendline", label: "TL", title: "Trend Çizgisi" },
+    { id: "hline", label: "HL", title: "Yatay Çizgi" },
+    { id: "arrow", label: "AR", title: "Ok Çizgisi" },
+    { id: "channel", label: "CH", title: "Paralel Kanal" },
+    { id: "rectangle", label: "RC", title: "Dikdörtgen Bölge" },
+    { id: "label", label: "TX", title: "Fiyat Etiketi" },
+    { id: "fib", label: "FIB", title: "Fibonacci Düzeltmesi" },
+    { id: "measure", label: "MEA", title: "Ölçüm Aracı" },
+    { id: "long", label: "L", title: "Long Pozisyon", cls: "draw-tool-long" },
+    { id: "short", label: "S", title: "Short Pozisyon", cls: "draw-tool-short" },
+  ];
+  const POINTS_NEEDED = { trendline: 2, hline: 1, arrow: 2, channel: 3, rectangle: 2, label: 1, fib: 2, measure: 2 };
+
+  function distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq ? ((px - x1) * dx + (py - y1) * dy) / lenSq : 0;
+    t = Math.max(0, Math.min(1, t));
+    const cx = x1 + t * dx, cy = y1 + t * dy;
+    return Math.hypot(px - cx, py - cy);
+  }
+
+  function drawArrowHead(ctx, x1, y1, x2, y2) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const size = 9;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - size * Math.cos(angle - Math.PI / 7), y2 - size * Math.sin(angle - Math.PI / 7));
+    ctx.lineTo(x2 - size * Math.cos(angle + Math.PI / 7), y2 - size * Math.sin(angle + Math.PI / 7));
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // =====================================================================
+  // GELISMIS ALARM YONETIMI (Advanced Alert Manager)
+  //
+  // Alarmlar gecerli sembol icin fiyat/RSI/funding/OI kosullarini arka
+  // planda (herhangi bir panel acik olmasa bile) izler; sayfa yenilense
+  // dahi localStorage'dan geri yuklenip izlemeye devam eder. Tetiklenince
+  // 3 kanaldan bildirim verir: sesli uyari, masaustu bildirimi, ekran
+  // ici toast + Alarm Gecmisi tablosu.
+  // =====================================================================
+  const ALERTS_KEY = "crypto-dashboard-alerts-v1";
+  let alertsStore = { alerts: [], history: [] };
+  let audioCtx = null;
+
+  async function loadAlertsStore() {
+    const migrated = await loadWithMigration(ALERTS_KEY, (v) => v && Array.isArray(v.alerts));
+    if (!migrated) return { alerts: [], history: [] };
+    if (!Array.isArray(migrated.history)) migrated.history = [];
+    return migrated;
+  }
+  function persistAlertsStore() {
+    idbSet(ALERTS_KEY, alertsStore); // fire-and-forget
+  }
+
+  // --- Bildirim kanali 1: Sesli uyari (Web Audio API) ------------------
+  function ensureAudioContext() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch { /* desteklenmiyor */ }
+    }
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  }
+  function playAlertSound() {
+    ensureAudioContext();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    [880, 1320].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      const start = now + i * 0.16;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.25, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(start);
+      osc.stop(start + 0.2);
+    });
+  }
+
+  // --- Bildirim kanali 2: Masaustu bildirimi ----------------------------
+  function requestDesktopPermission() {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "default") Notification.requestPermission();
+  }
+  function showDesktopNotification(title, body) {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    try { new Notification(title, { body }); } catch { /* bazi ortamlarda kisitli olabilir */ }
+  }
+
+  // --- Bildirim kanali 3: Ekran ici Toast --------------------------------
+  function showToast(title, desc) {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = "toast";
+    toast.innerHTML = `
+      <div class="toast-title"><span>🔔 ${title}</span><button class="toast-close">✕</button></div>
+      <div class="toast-desc">${desc}</div>`;
+    toast.querySelector(".toast-close").addEventListener("click", () => toast.remove());
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 8000);
+  }
+
+  function addHistoryEntry(alertName, desc) {
+    alertsStore.history.unshift({
+      time: new Date().toLocaleString("tr-TR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }),
+      alertName, desc,
+    });
+    alertsStore.history = alertsStore.history.slice(0, 50);
+    persistAlertsStore();
+  }
+
+  function fireAlert(alert, desc) {
+    playAlertSound();
+    showDesktopNotification(alert.name, desc);
+    showToast(alert.name, desc);
+    addHistoryEntry(alert.name, desc);
+    renderAlertHistory();
+  }
+
+  // --- Piyasa Verisi Merkezi (marketDataHub) -----------------------------
+  // Sadece etkin alarmlarin ihtiyac duydugu sembol/veri turleri icin,
+  // istege bagli (lazy) baglanti acar; ayni sembolu izleyen birden fazla
+  // alarm varsa tek bir baglanti paylasilir.
+  const hub = {}; // symbol -> { price, closes[], rsi, fundingRate, oiHistory:[{t,v}], _conns:{} }
+
+  function ensureHubEntry(symbol) {
+    if (!hub[symbol]) hub[symbol] = { price: null, closes: [], rsi: null, fundingRate: null, oiHistory: [], _conns: {} };
+    return hub[symbol];
+  }
+
+  function hubNeedsType(symbol, type) {
+    return alertsStore.alerts.some((a) => a.enabled && a.symbol === symbol && a.conditions.some((c) => c.type === type));
+  }
+
+  function symbolsNeeded() {
+    const set = new Set();
+    alertsStore.alerts.forEach((a) => { if (a.enabled) set.add(a.symbol); });
+    return set;
+  }
+
+  // Fiyat (spot bookTicker - miniTicker gibi hafif, surekli akan bir stream)
+  function hubEnsurePriceConn(symbol) {
+    const entry = ensureHubEntry(symbol);
+    if (entry._conns.price) return;
+    let stopped = false;
+    let retryMs = 1000;
+    function connect() {
+      if (stopped) return;
+      const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@miniTicker`);
+      entry._conns.price = { ws, stopped: false };
+      ws.onopen = () => { retryMs = 1000; };
+      ws.onmessage = (event) => {
+        let msg; try { msg = JSON.parse(event.data); } catch { return; }
+        entry.price = parseFloat(msg.c);
+        evaluateAlertsForSymbol(symbol);
+      };
+      ws.onclose = () => { if (!stopped) setTimeout(connect, retryMs); retryMs = Math.min(retryMs * 2, 30000); };
+      ws.onerror = () => ws.close();
+    }
+    connect();
+    entry._conns.price = { stop: () => { stopped = true; } };
+  }
+
+  // RSI icin kapanan 1dk mumlari
+  function hubEnsureRsiConn(symbol) {
+    const entry = ensureHubEntry(symbol);
+    if (entry._conns.rsi) return;
+    let stopped = false;
+    let retryMs = 1000;
+    (async () => {
+      try {
+        const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1m&limit=100`);
+        const raw = await res.json();
+        entry.closes = raw.map((d) => parseFloat(d[4]));
+        entry.rsi = computeRsi(entry.closes, 14);
+      } catch (e) { console.error("[Alarm] Gecmis kapanislar alinamadi:", e); }
+    })();
+    function connect() {
+      if (stopped) return;
+      const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_1m`);
+      ws.onopen = () => { retryMs = 1000; };
+      ws.onmessage = (event) => {
+        let msg; try { msg = JSON.parse(event.data); } catch { return; }
+        const k = msg.k;
+        if (!k || !k.x) return;
+        entry.closes.push(parseFloat(k.c));
+        if (entry.closes.length > 200) entry.closes.shift();
+        entry.rsi = computeRsi(entry.closes, 14);
+        evaluateAlertsForSymbol(symbol);
+      };
+      ws.onclose = () => { if (!stopped) setTimeout(connect, retryMs); retryMs = Math.min(retryMs * 2, 30000); };
+      ws.onerror = () => ws.close();
+    }
+    connect();
+    entry._conns.rsi = { stop: () => { stopped = true; } };
+  }
+
+  // Funding rate (futures markPrice@1s)
+  function hubEnsureFundingConn(symbol) {
+    const entry = ensureHubEntry(symbol);
+    if (entry._conns.funding) return;
+    let stopped = false;
+    let retryMs = 1000;
+    function connect() {
+      if (stopped) return;
+      const ws = new WebSocket(`wss://fstream.binance.com/market/ws/${symbol.toLowerCase()}@markPrice@1s`);
+      ws.onopen = () => { retryMs = 1000; };
+      ws.onmessage = (event) => {
+        let msg; try { msg = JSON.parse(event.data); } catch { return; }
+        if (msg.r === undefined) return;
+        entry.fundingRate = parseFloat(msg.r) * 100;
+        evaluateAlertsForSymbol(symbol);
+      };
+      ws.onclose = () => { if (!stopped) setTimeout(connect, retryMs); retryMs = Math.min(retryMs * 2, 30000); };
+      ws.onerror = () => ws.close();
+    }
+    connect();
+    entry._conns.funding = { stop: () => { stopped = true; } };
+  }
+
+  // Open Interest sicramasi icin REST polling + kayan pencere
+  function hubEnsureOiConn(symbol) {
+    const entry = ensureHubEntry(symbol);
+    if (entry._conns.oi) return;
+    let stopped = false;
+    async function poll() {
+      if (stopped) return;
+      try {
+        const res = await fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`);
+        const data = await res.json();
+        const v = parseFloat(data.openInterest);
+        entry.oiHistory.push({ t: Date.now(), v });
+        const cutoff = Date.now() - 5 * 60 * 1000; // son 5 dakikayi tut
+        entry.oiHistory = entry.oiHistory.filter((p) => p.t >= cutoff);
+        evaluateAlertsForSymbol(symbol);
+      } catch (e) { console.error("[Alarm] Open Interest alinamadi:", e); }
+      if (!stopped) setTimeout(poll, 5000);
+    }
+    poll();
+    entry._conns.oi = { stop: () => { stopped = true; } };
+  }
+
+  function computeRsi(closes, period) {
+    if (closes.length < period + 1) return null;
+    const slice = closes.slice(-(period + 1));
+    let gain = 0, loss = 0;
+    for (let i = 1; i < slice.length; i++) {
+      const diff = slice[i] - slice[i - 1];
+      if (diff >= 0) gain += diff; else loss -= diff;
+    }
+    const avgGain = gain / period, avgLoss = loss / period;
+    if (avgLoss === 0) return 100;
+    return 100 - 100 / (1 + avgGain / avgLoss);
+  }
+
+  // OI'nin son 5 dakikadaki en eski degerine gore yuzde degisimi
+  function oiPctChange(entry) {
+    if (entry.oiHistory.length < 2) return null;
+    const first = entry.oiHistory[0].v;
+    const last = entry.oiHistory[entry.oiHistory.length - 1].v;
+    if (!first) return null;
+    return ((last - first) / first) * 100;
+  }
+
+  // Kullanilan sembollere gore gerekli hub baglantilarini acar/kapatir
+  function syncHubConnections() {
+    const needed = symbolsNeeded();
+    needed.forEach((symbol) => {
+      if (hubNeedsType(symbol, "price")) hubEnsurePriceConn(symbol);
+      if (hubNeedsType(symbol, "rsi")) hubEnsureRsiConn(symbol);
+      if (hubNeedsType(symbol, "funding")) hubEnsureFundingConn(symbol);
+      if (hubNeedsType(symbol, "oi_spike")) hubEnsureOiConn(symbol);
+    });
+    // artik hicbir etkin alarmin kullanmadigi sembollerin baglantilarini kapat
+    Object.keys(hub).forEach((symbol) => {
+      if (!needed.has(symbol)) {
+        Object.values(hub[symbol]._conns).forEach((c) => c.stop && c.stop());
+        delete hub[symbol];
+      }
+    });
+  }
+
+  function evaluateCondition(entry, cond) {
+    if (!entry) return false;
+    if (cond.type === "price") {
+      if (entry.price === null) return false;
+      return cond.operator === ">" ? entry.price > cond.value : entry.price < cond.value;
+    }
+    if (cond.type === "rsi") {
+      if (entry.rsi === null) return false;
+      return cond.operator === ">" ? entry.rsi > cond.value : entry.rsi < cond.value;
+    }
+    if (cond.type === "funding") {
+      if (entry.fundingRate === null) return false;
+      return cond.operator === ">" ? entry.fundingRate > cond.value : entry.fundingRate < cond.value;
+    }
+    if (cond.type === "oi_spike") {
+      const pct = oiPctChange(entry);
+      if (pct === null) return false;
+      return Math.abs(pct) > cond.value;
+    }
+    return false;
+  }
+
+  function describeCondition(c) {
+    const labels = { price: "Fiyat", rsi: "RSI", funding: "Funding Rate", oi_spike: "OI değişimi (%5dk)" };
+    const opLabel = c.type === "oi_spike" ? "mutlak >" : c.operator;
+    return `${labels[c.type]} ${opLabel} ${c.value}`;
+  }
+
+  function describeAlert(alert) {
+    return `${alert.symbol}: ` + alert.conditions.map(describeCondition).join(` ${alert.logic} `);
+  }
+
+  function evaluateAlertsForSymbol(symbol) {
+    const entry = hub[symbol];
+    alertsStore.alerts.forEach((alert) => {
+      if (!alert.enabled || alert.symbol !== symbol) return;
+      const results = alert.conditions.map((c) => evaluateCondition(entry, c));
+      const combined = alert.logic === "AND" ? results.every(Boolean) : results.some(Boolean);
+      if (combined && !alert._wasTrue) {
+        fireAlert(alert, describeAlert(alert));
+      }
+      alert._wasTrue = combined;
+    });
+  }
+
+  // --- Alarm CRUD --------------------------------------------------------
+  function makeAlertId() { return "alert-" + (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)); }
+
+  function addAlert(alert) {
+    alert.id = makeAlertId();
+    alert.enabled = true;
+    alert._wasTrue = false;
+    alertsStore.alerts.push(alert);
+    persistAlertsStore();
+    syncHubConnections();
+    renderAlertList();
+    updateAlertButtonBadge();
+  }
+  function toggleAlert(id) {
+    const alert = alertsStore.alerts.find((a) => a.id === id);
+    if (!alert) return;
+    alert.enabled = !alert.enabled;
+    alert._wasTrue = false;
+    persistAlertsStore();
+    syncHubConnections();
+    renderAlertList();
+    updateAlertButtonBadge();
+  }
+  function deleteAlert(id) {
+    alertsStore.alerts = alertsStore.alerts.filter((a) => a.id !== id);
+    persistAlertsStore();
+    syncHubConnections();
+    renderAlertList();
+    updateAlertButtonBadge();
+  }
+  function updateAlertButtonBadge() {
+    const btn = document.getElementById("alert-manager-btn");
+    const activeCount = alertsStore.alerts.filter((a) => a.enabled).length;
+    btn.classList.toggle("has-alerts", activeCount > 0);
+    btn.textContent = activeCount > 0 ? `🔔 Alarmlar (${activeCount})` : "🔔 Alarmlar";
+  }
+
+  // --- Modal UI ------------------------------------------------------------
+  const alertModalBackdrop = document.createElement("div");
+  alertModalBackdrop.id = "alert-modal-backdrop";
+  alertModalBackdrop.innerHTML = `
+    <div id="alert-modal">
+      <div id="alert-modal-header">
+        <h2>Alarm Yöneticisi</h2>
+        <button class="panel-btn close-btn" id="alert-modal-close">✕</button>
+      </div>
+      <div class="alert-tabs">
+        <button class="alert-tab active" data-tab="new">+ Yeni Alarm</button>
+        <button class="alert-tab" data-tab="list">Alarmlarım</button>
+        <button class="alert-tab" data-tab="history">Geçmiş</button>
+      </div>
+      <div id="alert-modal-body"></div>
+    </div>`;
+  document.body.appendChild(alertModalBackdrop);
+  alertModalBackdrop.addEventListener("click", (e) => { if (e.target === alertModalBackdrop) closeAlertManager(); });
+  document.getElementById("alert-modal-close").addEventListener("click", closeAlertManager);
+  alertModalBackdrop.querySelectorAll(".alert-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      alertModalBackdrop.querySelectorAll(".alert-tab").forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      renderAlertTab(tab.dataset.tab);
+    });
+  });
+
+  let pendingConditions = [];
+  let pendingLogic = "AND";
+  const CONDITION_TYPES = [
+    { value: "price", label: "Fiyat" },
+    { value: "rsi", label: "RSI (14, 1dk mumlar)" },
+    { value: "funding", label: "Funding Rate (%)" },
+    { value: "oi_spike", label: "Open Interest sıçraması (son 5dk, %)" },
+  ];
+
+  function renderConditionRow(cond, index) {
+    const row = document.createElement("div");
+    row.className = "condition-row";
+
+    const typeSelect = document.createElement("select");
+    typeSelect.className = "alert-select";
+    CONDITION_TYPES.forEach((t) => {
+      const opt = document.createElement("option");
+      opt.value = t.value; opt.textContent = t.label;
+      if (t.value === cond.type) opt.selected = true;
+      typeSelect.appendChild(opt);
+    });
+    typeSelect.addEventListener("change", () => { cond.type = typeSelect.value; renderNewAlertTab(); });
+
+    let opSelectOrLabel;
+    if (cond.type === "oi_spike") {
+      opSelectOrLabel = document.createElement("span");
+      opSelectOrLabel.style.cssText = "font-size:11px;color:var(--text-secondary);white-space:nowrap;";
+      opSelectOrLabel.textContent = "mutlak değişim >";
+    } else {
+      opSelectOrLabel = document.createElement("select");
+      opSelectOrLabel.className = "alert-select";
+      opSelectOrLabel.style.flex = "0 0 60px";
+      [">", "<"].forEach((op) => {
+        const opt = document.createElement("option");
+        opt.value = op; opt.textContent = op;
+        if (op === cond.operator) opt.selected = true;
+        opSelectOrLabel.appendChild(opt);
+      });
+      opSelectOrLabel.addEventListener("change", () => { cond.operator = opSelectOrLabel.value; });
+    }
+
+    const valueInput = document.createElement("input");
+    valueInput.type = "number";
+    valueInput.className = "alert-input";
+    valueInput.style.flex = "0 0 100px";
+    valueInput.value = cond.value;
+    valueInput.placeholder = cond.type === "price" ? "örn. 95000" : cond.type === "rsi" ? "örn. 70" : cond.type === "funding" ? "örn. 0.05" : "örn. 5";
+    valueInput.addEventListener("input", () => { cond.value = parseFloat(valueInput.value) || 0; });
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "condition-remove-btn";
+    removeBtn.textContent = "✕";
+    removeBtn.addEventListener("click", () => {
+      pendingConditions.splice(index, 1);
+      renderNewAlertTab();
+    });
+
+    row.append(typeSelect, opSelectOrLabel, valueInput, removeBtn);
+    return row;
+  }
+
+  function renderNewAlertTab() {
+    const body = document.getElementById("alert-modal-body");
+    body.innerHTML = "";
+
+    const nameRow = document.createElement("div");
+    nameRow.className = "alert-form-row";
+    nameRow.innerHTML = `<label>Alarm Adı</label>`;
+    const nameInput = document.createElement("input");
+    nameInput.className = "alert-input";
+    nameInput.id = "alert-name-input";
+    nameInput.placeholder = "örn. BTC Kırılım Alarmı";
+    nameRow.appendChild(nameInput);
+    body.appendChild(nameRow);
+
+    const symRow = document.createElement("div");
+    symRow.className = "alert-form-row";
+    symRow.innerHTML = `<label>Sembol</label>`;
+    const symInput = document.createElement("input");
+    symInput.className = "alert-input";
+    symInput.id = "alert-symbol-input";
+    symInput.value = pendingConditions._symbol || "BTCUSDT";
+    symInput.style.textTransform = "uppercase";
+    symRow.appendChild(symInput);
+    body.appendChild(symRow);
+
+    const condsLabel = document.createElement("div");
+    condsLabel.style.cssText = "font-size:11px;color:var(--text-secondary);margin:12px 0 6px;";
+    condsLabel.textContent = "Koşullar";
+    body.appendChild(condsLabel);
+
+    const condsWrap = document.createElement("div");
+    pendingConditions.forEach((cond, i) => condsWrap.appendChild(renderConditionRow(cond, i)));
+    body.appendChild(condsWrap);
+
+    const addCondBtn = document.createElement("button");
+    addCondBtn.className = "alert-btn secondary";
+    addCondBtn.textContent = "+ Koşul Ekle";
+    addCondBtn.style.marginBottom = "10px";
+    addCondBtn.addEventListener("click", () => {
+      pendingConditions.push({ type: "price", operator: ">", value: 0 });
+      renderNewAlertTab();
+    });
+    body.appendChild(addCondBtn);
+
+    if (pendingConditions.length > 1) {
+      const logicWrap = document.createElement("div");
+      logicWrap.className = "alert-logic-toggle";
+      ["AND", "OR"].forEach((mode) => {
+        const btn = document.createElement("button");
+        btn.className = "alert-logic-btn" + (pendingLogic === mode ? " active" : "");
+        btn.textContent = mode;
+        btn.addEventListener("click", () => { pendingLogic = mode; renderNewAlertTab(); });
+        logicWrap.appendChild(btn);
+      });
+      body.appendChild(logicWrap);
+    }
+
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "alert-btn";
+    saveBtn.textContent = "Alarmı Kaydet";
+    saveBtn.style.marginTop = "10px";
+    saveBtn.addEventListener("click", () => {
+      const symbol = symInput.value.trim().toUpperCase();
+      if (!/^[A-Z0-9]{5,15}$/.test(symbol)) { window.alert("Geçersiz sembol."); return; }
+      if (pendingConditions.length === 0) { window.alert("En az bir koşul ekleyin."); return; }
+      const name = nameInput.value.trim() || `${symbol} Alarmı`;
+      addAlert({
+        name, symbol,
+        conditions: pendingConditions.map((c) => ({ ...c })),
+        logic: pendingLogic,
+      });
+      requestDesktopPermission();
+      ensureAudioContext();
+      pendingConditions = [{ type: "price", operator: ">", value: 0 }];
+      pendingLogic = "AND";
+      alertModalBackdrop.querySelector('.alert-tab[data-tab="list"]').click();
+    });
+    body.appendChild(saveBtn);
+
+    if (!("Notification" in window)) {
+      const note = document.createElement("div");
+      note.className = "alert-empty-note";
+      note.textContent = "Bu tarayıcı masaüstü bildirimlerini desteklemiyor; sesli uyarı ve ekran içi toast yine de çalışacak.";
+      body.appendChild(note);
+    } else if (Notification.permission === "default") {
+      const permBtn = document.createElement("button");
+      permBtn.className = "alert-btn secondary";
+      permBtn.style.marginTop = "10px";
+      permBtn.textContent = "Masaüstü bildirimlerine izin ver";
+      permBtn.addEventListener("click", requestDesktopPermission);
+      body.appendChild(permBtn);
+    }
+  }
+
+  function renderAlertList() {
+    const body = document.getElementById("alert-modal-body");
+    body.innerHTML = "";
+    if (alertsStore.alerts.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "alert-empty-note";
+      empty.textContent = "Henüz alarm eklemediniz. \"+ Yeni Alarm\" sekmesinden ekleyebilirsiniz.";
+      body.appendChild(empty);
+      return;
+    }
+    alertsStore.alerts.forEach((alert) => {
+      const item = document.createElement("div");
+      item.className = "alert-list-item" + (alert.enabled ? "" : " disabled");
+      item.innerHTML = `
+        <div class="info">
+          <div class="name">${alert.name}</div>
+          <div class="desc">${describeAlert(alert)}</div>
+        </div>`;
+      const toggle = document.createElement("div");
+      toggle.className = "alert-toggle-switch" + (alert.enabled ? " on" : "");
+      toggle.innerHTML = `<div class="knob"></div>`;
+      toggle.addEventListener("click", () => toggleAlert(alert.id));
+      const delBtn = document.createElement("button");
+      delBtn.className = "panel-btn close-btn";
+      delBtn.textContent = "✕";
+      delBtn.addEventListener("click", () => deleteAlert(alert.id));
+      item.append(toggle, delBtn);
+      body.appendChild(item);
+    });
+  }
+
+  function renderAlertHistory() {
+    const body = document.getElementById("alert-modal-body");
+    if (!alertModalBackdrop.querySelector('.alert-tab[data-tab="history"]').classList.contains("active")) return;
+    body.innerHTML = "";
+    if (alertsStore.history.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "alert-empty-note";
+      empty.textContent = "Henüz tetiklenen bir alarm yok.";
+      body.appendChild(empty);
+      return;
+    }
+    alertsStore.history.forEach((h) => {
+      const row = document.createElement("div");
+      row.className = "alert-history-row";
+      row.innerHTML = `<span class="time">${h.time}</span><span style="flex:1;">${h.alertName} — ${h.desc}</span>`;
+      body.appendChild(row);
+    });
+  }
+
+  function renderAlertTab(tab) {
+    if (tab === "new") renderNewAlertTab();
+    else if (tab === "list") renderAlertList();
+    else renderAlertHistory();
+  }
+
+  function openAlertManager(prefillSymbol) {
+    ensureAudioContext();
+    pendingConditions = [{ type: "price", operator: ">", value: 0 }];
+    pendingConditions._symbol = prefillSymbol;
+    pendingLogic = "AND";
+    alertModalBackdrop.querySelectorAll(".alert-tab").forEach((t) => t.classList.remove("active"));
+    alertModalBackdrop.querySelector('.alert-tab[data-tab="new"]').classList.add("active");
+    renderNewAlertTab();
+    alertModalBackdrop.classList.add("visible");
+  }
+  function closeAlertManager() {
+    alertModalBackdrop.classList.remove("visible");
+  }
+
+  async function initAlertManager() {
+    alertsStore = await loadAlertsStore();
+    alertsStore.alerts.forEach((a) => { a._wasTrue = false; });
+    syncHubConnections();
+    updateAlertButtonBadge();
+    document.getElementById("alert-manager-btn").addEventListener("click", () => openAlertManager("BTCUSDT"));
+  }
+
+  // =====================================================================
+  // STICKY BAR (Funding Rate + geri sayim + Open Interest)
+  // =====================================================================
+  async function initStickyBar() {
+    const saved = (await loadWithMigration(STICKY_KEY, (v) => v && typeof v === "object")) || {};
+    let visible = saved.visible !== false;
+
+    let symbol = "BTCUSDT";
+    let currentTargetId = null;
+    let generation = 0;
+    let nextFundingTime = null;
+    let lastFunding = null;
+    let lastOI = null;
+
+    const bar = document.getElementById("sticky-bar");
+    const symbolEl = document.getElementById("sticky-symbol");
+    const indicator = document.getElementById("sticky-indicator");
+    const fundingEl = document.getElementById("sticky-funding");
+    const countdownEl = document.getElementById("sticky-countdown");
+    const oiEl = document.getElementById("sticky-oi");
+    const targetSlot = document.getElementById("sticky-target-slot");
+    const closeBtn = document.getElementById("sticky-close-btn");
+    const showBtn = document.getElementById("sticky-show-btn");
+
+    indicator.style.background = TARGET_COLORS[saved.targetId || DEFAULT_TARGET_ID];
+    indicator.style.color = TARGET_COLORS[saved.targetId || DEFAULT_TARGET_ID];
+
+    function persist(targetId) {
+      idbSet(STICKY_KEY, { targetId, visible }); // fire-and-forget
+    }
+
+    function setVisible(v) {
+      visible = v;
+      bar.style.display = v ? "flex" : "none";
+      showBtn.style.display = v ? "none" : "inline-flex";
+      persist(currentTargetId || DEFAULT_TARGET_ID);
+    }
+
+    closeBtn.addEventListener("click", () => setVisible(false));
+    showBtn.addEventListener("click", () => setVisible(true));
+
+    function updateCountdown() {
+      if (!nextFundingTime) { countdownEl.textContent = "—"; return; }
+      const diff = nextFundingTime - Date.now();
+      if (diff <= 0) { countdownEl.textContent = "00:00:00"; return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      countdownEl.textContent = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+    setInterval(updateCountdown, 1000);
+
+    let fundingWs = null;
+    let fundingRetryMs = 1000;
+    let fundingHeartbeat = null;
+    let fundingFailCount = 0;
+    let stopped = false;
+
+    function connectFundingWs() {
+      if (stopped) return;
+      const myGen = generation;
+      const mySymbol = symbol;
+      fundingWs = new WebSocket(`wss://fstream.binance.com/market/ws/${mySymbol.toLowerCase()}@markPrice@1s`);
+      fundingWs.onopen = () => { fundingRetryMs = 1000; fundingFailCount = 0; resetFundingHeartbeat(); };
+      fundingWs.onmessage = (event) => {
+        resetFundingHeartbeat();
+        let msg;
+        try { msg = JSON.parse(event.data); } catch { return; }
+        if (msg.r === undefined) return;
+        const rate = parseFloat(msg.r) * 100;
+        if (lastFunding !== null && rate !== lastFunding) flashValue(fundingEl, rate >= lastFunding);
+        fundingEl.textContent = `${rate >= 0 ? "+" : ""}${rate.toFixed(4)}%`;
+        fundingEl.style.color = rate >= 0 ? "var(--up)" : "var(--down)";
+        lastFunding = rate;
+        nextFundingTime = msg.T;
+        updateCountdown();
+      };
+      fundingWs.onclose = (ev) => {
+        clearFundingHeartbeat();
+        if (!stopped && myGen === generation) {
+          fundingFailCount++;
+          console.warn(`[Sticky Bar] markPrice WS kapandi (kod: ${ev.code}). Deneme: ${fundingFailCount}`);
+          if (fundingFailCount >= 3 && lastFunding === null) {
+            fundingEl.textContent = "bağlanamıyor";
+            countdownEl.textContent = "—";
+          }
+          scheduleFundingReconnect(myGen);
+        }
+      };
+      fundingWs.onerror = (ev) => {
+        console.error("[Sticky Bar] markPrice WS hatasi - Futures WS'e erisim engelli olabilir (bolgesel kisitlama). Detay icin Network sekmesine bakin.", ev);
+        fundingWs.close();
+      };
+    }
+    function resetFundingHeartbeat() {
+      clearFundingHeartbeat();
+      fundingHeartbeat = setTimeout(() => fundingWs && fundingWs.close(), 60000);
+    }
+    function clearFundingHeartbeat() {
+      if (fundingHeartbeat) { clearTimeout(fundingHeartbeat); fundingHeartbeat = null; }
+    }
+    function scheduleFundingReconnect(myGen) {
+      setTimeout(() => { if (!stopped && myGen === generation) connectFundingWs(); }, fundingRetryMs);
+      fundingRetryMs = Math.min(fundingRetryMs * 2, 30000);
+    }
+
+    let oiPollTimer = null;
+    let oiFailCount = 0;
+    async function pollOpenInterest() {
+      const mySymbol = symbol;
+      try {
+        const res = await fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${mySymbol}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (mySymbol !== symbol) return;
+        const oi = parseFloat(data.openInterest);
+        if (lastOI !== null && oi !== lastOI) flashValue(oiEl, oi >= lastOI);
+        oiEl.textContent = oi.toLocaleString("en-US", { maximumFractionDigits: 2 });
+        lastOI = oi;
+        oiFailCount = 0;
+      } catch (e) {
+        if (mySymbol !== symbol) return;
+        oiFailCount++;
+        console.error(`[Sticky Bar] Open Interest alinamadi (deneme ${oiFailCount}): ${e.message}. Futures REST API'ye erisim engelli olabilir (bolgesel kisitlama) - tarayicidan dogrudan https://fapi.binance.com/fapi/v1/openInterest?symbol=${mySymbol} adresini deneyin.`);
+        if (oiFailCount >= 2 && lastOI === null) oiEl.textContent = "erişilemiyor";
+      }
+    }
+    function startOiPolling() {
+      if (oiPollTimer) clearInterval(oiPollTimer);
+      oiFailCount = 0;
+      pollOpenInterest();
+      oiPollTimer = setInterval(pollOpenInterest, 5000);
+    }
+
+    function changeStickySymbol(newSymbolRaw) {
+      const newSymbol = newSymbolRaw.toUpperCase();
+      if (newSymbol === symbol) return;
+      symbol = newSymbol;
+      generation++;
+      clearFundingHeartbeat();
+      if (fundingWs) { try { fundingWs.close(); } catch (e) { /* yoksay */ } }
+      fundingRetryMs = 1000;
+      fundingFailCount = 0;
+
+      lastFunding = null;
+      lastOI = null;
+      nextFundingTime = null;
+      symbolEl.textContent = symbol;
+      fundingEl.textContent = "—";
+      fundingEl.style.color = "";
+      oiEl.textContent = "—";
+      countdownEl.textContent = "—";
+
+      connectFundingWs();
+      startOiPolling();
+    }
+
+    function subscribeToTarget(newTargetId) {
+      if (currentTargetId !== null) targetBus.unsubscribe(currentTargetId, "sticky-bar");
+      currentTargetId = newTargetId;
+      targetBus.subscribe(currentTargetId, "sticky-bar", changeStickySymbol);
+      persist(currentTargetId);
+    }
+
+    const targetGroupEl = createTargetButtonGroup(saved.targetId || DEFAULT_TARGET_ID, indicator, (newId) => {
+      subscribeToTarget(newId);
+    });
+    targetSlot.appendChild(targetGroupEl);
+
+    symbolEl.textContent = symbol;
+    subscribeToTarget(saved.targetId || DEFAULT_TARGET_ID);
+    connectFundingWs();
+    startOiPolling();
+
+    bar.style.display = visible ? "flex" : "none";
+    showBtn.style.display = visible ? "none" : "inline-flex";
+  }
+
+  // =====================================================================
+  // SAHNE YONETICISI (Scene Manager / Presets)
+  // =====================================================================
+  const SCENES_KEY = "crypto-dashboard-scenes-v1";
+  let scenesStore = { scenes: [], activeSceneId: null };
+
+  async function loadScenesStore() {
+    const migrated = await loadWithMigration(SCENES_KEY, (v) => v && Array.isArray(v.scenes));
+    return migrated || { scenes: [], activeSceneId: null };
+  }
+
+  function persistScenesStore() {
+    idbSet(SCENES_KEY, scenesStore); // fire-and-forget
+  }
+
+  function findScene(id) {
+    return scenesStore.scenes.find((s) => s.id === id);
+  }
+
+  function makeSceneId() {
+    return "scene-" + (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36));
+  }
+
+  // Su an ekrandaki GridStack duzenini (konum/boyut + panel tipi/sembol/target)
+  // yakalar - hem otomatik kaydetme hem "Kaydet/Guncelle" butonu bunu kullanir.
+  function captureCurrentGridData() {
+    const nodes = grid.save(false); // sadece x/y/w/h/id - GridStack'in kendi alanlari
+    const layout = nodes.map((n) => ({ id: n.id, x: n.x, y: n.y, w: n.w, h: n.h }));
+    const meta = {};
+    nodes.forEach((n) => {
+      if (panelsMeta[n.id]) meta[n.id] = panelsMeta[n.id];
+    });
+    return { layout, meta };
+  }
+
+  // Aktif sahnenin icerigini gunceller. Panel eklendiginde/tasindiginde/
+  // silindiginde veya sembol/target degistiginde otomatik cagrilir; ayrica
+  // "Kaydet/Guncelle" butonu da aynen bunu tetikler.
+  function saveLayout() {
+    if (!scenesStore.activeSceneId) return;
+    const scene = findScene(scenesStore.activeSceneId);
+    if (!scene) return;
+    const { layout, meta } = captureCurrentGridData();
+    scene.layout = layout;
+    scene.meta = meta;
+    persistScenesStore();
+  }
+
+  grid.on("added removed change", () => saveLayout());
+
+  function createPanelElement(type, id, symbol, targetId) {
+    if (type === "watchlist") return createWatchlistPanel(id, targetId);
+    if (type === "orderbook") return createOrderBookPanel(id, symbol, targetId);
+    if (type === "heatmap") return createHeatmapPanel(id, symbol, targetId);
+    if (type === "bot") return createBotPanel(id, symbol, targetId);
+    if (type === "frscan") return createFrScanPanel(id, targetId);
+    if (type === "checklist") return createChecklistPanel(id, targetId);
+    if (type === "volradar") return createVolRadarPanel(id, targetId);
+    return createChartPanel(id, symbol, targetId);
+  }
+
+  function addPanelToGrid(id, type, symbol, targetId, position) {
+    panelsMeta[id] = { type, symbol, targetId };
+    const el = createPanelElement(type, id, symbol, targetId);
+    grid.addWidget(el, position);
+  }
+
+  // Izgaradaki TUM panelleri (WS baglantilari dahil) temizler; sahne
+  // degistirirken veya yeni bos sahne acarken kullanilir.
+  function clearGridPanels() {
+    Object.keys(panelInstances).forEach((id) => panelInstances[id]?.destroy?.());
+    Object.keys(panelInstances).forEach((id) => delete panelInstances[id]);
+    Object.keys(panelsMeta).forEach((id) => delete panelsMeta[id]);
+    grid.removeAll();
+  }
+
+  // Verilen sahne verisini (layout+meta) izgaraya yukler. GridStack'in
+  // gercek callback imzasi: (parent, w, add) => HTMLElement | undefined.
+  function loadSceneIntoGrid(scene) {
+    if (!scene || !Array.isArray(scene.layout) || scene.layout.length === 0) return;
+    const meta = scene.meta || {};
+    grid.load(scene.layout, (parentEl, w, add) => {
+      if (add) {
+        const panelMeta = meta[w.id] || { type: "chart", symbol: "BTCUSDT", targetId: DEFAULT_TARGET_ID };
+        const targetId = panelMeta.targetId || DEFAULT_TARGET_ID;
+        panelsMeta[w.id] = { type: panelMeta.type, symbol: panelMeta.symbol, targetId, interval: panelMeta.interval, checked: panelMeta.checked };
+        return createPanelElement(panelMeta.type, w.id, panelMeta.symbol, targetId);
+      }
+      panelInstances[w.id]?.destroy?.();
+      delete panelInstances[w.id];
+      delete panelsMeta[w.id];
+      return undefined;
+    });
+  }
+
+  function createDefaultLayout() {
+    addPanelToGrid("panel-watchlist-default", "watchlist", null, DEFAULT_TARGET_ID,
+      { id: "panel-watchlist-default", x: 0, y: 0, w: 3, h: 8 });
+    addPanelToGrid("panel-chart-default", "chart", "BTCUSDT", DEFAULT_TARGET_ID,
+      { id: "panel-chart-default", x: 3, y: 0, w: 6, h: 8 });
+    addPanelToGrid("panel-orderbook-default", "orderbook", "BTCUSDT", DEFAULT_TARGET_ID,
+      { id: "panel-orderbook-default", x: 9, y: 0, w: 3, h: 8 });
+  }
+
+  function renderSceneSelect() {
+    const select = document.getElementById("scene-select");
+    select.innerHTML = "";
+    scenesStore.scenes.forEach((scene) => {
+      const opt = document.createElement("option");
+      opt.value = scene.id;
+      opt.textContent = scene.name;
+      if (scene.id === scenesStore.activeSceneId) opt.selected = true;
+      select.appendChild(opt);
+    });
+  }
+
+  function switchToScene(sceneId) {
+    const scene = findScene(sceneId);
+    if (!scene) return;
+    scenesStore.activeSceneId = sceneId;
+    persistScenesStore();
+    clearGridPanels();
+    loadSceneIntoGrid(scene);
+    renderSceneSelect();
+  }
+
+  function createNewScene() {
+    const name = window.prompt("Yeni sahne adı:", `Sahne ${scenesStore.scenes.length + 1}`);
+    if (!name || !name.trim()) return;
+    const scene = { id: makeSceneId(), name: name.trim(), layout: [], meta: {} };
+    scenesStore.scenes.push(scene);
+    scenesStore.activeSceneId = scene.id;
+    persistScenesStore();
+    clearGridPanels(); // yeni sahne bos baslar; kullanici "Panel Ekle" ile doldurur
+    renderSceneSelect();
+  }
+
+  function deleteActiveScene() {
+    const scene = findScene(scenesStore.activeSceneId);
+    if (!scene) return;
+    if (!window.confirm(`"${scene.name}" sahnesini silmek istediğinize emin misiniz?`)) return;
+
+    scenesStore.scenes = scenesStore.scenes.filter((s) => s.id !== scene.id);
+    if (scenesStore.scenes.length === 0) {
+      const fresh = { id: makeSceneId(), name: "Varsayılan Sahne", layout: [], meta: {} };
+      scenesStore.scenes.push(fresh);
+      scenesStore.activeSceneId = fresh.id;
+      persistScenesStore();
+      clearGridPanels();
+      createDefaultLayout();
+    } else {
+      scenesStore.activeSceneId = scenesStore.scenes[0].id;
+      persistScenesStore();
+      clearGridPanels();
+      loadSceneIntoGrid(findScene(scenesStore.activeSceneId));
+    }
+    renderSceneSelect();
+  }
+
+  function flashSceneSaveFeedback() {
+    const btn = document.getElementById("scene-save-btn");
+    const original = btn.textContent;
+    btn.textContent = "Kaydedildi ✓";
+    setTimeout(() => { btn.textContent = original; }, 1200);
+  }
+
+  // --- Ilk kurulum: eski (sahne oncesi) duz localStorage duzeni varsa
+  // ilk sahneye tasi; hic veri yoksa varsayilan 3 panelli sahneyi olustur.
+  (async function initScenes() {
+    scenesStore = await loadScenesStore();
+
+    if (scenesStore.scenes.length === 0) {
+      let migratedLayout = null;
+      let migratedMeta = null;
+      try {
+        const oldRaw = localStorage.getItem(STORAGE_KEY);
+        if (oldRaw) {
+          const old = JSON.parse(oldRaw);
+          if (old && Array.isArray(old.layout) && old.layout.length) {
+            migratedLayout = old.layout;
+            migratedMeta = old.meta || {};
+          }
+        }
+      } catch { /* eski veri okunamadi, onemli degil */ }
+
+      const scene = {
+        id: makeSceneId(),
+        name: "Varsayılan Sahne",
+        layout: migratedLayout || [],
+        meta: migratedMeta || {},
+      };
+      scenesStore.scenes.push(scene);
+      scenesStore.activeSceneId = scene.id;
+      persistScenesStore();
+      localStorage.removeItem(STORAGE_KEY); // artik IndexedDB'deki sahne sistemi icinde
+    }
+
+    const activeScene = findScene(scenesStore.activeSceneId) || scenesStore.scenes[0];
+    scenesStore.activeSceneId = activeScene.id;
+
+    if (activeScene.layout && activeScene.layout.length > 0) {
+      loadSceneIntoGrid(activeScene);
+    } else {
+      createDefaultLayout();
+      saveLayout();
+    }
+    renderSceneSelect();
+  })();
+
+  initStickyBar();
+  initAlertManager();
+  initMarketScanner();
+
+  document.getElementById("scene-select").addEventListener("change", (e) => {
+    switchToScene(e.target.value);
+  });
+  document.getElementById("scene-save-btn").addEventListener("click", () => {
+    saveLayout();
+    flashSceneSaveFeedback();
+  });
+  document.getElementById("scene-new-btn").addEventListener("click", createNewScene);
+  document.getElementById("scene-delete-btn").addEventListener("click", deleteActiveScene);
+
+  // =====================================================================
+  // "Panel Ekle" - dropdown menu
+  // =====================================================================
+  const PANEL_TYPE_OPTIONS = [
+    { type: "chart", icon: "📈", name: "Grafik Paneli", desc: "TradingView Lightweight Charts (zaman dilimi + Target ID)", needsSymbol: true, size: { w: 6, h: 8 } },
+    { type: "orderbook", icon: "📖", name: "Canlı Emir Defteri", desc: "Binance Futures Depth10 alım/satım duvarları", needsSymbol: true, size: { w: 3, h: 8 } },
+    { type: "heatmap", icon: "🗺️", name: "Likidite Isı Haritası", desc: "Canvas tabanlı derinlik yoğunluk matrisi", needsSymbol: true, size: { w: 6, h: 6 } },
+    { type: "bot", icon: "🤖", name: "Bot Paneli", desc: "Strateji kontrolü ve Paper Trading kayıtları", needsSymbol: true, size: { w: 4, h: 10 } },
+    { type: "frscan", icon: "🚨", name: "Ekstrem FR & OI Tarayıcı", desc: "Ekstrem fonlama oranları ve OI uyumsuzlukları", needsSymbol: false, size: { w: 4, h: 8 } },
+    { type: "checklist", icon: "📋", name: "İşlem Öncesi Kontrol Listesi", desc: "Disiplin ve onay checkbox widget'ı", needsSymbol: true, size: { w: 3, h: 7 } },
+    { type: "volradar", icon: "📡", name: "Hacim Sıçrama Radarı", desc: "Ortalamanın 3x-5x üzerine çıkan ani hacim patlamaları", needsSymbol: false, size: { w: 4, h: 8 } },
+  ];
+
+  const addPanelBtn = document.getElementById("add-panel-btn");
+  const panelTypeMenu = document.getElementById("panel-type-menu");
+
+  PANEL_TYPE_OPTIONS.forEach((opt) => {
+    const btn = document.createElement("button");
+    btn.className = "panel-type-item";
+    btn.innerHTML = `
+      <span class="pt-icon">${opt.icon}</span>
+      <span>
+        <div class="pt-name">${opt.name}</div>
+        <div class="pt-desc">${opt.desc}</div>
+      </span>`;
+    btn.addEventListener("click", () => {
+      closePanelTypeMenu();
+      addPanelFromMenu(opt);
+    });
+    panelTypeMenu.appendChild(btn);
+  });
+
+  function openPanelTypeMenu() { panelTypeMenu.classList.add("open"); }
+  function closePanelTypeMenu() { panelTypeMenu.classList.remove("open"); }
+
+  addPanelBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    panelTypeMenu.classList.toggle("open");
+  });
+  document.addEventListener("click", (e) => {
+    if (!panelTypeMenu.contains(e.target) && e.target !== addPanelBtn) closePanelTypeMenu();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePanelTypeMenu(); });
+
+  function addPanelFromMenu(opt) {
+    let symbol = null;
+    if (opt.needsSymbol) {
+      const symbolInput = window.prompt(`${opt.name} için sembol girin (örn. ETHUSDT):`, "ETHUSDT");
+      if (!symbolInput) return;
+      symbol = symbolInput.trim().toUpperCase();
+      if (!/^[A-Z0-9]{5,15}$/.test(symbol)) {
+        window.alert("Geçersiz sembol. Örnek: ETHUSDT, SOLUSDT");
+        return;
+      }
+    }
+    // GridStack izgarasina yeni widget olarak ekler: addPanelToGrid ->
+    // createPanelElement, secilen panel tipine ait HTML + WS/REST
+    // dinleyicilerini olusturur; buildPanelShell de basliga Target ID
+    // secici, tam ekran ve kapatma butonlarini otomatik bagliyor. Panel
+    // tipi/sembol/target, panelsMeta uzerinden Sahne Yoneticisi'nin
+    // localStorage (IndexedDB) kaydina otomatik dahil olur.
+    const id = "panel-" + (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36));
+    addPanelToGrid(id, opt.type, symbol, DEFAULT_TARGET_ID, { id, ...opt.size });
+    saveLayout();
+  }
+})();
+</script>
+</body>
+</html>
