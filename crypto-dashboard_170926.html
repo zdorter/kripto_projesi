@@ -3,12 +3,6 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="theme-color" content="#0a0e14" />
-<link rel="manifest" href="./manifest.json" />
-<link rel="apple-touch-icon" href="./icons/icon-180.png" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Crypto Dashboard" />
 <title>Kripto Dashboard</title>
 
 <!-- Grafik kütüphanesi -->
@@ -538,29 +532,6 @@
   .toast .toast-desc { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
   .toast .toast-close { cursor: pointer; color: var(--text-secondary); background: none; border: none; font-size: 12px; flex-shrink: 0; }
   @keyframes toastIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-<style>
-  /* PWA / iPhone touch improvements */
-  html, body, button, select { -webkit-tap-highlight-color: transparent; }
-  button, select { touch-action: manipulation; }
-  @media (max-width: 700px) {
-    #toolbar { padding: 10px 12px; }
-    #toolbar .sub { display: none; }
-    #toolbar h1 { font-size: 13px; }
-    #toolbar-right { gap: 5px; }
-    #alert-manager-btn, #add-panel-btn { padding: 7px 9px; font-size: 11px; }
-    #scene-bar { padding: 7px 10px; overflow-x: auto; }
-    #scene-select { min-width: 135px; }
-    .scene-btn { white-space: nowrap; }
-    #sticky-bar { gap: 10px; padding: 8px 10px; overflow-x: auto; }
-    #grid-wrapper { padding: 6px; }
-    .grid-stack-item-content.panel { border-radius: 6px; }
-    .draw-tool-btn { width: 34px; height: 30px; }
-    .panel-btn { width: 30px; height: 30px; }
-    .target-btn { width: 28px; height: 28px; }
-  }
-</style>
-
 </style>
 
 </head>
@@ -4100,16 +4071,5 @@
   }
 })();
 </script>
-
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js").catch(err => {
-        console.warn("PWA service worker kaydedilemedi:", err);
-      });
-    });
-  }
-</script>
-
 </body>
 </html>
