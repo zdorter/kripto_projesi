@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#0a0e14" />
 <link rel="manifest" href="./manifest.json" />
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
 <link rel="apple-touch-icon" href="./icons/icon-180.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -267,7 +268,7 @@
   .wl-col-toggle-btn.active { border-color: var(--accent); color: var(--accent); }
   .wl-table-wrap { flex: 1; min-height: 0; overflow: auto; }
   .wl-table {
-    width: 100%; min-width: 360px; border-collapse: collapse;
+    width: 100%; min-width: 0; border-collapse: collapse;
     font-family: 'IBM Plex Mono', monospace; font-size: 11px;
   }
   .wl-table th {
@@ -286,6 +287,75 @@
   .wl-symbol { font-weight: 600; }
   .wl-table.hide-fr .col-fr, .wl-table.hide-oi .col-oi { display: none; }
   .wl-warn-icon { font-size: 11px; cursor: help; }
+  .wl-add-bar {
+    display: flex; gap: 6px; padding: 6px 8px; flex-shrink: 0;
+    border-bottom: 1px solid var(--border); background: var(--panel-header);
+    align-items: center;
+  }
+  .wl-add-input {
+    flex: 1; min-width: 0;
+    background: var(--panel); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 5px 8px; font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .wl-add-input:focus { outline: none; border-color: var(--accent); }
+  .wl-add-input::placeholder { color: var(--text-secondary); }
+  .wl-add-btn {
+    background: var(--accent); color: #1a1305; border: none;
+    border-radius: 4px; padding: 5px 10px; font-size: 11px; font-weight: 600;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .wl-add-btn:hover { filter: brightness(1.1); }
+  .wl-add-btn:disabled { opacity: 0.5; cursor: default; filter: none; }
+  .wl-add-status {
+    font-size: 10px; padding: 0 8px 6px; flex-shrink: 0;
+    min-height: 14px; font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .wl-add-status.error { color: var(--down); }
+  .wl-add-status.ok { color: var(--up); }
+  .wl-remove-btn {
+    background: transparent; border: none; color: var(--text-secondary);
+    cursor: pointer; font-size: 13px; padding: 0; border-radius: 4px;
+    width: 20px; height: 20px; line-height: 1;
+  }
+  .wl-remove-btn:hover { color: var(--down); background: rgba(239,83,80,0.18); }
+  .wl-table th.col-action, .wl-table td.col-action {
+    width: 28px; text-align: center; padding-left: 4px; padding-right: 6px;
+  }
+  .wl-empty { color: var(--text-secondary); font-size: 11px; text-align: center; padding: 18px 10px; }
+
+  /* ---------- 300+ Market Scanner ---------- */
+  .ms-toolbar {
+    display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 8px; flex-shrink: 0;
+    border-bottom: 1px solid var(--border); background: var(--panel-header);
+    align-items: center;
+  }
+  .ms-search {
+    flex: 1; min-width: 110px;
+    background: var(--panel); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 5px 8px; font-size: 11px; font-family: 'IBM Plex Mono', monospace;
+  }
+  .ms-search:focus { outline: none; border-color: var(--accent); }
+  .ms-filter-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+    border-radius: 4px; padding: 4px 8px; font-size: 10px; font-weight: 600; cursor: pointer;
+    white-space: nowrap;
+  }
+  .ms-filter-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+  .ms-filter-btn.active { border-color: var(--accent); color: var(--accent); }
+  .ms-filter-btn.danger.active { border-color: var(--down); color: var(--down); }
+  .ms-count { font-size: 10px; color: var(--text-secondary); font-family: 'IBM Plex Mono', monospace; margin-left: auto; }
+  .ms-hint { font-size: 9px; color: var(--text-secondary); padding: 0 8px 4px; flex-shrink: 0; }
+  .ms-table th.sortable { cursor: pointer; user-select: none; }
+  .ms-table th.sortable:hover { color: var(--text-primary); }
+  .ms-table tr.ms-hot { background: rgba(239,83,80,0.08); }
+  .ms-table tr.ms-vol { background: rgba(232,163,61,0.08); }
+  .toast.toast-siren { border-color: var(--down); border-left-color: var(--down); }
+  .toast.toast-vol { border-color: var(--accent); border-left-color: var(--accent); }
+  .alert-history-row.clickable { cursor: pointer; }
+  .alert-history-row.clickable:hover { color: var(--text-primary); background: rgba(255,255,255,0.03); }
 
   /* ---------- Grafik paneli ---------- */
   .chart-container { position: absolute; inset: 0; }
@@ -451,7 +521,7 @@
   #alert-modal-backdrop.visible { display: flex; }
   #alert-modal {
     background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
-    width: min(640px, 92vw); max-height: 84vh; display: flex; flex-direction: column;
+    width: min(880px, 94vw); max-height: 84vh; display: flex; flex-direction: column;
     overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   }
   #alert-modal-header {
@@ -473,6 +543,32 @@
     background: var(--bg); color: var(--text-primary); border: 1px solid var(--border);
     border-radius: 6px; padding: 6px 8px; font-size: 12px; font-family: 'IBM Plex Sans', sans-serif;
     flex: 1; min-width: 0;
+  }
+  .symbol-combo { position: relative; flex: 1; min-width: 0; }
+  .symbol-combo-list {
+    display: none; position: fixed; z-index: 2100;
+    max-height: 240px; overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+  }
+  .symbol-combo-list.open { display: block; }
+  .symbol-combo-group {
+    font-size: 9px; color: var(--text-secondary); text-transform: uppercase;
+    letter-spacing: 0.05em; padding: 8px 10px 4px; position: sticky; top: 0;
+    background: var(--panel);
+  }
+  .symbol-combo-item {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    width: 100%; text-align: left; background: transparent; border: none;
+    color: var(--text-primary); padding: 7px 10px; cursor: pointer;
+    font-size: 12px; font-family: 'IBM Plex Mono', monospace;
+  }
+  .symbol-combo-item:hover, .symbol-combo-item.active {
+    background: rgba(232,163,61,0.16);
+  }
+  .symbol-combo-item .sym-label { color: var(--text-secondary); font-size: 10px; }
+  .symbol-combo-empty, .symbol-combo-hint {
+    padding: 8px 10px; font-size: 11px; color: var(--text-secondary);
   }
   .condition-row {
     display: flex; gap: 6px; align-items: center; margin-bottom: 6px;
@@ -539,7 +635,6 @@
   .toast .toast-close { cursor: pointer; color: var(--text-secondary); background: none; border: none; font-size: 12px; flex-shrink: 0; }
   @keyframes toastIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-<style>
   /* PWA / iPhone touch improvements */
   html, body, button, select { -webkit-tap-highlight-color: transparent; }
   button, select { touch-action: manipulation; }
@@ -559,8 +654,6 @@
     .panel-btn { width: 30px; height: 30px; }
     .target-btn { width: 28px; height: 28px; }
   }
-</style>
-
 </style>
 
 </head>
@@ -625,7 +718,10 @@
   // =====================================================================
   const STORAGE_KEY = "crypto-dashboard-layout-v3";
   const STICKY_KEY = "crypto-dashboard-stickybar-v1";
-  const WATCHLIST_SYMBOLS = ["btcusdt", "ethusdt", "bnbusdt", "solusdt", "xrpusdt", "adausdt"];
+  const DEFAULT_WATCHLIST_SYMBOLS = ["btcusdt", "ethusdt", "bnbusdt", "solusdt", "xrpusdt", "adausdt"];
+  const WATCHLIST_KEY = "crypto-dashboard-watchlist-v1";
+  const WATCHLIST_MAX = 30;
+  let WATCHLIST_SYMBOLS = DEFAULT_WATCHLIST_SYMBOLS.slice();
   const TARGET_COLORS = { 1: "#e8a33d", 2: "#26a69a", 3: "#7c8aff" };
   const DEFAULT_TARGET_ID = 1;
 
@@ -711,6 +807,73 @@
       }
     } catch { /* eski veri okunamadi, onemli degil */ }
     return null;
+  }
+
+  const watchlistBus = {
+    listeners: new Set(),
+    subscribe(cb) { this.listeners.add(cb); },
+    unsubscribe(cb) { this.listeners.delete(cb); },
+    notify() { this.listeners.forEach((cb) => { try { cb(); } catch (e) { /* dinleyici hatasi listeyi durdurmasin */ } }); },
+  };
+
+  function persistWatchlist() {
+    idbSet(WATCHLIST_KEY, WATCHLIST_SYMBOLS);
+  }
+
+  async function loadWatchlistStore() {
+    const migrated = await loadWithMigration(WATCHLIST_KEY, (v) => Array.isArray(v) && v.every((s) => typeof s === "string"));
+    if (migrated) {
+      WATCHLIST_SYMBOLS = migrated.map((s) => String(s).toLowerCase());
+    }
+  }
+
+  function formatWatchlistLabel(sym) {
+    const u = String(sym).toUpperCase();
+    if (u.endsWith("USDT")) return u.slice(0, -4) + "/USDT";
+    if (u.endsWith("USDC")) return u.slice(0, -4) + "/USDC";
+    return u;
+  }
+
+  function parseWatchlistSymbol(raw) {
+    if (!raw) return null;
+    let s = String(raw).trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!s) return null;
+    if (!/(USDT|USDC)$/.test(s)) s += "USDT";
+    if (!/^[A-Z0-9]{5,20}$/.test(s)) return null;
+    return s.toLowerCase();
+  }
+
+  async function validateFuturesSymbol(symUpper) {
+    try {
+      const res = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symUpper}`);
+      if (!res.ok) return false;
+      const data = await res.json();
+      return !!(data && data.symbol === symUpper && data.price);
+    } catch {
+      return false;
+    }
+  }
+
+  async function addWatchlistSymbol(raw) {
+    const sym = parseWatchlistSymbol(raw);
+    if (!sym) return { ok: false, error: "Geçersiz sembol. Örnek: ETH veya SOLUSDT" };
+    if (WATCHLIST_SYMBOLS.includes(sym)) return { ok: false, error: "Bu sembol zaten listede." };
+    if (WATCHLIST_SYMBOLS.length >= WATCHLIST_MAX) return { ok: false, error: `En fazla ${WATCHLIST_MAX} sembol eklenebilir.` };
+    const valid = await validateFuturesSymbol(sym.toUpperCase());
+    if (!valid) return { ok: false, error: `${sym.toUpperCase()} Binance Futures'ta bulunamadı.` };
+    WATCHLIST_SYMBOLS = WATCHLIST_SYMBOLS.concat(sym);
+    persistWatchlist();
+    watchlistBus.notify();
+    return { ok: true, symbol: sym };
+  }
+
+  function removeWatchlistSymbol(sym) {
+    const key = String(sym).toLowerCase();
+    if (!WATCHLIST_SYMBOLS.includes(key)) return false;
+    WATCHLIST_SYMBOLS = WATCHLIST_SYMBOLS.filter((s) => s !== key);
+    persistWatchlist();
+    watchlistBus.notify();
+    return true;
   }
 
   const grid = GridStack.init({
@@ -887,9 +1050,17 @@
     }, () => "BTCUSDT");
     body.classList.add("watchlist-body");
 
-    // --- Sutun goster/gizle kontrolleri ---
     const colBar = document.createElement("div");
     colBar.className = "wl-col-toggles";
+    const addBar = document.createElement("div");
+    addBar.className = "wl-add-bar";
+    addBar.innerHTML = `
+      <input class="wl-add-input" type="text" spellcheck="false" placeholder="Sembol ekle (ETH, SOLUSDT)" />
+      <button class="wl-add-btn" type="button">Ekle</button>`;
+    const addInput = addBar.querySelector(".wl-add-input");
+    const addBtn = addBar.querySelector(".wl-add-btn");
+    const addStatus = document.createElement("div");
+    addStatus.className = "wl-add-status";
     const wrap = document.createElement("div");
     wrap.className = "wl-table-wrap";
     const table = document.createElement("table");
@@ -900,7 +1071,8 @@
           <th class="col-symbol">Sembol</th>
           <th class="col-price">Fiyat</th>
           <th class="col-fr">FR (Fonlama)</th>
-          <th class="col-oi">OI (Açık Pozisyon)</th>
+          <th class="col-oi">OI (A.P.)</th>
+          <th class="col-action"></th>
         </tr>
       </thead>
       <tbody></tbody>`;
@@ -920,35 +1092,31 @@
     });
 
     body.appendChild(colBar);
+    body.appendChild(addBar);
+    body.appendChild(addStatus);
     body.appendChild(wrap);
 
-    // sym -> { price, fundingRate, oiQty }, hucreleri yeniden hesaplamak icin
     const state = {};
     const rows = {};
 
-    WATCHLIST_SYMBOLS.forEach((sym) => {
-      const symbolUpper = sym.toUpperCase();
-      state[sym] = { price: null, fundingRate: null, oiQty: null };
+    function setAddStatus(text, kind) {
+      addStatus.textContent = text || "";
+      addStatus.className = "wl-add-status" + (kind ? " " + kind : "");
+    }
 
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="col-symbol wl-symbol">${sym.replace("usdt", "").toUpperCase()}/USDT<span class="wl-warn-icon"></span></td>
-        <td class="col-price wl-price">—</td>
-        <td class="col-fr wl-fr">—</td>
-        <td class="col-oi wl-oi">—</td>`;
-      tr.addEventListener("click", () => {
-        tr.style.background = "rgba(232,163,61,0.18)";
-        setTimeout(() => { tr.style.background = ""; }, 250);
-        targetBus.emit(targetId, symbolUpper);
-      });
-      tbody.appendChild(tr);
-      rows[sym] = {
-        priceCell: tr.querySelector(".wl-price"),
-        frCell: tr.querySelector(".wl-fr"),
-        oiCell: tr.querySelector(".wl-oi"),
-        warnIcon: tr.querySelector(".wl-warn-icon"),
-      };
-    });
+    function formatCompactUsd(v) {
+      if (v >= 1e9) return "$" + (v / 1e9).toFixed(2) + "B";
+      if (v >= 1e6) return "$" + (v / 1e6).toFixed(1) + "M";
+      if (v >= 1e3) return "$" + (v / 1e3).toFixed(1) + "K";
+      return "$" + v.toFixed(0);
+    }
+
+    function renderOi(sym) {
+      const s = state[sym];
+      const row = rows[sym];
+      if (!s || !row || s.price === null || s.oiQty === null) return;
+      row.oiCell.textContent = formatCompactUsd(s.oiQty * s.price);
+    }
 
     function renderScannerIcons() {
       WATCHLIST_SYMBOLS.forEach((sym) => {
@@ -962,30 +1130,71 @@
         row.warnIcon.title = reasons.join(" + ");
       });
     }
-    marketScanner.subscribe(renderScannerIcons);
-    renderScannerIcons();
 
-    function formatCompactUsd(v) {
-      if (v >= 1e9) return "$" + (v / 1e9).toFixed(2) + "B";
-      if (v >= 1e6) return "$" + (v / 1e6).toFixed(1) + "M";
-      if (v >= 1e3) return "$" + (v / 1e3).toFixed(1) + "K";
-      return "$" + v.toFixed(0);
+    function rebuildRows() {
+      tbody.innerHTML = "";
+      Object.keys(rows).forEach((k) => delete rows[k]);
+      Object.keys(state).forEach((k) => { if (!WATCHLIST_SYMBOLS.includes(k)) delete state[k]; });
+
+      if (WATCHLIST_SYMBOLS.length === 0) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="5" class="wl-empty">Liste boş. Yukarıdan bir sembol ekleyin.</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
+
+      WATCHLIST_SYMBOLS.forEach((sym) => {
+        const symbolUpper = sym.toUpperCase();
+        if (!state[sym]) state[sym] = { price: null, fundingRate: null, oiQty: null };
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="col-symbol wl-symbol">${formatWatchlistLabel(sym)}<span class="wl-warn-icon"></span></td>
+          <td class="col-price wl-price">—</td>
+          <td class="col-fr wl-fr">—</td>
+          <td class="col-oi wl-oi">—</td>
+          <td class="col-action"><button class="wl-remove-btn" type="button" title="Listeden çıkar">✕</button></td>`;
+        tr.addEventListener("click", () => {
+          tr.style.background = "rgba(232,163,61,0.18)";
+          setTimeout(() => { tr.style.background = ""; }, 250);
+          targetBus.emit(targetId, symbolUpper);
+        });
+        tr.querySelector(".wl-remove-btn").addEventListener("click", (e) => {
+          e.stopPropagation();
+          removeWatchlistSymbol(sym);
+        });
+        tbody.appendChild(tr);
+        rows[sym] = {
+          priceCell: tr.querySelector(".wl-price"),
+          frCell: tr.querySelector(".wl-fr"),
+          oiCell: tr.querySelector(".wl-oi"),
+          warnIcon: tr.querySelector(".wl-warn-icon"),
+        };
+        const s = state[sym];
+        if (s.price !== null) {
+          rows[sym].priceCell.textContent = s.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+        }
+        if (s.fundingRate !== null) {
+          rows[sym].frCell.textContent = `%${s.fundingRate.toFixed(4)}`;
+          rows[sym].frCell.style.color = s.fundingRate >= 0 ? "var(--up)" : "var(--down)";
+        }
+        renderOi(sym);
+      });
+      renderScannerIcons();
     }
 
-    function renderOi(sym) {
-      const s = state[sym];
-      if (s.price === null || s.oiQty === null) return;
-      rows[sym].oiCell.textContent = formatCompactUsd(s.oiQty * s.price);
-    }
-
-    // --- Fiyat (spot miniTicker, coklu sembol tek baglanti) ---
     let priceWs = null;
     let priceRetryMs = 1000;
     let priceHeartbeat = null;
+    let fundingWs = null;
+    let fundingRetryMs = 1000;
+    let fundingHeartbeat = null;
+    let streamGen = 0;
     let stopped = false;
 
-    function connectPrice() {
-      if (stopped) return;
+    function connectPrice(myGen) {
+      if (stopped || myGen !== streamGen) return;
+      if (!WATCHLIST_SYMBOLS.length) return;
       const streams = WATCHLIST_SYMBOLS.map((s) => `${s}@miniTicker`).join("/");
       priceWs = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
       priceWs.onopen = () => { priceRetryMs = 1000; resetPriceHeartbeat(); };
@@ -996,31 +1205,28 @@
         if (!d) return;
         const sym = d.s.toLowerCase();
         const s = state[sym];
-        if (!s) return;
+        const row = rows[sym];
+        if (!s || !row) return;
         const close = parseFloat(d.c);
         const prevPrice = s.price;
         s.price = close;
-        rows[sym].priceCell.textContent = close.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
-        if (prevPrice !== null && close !== prevPrice) flashValue(rows[sym].priceCell, close >= prevPrice);
+        row.priceCell.textContent = close.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+        if (prevPrice !== null && close !== prevPrice) flashValue(row.priceCell, close >= prevPrice);
         renderOi(sym);
       };
-      priceWs.onclose = () => { clearPriceHeartbeat(); if (!stopped) schedulePriceReconnect(); };
+      priceWs.onclose = () => { clearPriceHeartbeat(); if (!stopped && myGen === streamGen) schedulePriceReconnect(myGen); };
       priceWs.onerror = () => priceWs.close();
     }
     function resetPriceHeartbeat() { clearPriceHeartbeat(); priceHeartbeat = setTimeout(() => priceWs && priceWs.close(), 60000); }
     function clearPriceHeartbeat() { if (priceHeartbeat) { clearTimeout(priceHeartbeat); priceHeartbeat = null; } }
-    function schedulePriceReconnect() {
-      setTimeout(connectPrice, priceRetryMs);
+    function schedulePriceReconnect(myGen) {
+      setTimeout(() => { if (!stopped && myGen === streamGen) connectPrice(myGen); }, priceRetryMs);
       priceRetryMs = Math.min(priceRetryMs * 2, 30000);
     }
 
-    // --- Funding Rate (futures markPrice@1s, coklu sembol tek baglanti) ---
-    let fundingWs = null;
-    let fundingRetryMs = 1000;
-    let fundingHeartbeat = null;
-
-    function connectFunding() {
-      if (stopped) return;
+    function connectFunding(myGen) {
+      if (stopped || myGen !== streamGen) return;
+      if (!WATCHLIST_SYMBOLS.length) return;
       const streams = WATCHLIST_SYMBOLS.map((s) => `${s}@markPrice@1s`).join("/");
       fundingWs = new WebSocket(`wss://fstream.binance.com/market/stream?streams=${streams}`);
       fundingWs.onopen = () => { fundingRetryMs = 1000; resetFundingHeartbeat(); };
@@ -1031,28 +1237,39 @@
         if (!d || d.r === undefined) return;
         const sym = d.s.toLowerCase();
         const s = state[sym];
-        if (!s) return;
+        const row = rows[sym];
+        if (!s || !row) return;
         const rate = parseFloat(d.r) * 100;
         const prevRate = s.fundingRate;
         s.fundingRate = rate;
-        const cell = rows[sym].frCell;
-        cell.textContent = `%${rate.toFixed(4)}`;
-        cell.style.color = rate >= 0 ? "var(--up)" : "var(--down)";
-        if (prevRate !== null && rate !== prevRate) flashValue(cell, rate >= prevRate);
+        row.frCell.textContent = `%${rate.toFixed(4)}`;
+        row.frCell.style.color = rate >= 0 ? "var(--up)" : "var(--down)";
+        if (prevRate !== null && rate !== prevRate) flashValue(row.frCell, rate >= prevRate);
       };
-      fundingWs.onclose = () => { clearFundingHeartbeat(); if (!stopped) scheduleFundingReconnect(); };
+      fundingWs.onclose = () => { clearFundingHeartbeat(); if (!stopped && myGen === streamGen) scheduleFundingReconnect(myGen); };
       fundingWs.onerror = () => fundingWs.close();
     }
     function resetFundingHeartbeat() { clearFundingHeartbeat(); fundingHeartbeat = setTimeout(() => fundingWs && fundingWs.close(), 60000); }
     function clearFundingHeartbeat() { if (fundingHeartbeat) { clearTimeout(fundingHeartbeat); fundingHeartbeat = null; } }
-    function scheduleFundingReconnect() {
-      setTimeout(connectFunding, fundingRetryMs);
+    function scheduleFundingReconnect(myGen) {
+      setTimeout(() => { if (!stopped && myGen === streamGen) connectFunding(myGen); }, fundingRetryMs);
       fundingRetryMs = Math.min(fundingRetryMs * 2, 30000);
     }
 
-    // --- Open Interest (REST polling - Binance'de canli push stream yok) ---
+    function reconnectWatchlistStreams() {
+      streamGen++;
+      const g = streamGen;
+      priceRetryMs = 1000;
+      fundingRetryMs = 1000;
+      try { if (priceWs) priceWs.close(); } catch (e) { /* yoksay */ }
+      try { if (fundingWs) fundingWs.close(); } catch (e) { /* yoksay */ }
+      connectPrice(g);
+      connectFunding(g);
+    }
+
     let oiPollTimer = null;
     async function pollOpenInterest() {
+      if (!WATCHLIST_SYMBOLS.length) return;
       try {
         const results = await Promise.all(
           WATCHLIST_SYMBOLS.map(async (sym) => {
@@ -1068,7 +1285,7 @@
           })
         );
         results.forEach((r) => {
-          if (!r) return;
+          if (!r || !state[r.sym]) return;
           state[r.sym].oiQty = r.oi;
           renderOi(r.sym);
         });
@@ -1079,19 +1296,52 @@
       oiPollTimer = setInterval(pollOpenInterest, 10000);
     }
 
-    connectPrice();
-    connectFunding();
+    async function submitAddSymbol() {
+      const raw = addInput.value;
+      addBtn.disabled = true;
+      setAddStatus("Kontrol ediliyor…", "");
+      const result = await addWatchlistSymbol(raw);
+      addBtn.disabled = false;
+      if (!result.ok) {
+        setAddStatus(result.error, "error");
+        return;
+      }
+      addInput.value = "";
+      setAddStatus(`${result.symbol.toUpperCase()} eklendi`, "ok");
+      setTimeout(() => { if (addStatus.classList.contains("ok")) setAddStatus("", ""); }, 1800);
+    }
+
+    addBtn.addEventListener("click", submitAddSymbol);
+    addInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        submitAddSymbol();
+      }
+    });
+
+    function onWatchlistChange() {
+      rebuildRows();
+      reconnectWatchlistStreams();
+    }
+
+    marketScanner.subscribe(renderScannerIcons);
+    watchlistBus.subscribe(onWatchlistChange);
+    rebuildRows();
+    reconnectWatchlistStreams();
     startOiPolling();
+    renderScannerIcons();
 
     panelInstances[id] = {
       destroy() {
         stopped = true;
+        streamGen++;
         clearPriceHeartbeat();
         clearFundingHeartbeat();
         if (priceWs) priceWs.close();
         if (fundingWs) fundingWs.close();
         if (oiPollTimer) clearInterval(oiPollTimer);
         marketScanner.unsubscribe(renderScannerIcons);
+        watchlistBus.unsubscribe(onWatchlistChange);
       },
     };
 
@@ -2620,12 +2870,18 @@
   }
 
   function initMarketScanner() {
-    // --- Fiyat (spot miniTicker, coklu sembol) ---
-    (function connectPrice(retryMs) {
-      retryMs = retryMs || 1000;
+    let generation = 0;
+    let priceWs = null;
+    let fundingWs = null;
+    let priceRetryMs = 1000;
+    let fundingRetryMs = 1000;
+
+    function connectPrice(myGen) {
+      if (myGen !== generation || WATCHLIST_SYMBOLS.length === 0) return;
       const streams = WATCHLIST_SYMBOLS.map((s) => `${s}@miniTicker`).join("/");
       const ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
-      ws.onopen = () => { retryMs = 1000; };
+      priceWs = ws;
+      ws.onopen = () => { priceRetryMs = 1000; };
       ws.onmessage = (event) => {
         let msg; try { msg = JSON.parse(event.data); } catch { return; }
         const d = msg.data;
@@ -2638,16 +2894,20 @@
         recomputeDivergence(entry);
         marketScanner.notify();
       };
-      ws.onclose = () => setTimeout(() => connectPrice(Math.min(retryMs * 2, 30000)), retryMs);
+      ws.onclose = () => {
+        if (myGen !== generation) return;
+        setTimeout(() => connectPrice(myGen), priceRetryMs);
+        priceRetryMs = Math.min(priceRetryMs * 2, 30000);
+      };
       ws.onerror = () => ws.close();
-    })();
+    }
 
-    // --- Funding Rate (futures markPrice@1s, coklu sembol) ---
-    (function connectFunding(retryMs) {
-      retryMs = retryMs || 1000;
+    function connectFunding(myGen) {
+      if (myGen !== generation || WATCHLIST_SYMBOLS.length === 0) return;
       const streams = WATCHLIST_SYMBOLS.map((s) => `${s}@markPrice@1s`).join("/");
       const ws = new WebSocket(`wss://fstream.binance.com/market/stream?streams=${streams}`);
-      ws.onopen = () => { retryMs = 1000; };
+      fundingWs = ws;
+      ws.onopen = () => { fundingRetryMs = 1000; };
       ws.onmessage = (event) => {
         let msg; try { msg = JSON.parse(event.data); } catch { return; }
         const d = msg.data;
@@ -2658,36 +2918,55 @@
         scannerUpdateExtreme(entry);
         marketScanner.notify();
       };
-      ws.onclose = () => setTimeout(() => connectFunding(Math.min(retryMs * 2, 30000)), retryMs);
+      ws.onclose = () => {
+        if (myGen !== generation) return;
+        setTimeout(() => connectFunding(myGen), fundingRetryMs);
+        fundingRetryMs = Math.min(fundingRetryMs * 2, 30000);
+      };
       ws.onerror = () => ws.close();
-    })();
+    }
 
-    // --- Open Interest (REST polling, coklu sembol) ---
+    marketScanner.reconnectStreams = function () {
+      generation++;
+      const g = generation;
+      priceRetryMs = 1000;
+      fundingRetryMs = 1000;
+      try { if (priceWs) priceWs.close(); } catch (e) { /* yoksay */ }
+      try { if (fundingWs) fundingWs.close(); } catch (e) { /* yoksay */ }
+      connectPrice(g);
+      connectFunding(g);
+    };
+
+    marketScanner.reconnectStreams();
+
     async function pollOi() {
-      const results = await Promise.all(
-        WATCHLIST_SYMBOLS.map(async (sym) => {
-          try {
-            const res = await fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${sym.toUpperCase()}`);
-            if (!res.ok) throw new Error("HTTP " + res.status);
-            const data = await res.json();
-            return { sym, oi: parseFloat(data.openInterest) };
-          } catch (e) {
-            console.error(`[Tarama] ${sym.toUpperCase()} OI alinamadi:`, e.message);
-            return null;
-          }
-        })
-      );
-      results.forEach((r) => {
-        if (!r) return;
-        const entry = scannerEntry(r.sym);
-        entry.oiHistory.push({ t: Date.now(), v: r.oi });
-        if (entry.oiHistory.length > 200) entry.oiHistory.shift();
-        recomputeDivergence(entry);
-      });
-      marketScanner.notify();
+      if (WATCHLIST_SYMBOLS.length) {
+        const results = await Promise.all(
+          WATCHLIST_SYMBOLS.map(async (sym) => {
+            try {
+              const res = await fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${sym.toUpperCase()}`);
+              if (!res.ok) throw new Error("HTTP " + res.status);
+              const data = await res.json();
+              return { sym, oi: parseFloat(data.openInterest) };
+            } catch (e) {
+              console.error(`[Tarama] ${sym.toUpperCase()} OI alinamadi:`, e.message);
+              return null;
+            }
+          })
+        );
+        results.forEach((r) => {
+          if (!r) return;
+          const entry = scannerEntry(r.sym);
+          entry.oiHistory.push({ t: Date.now(), v: r.oi });
+          if (entry.oiHistory.length > 200) entry.oiHistory.shift();
+          recomputeDivergence(entry);
+        });
+        marketScanner.notify();
+      }
       setTimeout(pollOi, 10000);
     }
     pollOi();
+    watchlistBus.subscribe(() => marketScanner.reconnectStreams());
   }
 
   // =====================================================================
@@ -2718,23 +2997,29 @@
     const LEVEL_COLORS = ["var(--text-secondary)", "#e8a33d", "#ef5350", "#ff3b3b"];
 
     const rows = {};
-    WATCHLIST_SYMBOLS.forEach((sym) => {
-      const symbolUpper = sym.toUpperCase();
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="col-symbol wl-symbol">${sym.replace("usdt", "").toUpperCase()}/USDT</td>
-        <td class="wl-fr">—</td>
-        <td style="text-align:right;font-weight:600;">—</td>`;
-      tr.addEventListener("click", () => targetBus.emit(targetId, symbolUpper));
-      tbody.appendChild(tr);
-      rows[sym] = { frCell: tr.querySelectorAll("td")[1], statusCell: tr.querySelectorAll("td")[2], rowEl: tr };
-    });
+
+    function rebuildRows() {
+      tbody.innerHTML = "";
+      Object.keys(rows).forEach((k) => delete rows[k]);
+      WATCHLIST_SYMBOLS.forEach((sym) => {
+        const symbolUpper = sym.toUpperCase();
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="col-symbol wl-symbol">${formatWatchlistLabel(sym)}</td>
+          <td class="wl-fr">—</td>
+          <td style="text-align:right;font-weight:600;">—</td>`;
+        tr.addEventListener("click", () => targetBus.emit(targetId, symbolUpper));
+        tbody.appendChild(tr);
+        rows[sym] = { frCell: tr.querySelectorAll("td")[1], statusCell: tr.querySelectorAll("td")[2], rowEl: tr };
+      });
+      render();
+    }
 
     function render() {
       WATCHLIST_SYMBOLS.forEach((sym) => {
         const entry = marketScanner.bySymbol[sym];
         const row = rows[sym];
-        if (!entry || entry.fundingRate === null) return;
+        if (!entry || !row || entry.fundingRate === null) return;
         row.frCell.textContent = `%${entry.fundingRate.toFixed(4)}`;
         row.frCell.style.color = entry.fundingRate >= 0 ? "var(--up)" : "var(--down)";
         row.statusCell.textContent = LEVEL_LABELS[entry.extremeLevel] + (entry.oiDivergence ? " · ⚠️ OI Div." : "");
@@ -2743,7 +3028,8 @@
       });
     }
     marketScanner.subscribe(render);
-    render();
+    watchlistBus.subscribe(rebuildRows);
+    rebuildRows();
 
     const note = document.createElement("div");
     note.style.cssText = "flex-shrink:0; padding:8px 10px; font-size:10px; color:var(--text-secondary); border-top:1px solid var(--border); line-height:1.5;";
@@ -2751,7 +3037,10 @@
     body.appendChild(note);
 
     panelInstances[id] = {
-      destroy() { marketScanner.unsubscribe(render); },
+      destroy() {
+        marketScanner.unsubscribe(render);
+        watchlistBus.unsubscribe(rebuildRows);
+      },
     };
 
     return item;
@@ -2864,11 +3153,17 @@
     emptyNote.textContent = "Şu an 3x üzeri hacim sıçraması tespit edilmedi.";
     listWrap.appendChild(emptyNote);
 
-    // sym -> { closedVolumes:[son 20 kapanan mumun hacmi], currentVolume, currentIsUp, ratio }
     const state = {};
-    WATCHLIST_SYMBOLS.forEach((sym) => {
-      state[sym] = { closedVolumes: [], currentVolume: null, currentIsUp: null, ratio: 0 };
-    });
+
+    function syncState() {
+      WATCHLIST_SYMBOLS.forEach((sym) => {
+        if (!state[sym]) state[sym] = { closedVolumes: [], currentVolume: null, currentIsUp: null, ratio: 0 };
+      });
+      Object.keys(state).forEach((sym) => {
+        if (!WATCHLIST_SYMBOLS.includes(sym)) delete state[sym];
+      });
+    }
+    syncState();
 
     function computeRatio(entry) {
       if (entry.closedVolumes.length === 0 || entry.currentVolume === null) { entry.ratio = 0; return; }
@@ -2879,7 +3174,7 @@
     function render() {
       const spikes = WATCHLIST_SYMBOLS
         .map((sym) => ({ sym, ...state[sym] }))
-        .filter((e) => e.ratio >= 3)
+        .filter((e) => e && e.ratio >= 3)
         .sort((a, b) => b.ratio - a.ratio);
 
       listWrap.innerHTML = "";
@@ -2895,7 +3190,7 @@
         row.style.borderLeft = `4px solid ${isUp ? "var(--up)" : "var(--down)"}`;
         row.innerHTML = `
           <div class="info">
-            <div class="name" style="color:${isUp ? "var(--up)" : "var(--down)"}">${flame} ${symbolUpper.replace("USDT", "")}/USDT</div>
+            <div class="name" style="color:${isUp ? "var(--up)" : "var(--down)"}">${flame} ${formatWatchlistLabel(e.sym)}</div>
             <div class="desc">${e.ratio.toFixed(2)}x Volume Spike · ${isUp ? "Alım ağırlıklı" : "Satım ağırlıklı"}</div>
           </div>`;
         row.addEventListener("click", () => targetBus.emit(targetId, symbolUpper));
@@ -2903,14 +3198,14 @@
       });
     }
 
-    async function seedHistory() {
-      await Promise.all(WATCHLIST_SYMBOLS.map(async (sym) => {
+    async function seedHistory(symbols) {
+      await Promise.all((symbols || WATCHLIST_SYMBOLS).map(async (sym) => {
+        if (!state[sym] || state[sym].closedVolumes.length) return;
         try {
           const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym.toUpperCase()}&interval=1m&limit=21`);
           if (!res.ok) throw new Error("HTTP " + res.status);
           const raw = await res.json();
-          // son eleman muhtemelen hala olusmakta olan mum - kapanan kabul edilen
-          // ilk 20'yi al ki "son 20 mumluk ortalama" gercekten kapali mumlardan gelsin.
+          if (!state[sym]) return;
           state[sym].closedVolumes = raw.slice(0, -1).map((d) => parseFloat(d[5])).slice(-20);
         } catch (e) {
           console.error(`[Hacim Radarı] ${sym.toUpperCase()} geçmiş hacim alınamadı:`, e.message);
@@ -2922,10 +3217,12 @@
     let ws = null;
     let retryDelayMs = 1000;
     let heartbeatTimer = null;
+    let streamGen = 0;
     let stopped = false;
 
-    function connect() {
-      if (stopped) return;
+    function connect(myGen) {
+      if (stopped || myGen !== streamGen) return;
+      if (!WATCHLIST_SYMBOLS.length) return;
       const streams = WATCHLIST_SYMBOLS.map((s) => `${s}@kline_1m`).join("/");
       ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
       ws.onopen = () => { retryDelayMs = 1000; resetHeartbeat(); };
@@ -2941,9 +3238,6 @@
 
         const vol = parseFloat(k.v);
         if (k.x) {
-          // mum kapandi: bu hacmi "son 20 kapanan mum" penceresine ekle,
-          // yeni acilan mum icin currentVolume'u sifirla (bir sonraki
-          // mesajda guncel deger gelecek).
           entry.closedVolumes.push(vol);
           if (entry.closedVolumes.length > 20) entry.closedVolumes.shift();
           entry.currentVolume = null;
@@ -2954,24 +3248,223 @@
         computeRatio(entry);
         render();
       };
-      ws.onclose = () => { clearHeartbeat(); if (!stopped) scheduleReconnect(); };
+      ws.onclose = () => { clearHeartbeat(); if (!stopped && myGen === streamGen) scheduleReconnect(myGen); };
       ws.onerror = () => ws.close();
     }
     function resetHeartbeat() { clearHeartbeat(); heartbeatTimer = setTimeout(() => ws && ws.close(), 60000); }
     function clearHeartbeat() { if (heartbeatTimer) { clearTimeout(heartbeatTimer); heartbeatTimer = null; } }
-    function scheduleReconnect() {
-      setTimeout(connect, retryDelayMs);
+    function scheduleReconnect(myGen) {
+      setTimeout(() => { if (!stopped && myGen === streamGen) connect(myGen); }, retryDelayMs);
       retryDelayMs = Math.min(retryDelayMs * 2, 30000);
     }
 
-    seedHistory().then(connect);
+    function reconnect() {
+      streamGen++;
+      const g = streamGen;
+      retryDelayMs = 1000;
+      try { if (ws) ws.close(); } catch (e) { /* yoksay */ }
+      connect(g);
+    }
+
+    function onWatchlistChange() {
+      const missing = WATCHLIST_SYMBOLS.filter((sym) => !state[sym] || !state[sym].closedVolumes.length);
+      syncState();
+      seedHistory(missing);
+      reconnect();
+    }
+
+    watchlistBus.subscribe(onWatchlistChange);
+    seedHistory().then(() => reconnect());
 
     panelInstances[id] = {
       destroy() {
         stopped = true;
+        streamGen++;
         clearHeartbeat();
         if (ws) ws.close();
+        watchlistBus.unsubscribe(onWatchlistChange);
       },
+    };
+
+    return item;
+  }
+
+  // =====================================================================
+  // 300+ MARKET SCANNER
+  // =====================================================================
+  function createMarketScannerPanel(id, initialTargetId) {
+    let targetId = initialTargetId;
+
+    const { item, body } = buildPanelShell(id, "300+ Market Scanner", targetId, (newId) => {
+      targetId = newId;
+      panelsMeta[id].targetId = newId;
+      saveLayout();
+    }, () => "BTCUSDT");
+    body.classList.add("watchlist-body");
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "ms-toolbar";
+    const search = document.createElement("input");
+    search.className = "ms-search";
+    search.placeholder = "Ara (DOGE, 1000…)";
+    search.spellcheck = false;
+    const btnFr05 = document.createElement("button");
+    btnFr05.className = "ms-filter-btn danger";
+    btnFr05.type = "button";
+    btnFr05.textContent = "🚨 FR ≤ -0.50%";
+    const btnFr20 = document.createElement("button");
+    btnFr20.className = "ms-filter-btn danger";
+    btnFr20.type = "button";
+    btnFr20.textContent = "🚨 FR ≤ -2.00%";
+    const btnVol = document.createElement("button");
+    btnVol.className = "ms-filter-btn";
+    btnVol.type = "button";
+    btnVol.textContent = "🔥 Hacim 3x+";
+    const btnFrAlert = document.createElement("button");
+    btnFrAlert.className = "ms-filter-btn" + (marketEngine.frAlerts ? " active" : "");
+    btnFrAlert.type = "button";
+    btnFrAlert.textContent = "FR alarm";
+    btnFrAlert.title = "Eşik aşımında (çaprazlama) bildirim. Coin başı 30 dk cooldown.";
+    const btnVolAlert = document.createElement("button");
+    btnVolAlert.className = "ms-filter-btn" + (marketEngine.volAlerts ? " active" : "");
+    btnVolAlert.type = "button";
+    btnVolAlert.textContent = "Hacim alarm 8x";
+    btnVolAlert.title = "Dakikada 1 kontrol, 8x+, min $400k/dk ve $8M 24s hacim. Coin başı 20 dk cooldown, turda en fazla 2 alarm.";
+    const countEl = document.createElement("span");
+    countEl.className = "ms-count";
+    countEl.textContent = "—";
+    toolbar.append(search, btnFr05, btnFr20, btnVol, btnFrAlert, btnVolAlert, countEl);
+
+    const hint = document.createElement("div");
+    hint.className = "ms-hint";
+    hint.textContent = "Toplu premiumIndex 15sn + tek !ticker@arr WS. Satıra tıklayınca Target panelleri değişir.";
+
+    const wrap = document.createElement("div");
+    wrap.className = "wl-table-wrap";
+    const table = document.createElement("table");
+    table.className = "wl-table ms-table";
+    table.innerHTML = `
+      <thead><tr>
+        <th class="col-symbol sortable" data-sort="symbol">Sembol</th>
+        <th class="sortable" data-sort="price">Fiyat</th>
+        <th class="sortable" data-sort="changePct">24s %</th>
+        <th class="sortable" data-sort="fundingPct">FR (%)</th>
+        <th class="sortable" data-sort="quoteVol">24s Hacim ($)</th>
+      </tr></thead>
+      <tbody></tbody>`;
+    wrap.appendChild(table);
+    const tbody = table.querySelector("tbody");
+    body.append(toolbar, hint, wrap);
+
+    let query = "";
+    let frFilter = 0;
+    let volFilter = false;
+    let sortKey = "quoteVol";
+    let sortDir = -1;
+
+    function syncSortHeaders() {
+      table.querySelectorAll("th.sortable").forEach((th) => {
+        const key = th.dataset.sort;
+        const arrow = key === sortKey ? (sortDir > 0 ? " ↑" : " ↓") : "";
+        const labels = { symbol: "Sembol", price: "Fiyat", changePct: "24s %", fundingPct: "FR (%)", quoteVol: "24s Hacim ($)" };
+        th.textContent = labels[key] + arrow;
+      });
+    }
+    syncSortHeaders();
+
+    table.querySelectorAll("th.sortable").forEach((th) => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.sort;
+        if (sortKey === key) sortDir *= -1;
+        else { sortKey = key; sortDir = key === "symbol" ? 1 : -1; }
+        syncSortHeaders();
+        render();
+      });
+    });
+
+    search.addEventListener("input", () => { query = search.value; render(); });
+    btnFr05.addEventListener("click", () => {
+      frFilter = frFilter === -0.5 ? 0 : -0.5;
+      btnFr05.classList.toggle("active", frFilter === -0.5);
+      btnFr20.classList.toggle("active", frFilter === -2);
+      render();
+    });
+    btnFr20.addEventListener("click", () => {
+      frFilter = frFilter === -2 ? 0 : -2;
+      btnFr05.classList.toggle("active", frFilter === -0.5);
+      btnFr20.classList.toggle("active", frFilter === -2);
+      render();
+    });
+    btnVol.addEventListener("click", () => {
+      volFilter = !volFilter;
+      btnVol.classList.toggle("active", volFilter);
+      render();
+    });
+    btnFrAlert.addEventListener("click", () => {
+      marketEngine.frAlerts = !marketEngine.frAlerts;
+      btnFrAlert.classList.toggle("active", marketEngine.frAlerts);
+      persistMarketEngine();
+    });
+    btnVolAlert.addEventListener("click", () => {
+      marketEngine.volAlerts = !marketEngine.volAlerts;
+      btnVolAlert.classList.toggle("active", marketEngine.volAlerts);
+      persistMarketEngine();
+    });
+
+    function rowValue(row, key) {
+      if (key === "symbol") return row.symbol;
+      const v = row[key];
+      return v == null || !isFinite(v) ? -Infinity : v;
+    }
+
+    function render() {
+      const q = query.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+      let rows = allMarket.symbols.map((s) => allMarket.bySymbol[s]).filter(Boolean);
+      if (q) rows = rows.filter((r) => r.symbol.indexOf(q) !== -1);
+      if (frFilter) rows = rows.filter((r) => r.fundingPct != null && r.fundingPct <= frFilter);
+      if (volFilter) rows = rows.filter((r) => r.volRatio >= 3);
+      rows.sort((a, b) => {
+        const av = rowValue(a, sortKey);
+        const bv = rowValue(b, sortKey);
+        if (typeof av === "string") return av.localeCompare(bv) * sortDir;
+        return (av - bv) * sortDir;
+      });
+      countEl.textContent = `${rows.length} / ${allMarket.symbols.length || "…"}`;
+      const frag = document.createDocumentFragment();
+      if (!rows.length) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="5" class="wl-empty">${allMarket.ready ? "Eşleşen coin yok." : "Piyasa verisi yükleniyor…"}</td>`;
+        frag.appendChild(tr);
+      } else {
+        rows.forEach((r) => {
+          const tr = document.createElement("tr");
+          if (r.fundingPct != null && r.fundingPct <= -0.5) tr.classList.add("ms-hot");
+          else if (r.volRatio >= 3) tr.classList.add("ms-vol");
+          const ch = r.changePct;
+          const chColor = ch == null ? "" : ch >= 0 ? "var(--up)" : "var(--down)";
+          const fr = r.fundingPct;
+          const frColor = fr == null ? "" : fr >= 0 ? "var(--up)" : "var(--down)";
+          const px = r.price == null ? "—" : r.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: r.price < 1 ? 6 : 2 });
+          const volTag = r.volRatio >= 3 ? ` · ${r.volRatio.toFixed(1)}x` : "";
+          tr.innerHTML = `
+            <td class="col-symbol wl-symbol">${formatWatchlistLabel(r.symbol)}</td>
+            <td>${px}</td>
+            <td style="color:${chColor}">${ch == null ? "—" : (ch >= 0 ? "+" : "") + ch.toFixed(2) + "%"}</td>
+            <td style="color:${frColor}">${fr == null ? "—" : "%" + fr.toFixed(4)}</td>
+            <td>${formatUsdCompact(r.quoteVol)}${volTag}</td>`;
+          tr.addEventListener("click", () => targetBus.emit(targetId, r.symbol));
+          frag.appendChild(tr);
+        });
+      }
+      tbody.innerHTML = "";
+      tbody.appendChild(frag);
+    }
+
+    allMarket.subscribe(render);
+    render();
+
+    panelInstances[id] = {
+      destroy() { allMarket.unsubscribe(render); },
     };
 
     return item;
@@ -3068,10 +3561,26 @@
     }
     if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
   }
-  function playAlertSound() {
+  function playAlertSound(kind) {
     ensureAudioContext();
     if (!audioCtx) return;
     const now = audioCtx.currentTime;
+    if (kind === "siren") {
+      [523, 784, 523, 784, 523, 784].forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.value = freq;
+        const start = now + i * 0.14;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.12, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.13);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + 0.14);
+      });
+      return;
+    }
     [880, 1320].forEach((freq, i) => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -3098,33 +3607,61 @@
   }
 
   // --- Bildirim kanali 3: Ekran ici Toast --------------------------------
-  function showToast(title, desc) {
+  function showToast(title, desc, opts) {
+    opts = opts || {};
     const container = document.getElementById("toast-container");
     const toast = document.createElement("div");
-    toast.className = "toast";
+    toast.className = "toast" + (opts.tone === "siren" ? " toast-siren" : opts.tone === "vol" ? " toast-vol" : "");
     toast.innerHTML = `
       <div class="toast-title"><span>🔔 ${title}</span><button class="toast-close">✕</button></div>
       <div class="toast-desc">${desc}</div>`;
-    toast.querySelector(".toast-close").addEventListener("click", () => toast.remove());
+    toast.querySelector(".toast-close").addEventListener("click", (e) => { e.stopPropagation(); toast.remove(); });
+    if (opts.symbol) {
+      toast.style.cursor = "pointer";
+      toast.title = "Grafiğe göndermek için tıklayın";
+      toast.addEventListener("click", () => targetBus.emit(DEFAULT_TARGET_ID, opts.symbol));
+    }
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 8000);
   }
 
-  function addHistoryEntry(alertName, desc) {
+  function addHistoryEntry(alertName, desc, symbol) {
     alertsStore.history.unshift({
       time: new Date().toLocaleString("tr-TR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }),
       alertName, desc,
+      symbol: symbol || null,
     });
     alertsStore.history = alertsStore.history.slice(0, 50);
     persistAlertsStore();
   }
 
   function fireAlert(alert, desc) {
-    playAlertSound();
+    playAlertSound("soft");
     showDesktopNotification(alert.name, desc);
-    showToast(alert.name, desc);
-    addHistoryEntry(alert.name, desc);
+    showToast(alert.name, desc, { symbol: alert.symbol });
+    addHistoryEntry(alert.name, desc, alert.symbol);
     renderAlertHistory();
+  }
+
+  const marketAlertCooldown = {};
+  let lastSoundAt = 0;
+
+  function fireMarketAlert(opts) {
+    const key = (opts.type || "gen") + ":" + (opts.symbol || "");
+    const cooldown = opts.cooldownMs || 20 * 60 * 1000;
+    const now = Date.now();
+    if (key !== "gen:" && marketAlertCooldown[key] && now - marketAlertCooldown[key] < cooldown) return false;
+    marketAlertCooldown[key] = now;
+    const sound = opts.sound || "soft";
+    if (now - lastSoundAt > 2500) {
+      playAlertSound(sound);
+      lastSoundAt = now;
+    }
+    showDesktopNotification(opts.title, opts.desc);
+    showToast(opts.title, opts.desc, { symbol: opts.symbol, tone: sound === "siren" ? "siren" : opts.type === "vol" ? "vol" : "" });
+    addHistoryEntry(opts.title, opts.desc, opts.symbol);
+    renderAlertHistory();
+    return true;
   }
 
   // --- Piyasa Verisi Merkezi (marketDataHub) -----------------------------
@@ -3132,6 +3669,223 @@
   // istege bagli (lazy) baglanti acar; ayni sembolu izleyen birden fazla
   // alarm varsa tek bir baglanti paylasilir.
   const hub = {}; // symbol -> { price, closes[], rsi, fundingRate, oiHistory:[{t,v}], _conns:{} }
+
+  const MARKET_ENGINE_KEY = "crypto-dashboard-market-engine-v1";
+  const MARKET_ENGINE_DEFAULTS = {
+    frAlerts: true,
+    frThreshold: -0.5,
+    volAlerts: true,
+    volMultiplier: 8,
+    volMinNotional: 400000,
+    volMinDayQuote: 8000000,
+  };
+  let marketEngine = Object.assign({}, MARKET_ENGINE_DEFAULTS);
+
+  const allMarket = {
+    bySymbol: {},
+    symbols: [],
+    listeners: new Set(),
+    ready: false,
+    _started: false,
+    subscribe(cb) { this.listeners.add(cb); },
+    unsubscribe(cb) { this.listeners.delete(cb); },
+    notify() { this.listeners.forEach((cb) => { try { cb(); } catch (e) { /* */ } }); },
+  };
+
+  function marketEntry(sym) {
+    if (!allMarket.bySymbol[sym]) {
+      allMarket.bySymbol[sym] = {
+        symbol: sym,
+        price: null,
+        changePct: null,
+        quoteVol: null,
+        fundingPct: null,
+        prevFundingPct: null,
+        volRatio: 0,
+        lastMinuteNotional: 0,
+        _prevQuote: null,
+        _minuteVols: [],
+      };
+    }
+    return allMarket.bySymbol[sym];
+  }
+
+  function formatUsdCompact(v) {
+    if (v == null || !isFinite(v)) return "—";
+    const abs = Math.abs(v);
+    if (abs >= 1e9) return "$" + (v / 1e9).toFixed(2) + "B";
+    if (abs >= 1e6) return "$" + (v / 1e6).toFixed(1) + "M";
+    if (abs >= 1e3) return "$" + (v / 1e3).toFixed(0) + "K";
+    return "$" + v.toFixed(0);
+  }
+
+  async function loadMarketEngine() {
+    const migrated = await loadWithMigration(MARKET_ENGINE_KEY, (v) => v && typeof v === "object");
+    if (migrated) marketEngine = Object.assign({}, MARKET_ENGINE_DEFAULTS, migrated);
+  }
+  function persistMarketEngine() {
+    idbSet(MARKET_ENGINE_KEY, marketEngine);
+  }
+
+  function feedAlertHubFromMarket(sym) {
+    const entry = hub[sym];
+    if (!entry) return;
+    const row = allMarket.bySymbol[sym];
+    if (!row) return;
+    if (row.price != null) entry.price = row.price;
+    if (row.fundingPct != null) entry.fundingRate = row.fundingPct;
+    evaluateAlertsForSymbol(sym);
+  }
+
+  function evaluateGlobalFrAlerts() {
+    if (!marketEngine.frAlerts) return;
+    const threshold = marketEngine.frThreshold;
+    const candidates = [];
+    allMarket.symbols.forEach((sym) => {
+      const row = allMarket.bySymbol[sym];
+      if (row.fundingPct == null || row.prevFundingPct == null) return;
+      const crossed = row.prevFundingPct > threshold && row.fundingPct <= threshold;
+      if (!crossed) return;
+      if ((row.quoteVol || 0) < 2000000) return;
+      candidates.push(row);
+    });
+    candidates.sort((a, b) => a.fundingPct - b.fundingPct);
+    candidates.slice(0, 4).forEach((row) => {
+      const siren = row.fundingPct <= -2;
+      fireMarketAlert({
+        type: "fr",
+        symbol: row.symbol,
+        title: siren ? "Siren · Ekstrem FR" : "Ekstrem FR",
+        desc: `${row.symbol} fonlama %${row.fundingPct.toFixed(4)} (eşik ${threshold}%)`,
+        sound: siren ? "siren" : "soft",
+        cooldownMs: 30 * 60 * 1000,
+      });
+    });
+  }
+
+  function sampleMinuteVolumesAndAlert() {
+    const spikes = [];
+    allMarket.symbols.forEach((sym) => {
+      const row = allMarket.bySymbol[sym];
+      if (row.quoteVol == null) return;
+      if (row._prevQuote != null && row.quoteVol >= row._prevQuote * 0.4) {
+        const delta = Math.max(0, row.quoteVol - row._prevQuote);
+        row.lastMinuteNotional = delta;
+        row._minuteVols.push(delta);
+        if (row._minuteVols.length > 20) row._minuteVols.shift();
+        const hist = row._minuteVols.slice(0, -1);
+        if (hist.length >= 3) {
+          const avg = hist.reduce((a, b) => a + b, 0) / hist.length;
+          row.volRatio = avg > 0 ? delta / avg : 0;
+          if (
+            hist.length >= 8 &&
+            marketEngine.volAlerts &&
+            row.volRatio >= marketEngine.volMultiplier &&
+            delta >= marketEngine.volMinNotional &&
+            (row.quoteVol || 0) >= marketEngine.volMinDayQuote
+          ) {
+            spikes.push(row);
+          }
+        } else {
+          row.volRatio = 0;
+        }
+      }
+      row._prevQuote = row.quoteVol;
+    });
+    spikes.sort((a, b) => b.volRatio - a.volRatio);
+    spikes.slice(0, 2).forEach((row) => {
+      fireMarketAlert({
+        type: "vol",
+        symbol: row.symbol,
+        title: "Hacim patlaması",
+        desc: `${row.symbol} · ${row.volRatio.toFixed(1)}x son 1dk hacim (min ${marketEngine.volMultiplier}x, ${formatUsdCompact(row.lastMinuteNotional)})`,
+        sound: row.volRatio >= 12 ? "siren" : "soft",
+        cooldownMs: 20 * 60 * 1000,
+      });
+    });
+    allMarket.notify();
+  }
+
+  function initAllMarketHub() {
+    if (allMarket._started) return;
+    allMarket._started = true;
+
+    let premiumRetryMs = 15000;
+    let premiumInFlight = false;
+    async function pollPremiumIndex() {
+      if (premiumInFlight) {
+        setTimeout(pollPremiumIndex, premiumRetryMs);
+        return;
+      }
+      premiumInFlight = true;
+      try {
+        const res = await fetch("https://fapi.binance.com/fapi/v1/premiumIndex");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        const nextSymbols = [];
+        data.forEach((d) => {
+          const sym = d.symbol;
+          if (!sym || !sym.endsWith("USDT") || sym.indexOf("_") !== -1) return;
+          nextSymbols.push(sym);
+          const row = marketEntry(sym);
+          row.prevFundingPct = row.fundingPct;
+          row.fundingPct = parseFloat(d.lastFundingRate) * 100;
+          const mark = parseFloat(d.markPrice);
+          if (isFinite(mark) && row.price == null) row.price = mark;
+          if (hub[sym]) feedAlertHubFromMarket(sym);
+        });
+        allMarket.symbols = nextSymbols.sort();
+        allMarket.ready = true;
+        evaluateGlobalFrAlerts();
+        allMarket.notify();
+        premiumRetryMs = 15000;
+      } catch (e) {
+        console.error("[Market] premiumIndex alınamadı:", e.message || e);
+        premiumRetryMs = Math.min(premiumRetryMs * 2, 60000);
+      } finally {
+        premiumInFlight = false;
+        setTimeout(pollPremiumIndex, premiumRetryMs);
+      }
+    }
+    pollPremiumIndex();
+
+    let tickerGen = 0;
+    let tickerRetryMs = 1000;
+    let lastUiNotify = 0;
+    function connectTicker(myGen) {
+      if (myGen !== tickerGen) return;
+      const ws = new WebSocket("wss://fstream.binance.com/ws/!ticker@arr");
+      ws.onopen = () => { tickerRetryMs = 1000; };
+      ws.onmessage = (event) => {
+        let msg; try { msg = JSON.parse(event.data); } catch { return; }
+        const arr = Array.isArray(msg) ? msg : msg.data;
+        if (!Array.isArray(arr)) return;
+        arr.forEach((t) => {
+          const raw = t.s;
+          if (!raw || !raw.endsWith("USDT") || raw.indexOf("_") !== -1) return;
+          const row = allMarket.bySymbol[raw] || marketEntry(raw);
+          row.price = parseFloat(t.c);
+          row.changePct = parseFloat(t.P);
+          row.quoteVol = parseFloat(t.q);
+          if (hub[raw]) feedAlertHubFromMarket(raw);
+        });
+        const now = Date.now();
+        if (now - lastUiNotify > 800) {
+          lastUiNotify = now;
+          allMarket.notify();
+        }
+      };
+      ws.onclose = () => {
+        if (myGen !== tickerGen) return;
+        setTimeout(() => connectTicker(myGen), tickerRetryMs);
+        tickerRetryMs = Math.min(tickerRetryMs * 2, 30000);
+      };
+      ws.onerror = () => ws.close();
+    }
+    connectTicker(tickerGen);
+
+    setInterval(sampleMinuteVolumesAndAlert, 60000);
+  }
 
   function ensureHubEntry(symbol) {
     if (!hub[symbol]) hub[symbol] = { price: null, closes: [], rsi: null, fundingRate: null, oiHistory: [], _conns: {} };
@@ -3148,27 +3902,11 @@
     return set;
   }
 
-  // Fiyat (spot bookTicker - miniTicker gibi hafif, surekli akan bir stream)
+  // Fiyat, allMarket !ticker@arr uzerinden gelir - ekstra WS acilmaz (ban korumasi).
   function hubEnsurePriceConn(symbol) {
     const entry = ensureHubEntry(symbol);
-    if (entry._conns.price) return;
-    let stopped = false;
-    let retryMs = 1000;
-    function connect() {
-      if (stopped) return;
-      const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@miniTicker`);
-      entry._conns.price = { ws, stopped: false };
-      ws.onopen = () => { retryMs = 1000; };
-      ws.onmessage = (event) => {
-        let msg; try { msg = JSON.parse(event.data); } catch { return; }
-        entry.price = parseFloat(msg.c);
-        evaluateAlertsForSymbol(symbol);
-      };
-      ws.onclose = () => { if (!stopped) setTimeout(connect, retryMs); retryMs = Math.min(retryMs * 2, 30000); };
-      ws.onerror = () => ws.close();
-    }
-    connect();
-    entry._conns.price = { stop: () => { stopped = true; } };
+    const row = allMarket.bySymbol[symbol];
+    if (row && row.price != null) entry.price = row.price;
   }
 
   // RSI icin kapanan 1dk mumlari
@@ -3205,27 +3943,11 @@
     entry._conns.rsi = { stop: () => { stopped = true; } };
   }
 
-  // Funding rate (futures markPrice@1s)
+  // Funding, premiumIndex toplu poll'dan gelir - ekstra WS acilmaz.
   function hubEnsureFundingConn(symbol) {
     const entry = ensureHubEntry(symbol);
-    if (entry._conns.funding) return;
-    let stopped = false;
-    let retryMs = 1000;
-    function connect() {
-      if (stopped) return;
-      const ws = new WebSocket(`wss://fstream.binance.com/market/ws/${symbol.toLowerCase()}@markPrice@1s`);
-      ws.onopen = () => { retryMs = 1000; };
-      ws.onmessage = (event) => {
-        let msg; try { msg = JSON.parse(event.data); } catch { return; }
-        if (msg.r === undefined) return;
-        entry.fundingRate = parseFloat(msg.r) * 100;
-        evaluateAlertsForSymbol(symbol);
-      };
-      ws.onclose = () => { if (!stopped) setTimeout(connect, retryMs); retryMs = Math.min(retryMs * 2, 30000); };
-      ws.onerror = () => ws.close();
-    }
-    connect();
-    entry._conns.funding = { stop: () => { stopped = true; } };
+    const row = allMarket.bySymbol[symbol];
+    if (row && row.fundingPct != null) entry.fundingRate = row.fundingPct;
   }
 
   // Open Interest sicramasi icin REST polling + kayan pencere
@@ -3408,6 +4130,249 @@
     { value: "oi_spike", label: "Open Interest sıçraması (son 5dk, %)" },
   ];
 
+  let futuresSymbols = [];
+  let futuresSymbolsPromise = null;
+
+  function knownAlertSymbols() {
+    const set = new Set(WATCHLIST_SYMBOLS.map((s) => s.toUpperCase()));
+    futuresSymbols.forEach((s) => set.add(s));
+    return set;
+  }
+
+  function loadFuturesSymbols() {
+    if (futuresSymbolsPromise) return futuresSymbolsPromise;
+    futuresSymbolsPromise = (async () => {
+      try {
+        const res = await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        futuresSymbols = (data.symbols || [])
+          .filter((s) => s.status === "TRADING" && s.contractType === "PERPETUAL" && s.quoteAsset === "USDT")
+          .map((s) => s.symbol)
+          .sort();
+      } catch (e) {
+        console.error("[Alarm] Sembol listesi alınamadı:", e);
+        futuresSymbols = WATCHLIST_SYMBOLS.map((s) => s.toUpperCase());
+      }
+      return futuresSymbols;
+    })();
+    return futuresSymbolsPromise;
+  }
+
+  function normalizeSymbolQuery(raw) {
+    return String(raw || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+
+  function symbolMatchesQuery(sym, query) {
+    const q = normalizeSymbolQuery(query);
+    if (!q) return true;
+    const base = sym.replace(/USDT$|USDC$/, "");
+    return sym.indexOf(q) !== -1 || base.indexOf(q) !== -1;
+  }
+
+  function rankSymbol(sym, q) {
+    if (!q) return 2;
+    const base = sym.replace(/USDT$|USDC$/, "");
+    if (base === q || sym === q) return 0;
+    if (base.startsWith(q) || sym.startsWith(q)) return 1;
+    return 2;
+  }
+
+  function filterAlertSymbols(query) {
+    const q = normalizeSymbolQuery(query);
+    const watchlist = WATCHLIST_SYMBOLS.map((s) => s.toUpperCase());
+    const others = futuresSymbols.filter((s) => watchlist.indexOf(s) === -1);
+    const byRank = (a, b) => rankSymbol(a, q) - rankSymbol(b, q) || a.localeCompare(b);
+    return {
+      watchlist: watchlist.filter((s) => symbolMatchesQuery(s, query)).sort(byRank),
+      others: others.filter((s) => symbolMatchesQuery(s, query)).sort(byRank),
+    };
+  }
+
+  function closeAlertSymbolCombo() {
+    const list = document.getElementById("alert-symbol-combo-list");
+    if (list) list.remove();
+  }
+
+  document.addEventListener("mousedown", (e) => {
+    const list = document.getElementById("alert-symbol-combo-list");
+    if (!list || !list.classList.contains("open")) return;
+    const wrap = document.querySelector("#alert-modal-body .symbol-combo");
+    if ((wrap && wrap.contains(e.target)) || list.contains(e.target)) return;
+    closeAlertSymbolCombo();
+  });
+  document.addEventListener("scroll", () => {
+    const list = document.getElementById("alert-symbol-combo-list");
+    const input = document.getElementById("alert-symbol-input");
+    if (!list || !list.classList.contains("open") || !input) return;
+    const r = input.getBoundingClientRect();
+    list.style.left = r.left + "px";
+    list.style.top = (r.bottom + 4) + "px";
+    list.style.width = Math.max(r.width, 180) + "px";
+  }, true);
+
+  function createSymbolCombobox(initialSymbol, onChange) {
+    closeAlertSymbolCombo();
+    const wrap = document.createElement("div");
+    wrap.className = "symbol-combo";
+
+    let selected = (initialSymbol || "BTCUSDT").toUpperCase();
+    let activeIndex = -1;
+    let visibleItems = [];
+
+    const input = document.createElement("input");
+    input.className = "alert-input";
+    input.id = "alert-symbol-input";
+    input.type = "text";
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.placeholder = "Sembol seç veya yazarak ara";
+    input.value = selected;
+    input.style.textTransform = "uppercase";
+    input.setAttribute("aria-autocomplete", "list");
+
+    const list = document.createElement("div");
+    list.className = "symbol-combo-list";
+    list.id = "alert-symbol-combo-list";
+    list.setAttribute("role", "listbox");
+
+    function commit(sym) {
+      selected = String(sym).toUpperCase();
+      input.value = selected;
+      pendingConditions._symbol = selected;
+      if (typeof onChange === "function") onChange(selected);
+      closeList();
+    }
+
+    function placeList() {
+      const r = input.getBoundingClientRect();
+      list.style.left = r.left + "px";
+      list.style.top = (r.bottom + 4) + "px";
+      list.style.width = Math.max(r.width, 180) + "px";
+    }
+
+    function closeList() {
+      list.classList.remove("open");
+      if (list.parentNode) list.parentNode.removeChild(list);
+      activeIndex = -1;
+    }
+
+    function moveActive(delta) {
+      if (!visibleItems.length) return;
+      activeIndex = (activeIndex + delta + visibleItems.length) % visibleItems.length;
+      visibleItems.forEach((btn, i) => btn.classList.toggle("active", i === activeIndex));
+      visibleItems[activeIndex].scrollIntoView({ block: "nearest" });
+    }
+
+    function renderList() {
+      const query = (selected && input.value.toUpperCase() === selected) ? "" : input.value;
+      const grouped = filterAlertSymbols(query);
+      const q = normalizeSymbolQuery(query);
+      const maxOthers = q ? 80 : 30;
+      const others = grouped.others.slice(0, maxOthers);
+      const truncated = grouped.others.length > others.length;
+
+      list.innerHTML = "";
+      visibleItems = [];
+
+      function addGroup(title, symbols) {
+        if (!symbols.length) return;
+        const head = document.createElement("div");
+        head.className = "symbol-combo-group";
+        head.textContent = title;
+        list.appendChild(head);
+        symbols.forEach((sym) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "symbol-combo-item";
+          btn.setAttribute("role", "option");
+          btn.innerHTML = `<span>${formatWatchlistLabel(sym)}</span><span class="sym-label">${sym}</span>`;
+          if (sym === selected) btn.classList.add("active");
+          btn.addEventListener("mousedown", (e) => { e.preventDefault(); commit(sym); });
+          list.appendChild(btn);
+          visibleItems.push(btn);
+        });
+      }
+
+      addGroup("İzleme listesi", grouped.watchlist);
+      addGroup(q ? "Eşleşen vadeli" : "Tüm vadeli USDT", others);
+
+      if (!grouped.watchlist.length && !others.length) {
+        const empty = document.createElement("div");
+        empty.className = "symbol-combo-empty";
+        empty.textContent = futuresSymbols.length ? "Eşleşen sembol yok." : "Sembol listesi yükleniyor…";
+        list.appendChild(empty);
+      } else if (!q) {
+        const hint = document.createElement("div");
+        hint.className = "symbol-combo-hint";
+        hint.textContent = truncated
+          ? `${grouped.others.length} sembol var — yazarak filtreleyin`
+          : "Yazarak sembol arayabilirsiniz";
+        list.appendChild(hint);
+      } else if (truncated) {
+        const hint = document.createElement("div");
+        hint.className = "symbol-combo-hint";
+        hint.textContent = `${grouped.others.length} eşleşme, ilk ${maxOthers} gösteriliyor`;
+        list.appendChild(hint);
+      }
+
+      activeIndex = visibleItems.findIndex((btn) => btn.classList.contains("active"));
+      if (q && visibleItems.length && activeIndex < 0) {
+        activeIndex = 0;
+        visibleItems[0].classList.add("active");
+      }
+    }
+
+    function openList() {
+      if (!list.parentNode) document.body.appendChild(list);
+      renderList();
+      placeList();
+      list.classList.add("open");
+    }
+
+    input.addEventListener("focus", openList);
+    input.addEventListener("click", openList);
+    input.addEventListener("input", () => {
+      selected = "";
+      pendingConditions._symbol = "";
+      openList();
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") { e.preventDefault(); if (!list.classList.contains("open")) openList(); else moveActive(1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); if (!list.classList.contains("open")) openList(); else moveActive(-1); }
+      else if (e.key === "Enter") {
+        if (list.classList.contains("open") && activeIndex >= 0 && visibleItems[activeIndex]) {
+          e.preventDefault();
+          visibleItems[activeIndex].dispatchEvent(new Event("mousedown"));
+        }
+      } else if (e.key === "Escape") {
+        closeList();
+      }
+    });
+
+    loadFuturesSymbols().then(() => {
+      if (list.classList.contains("open")) renderList();
+    });
+
+    wrap.appendChild(input);
+
+    return {
+      el: wrap,
+      getValue() {
+        if (selected && knownAlertSymbols().has(selected)) return selected;
+        const parsed = parseWatchlistSymbol(input.value);
+        if (parsed && knownAlertSymbols().has(parsed.toUpperCase())) return parsed.toUpperCase();
+        const grouped = filterAlertSymbols(input.value);
+        const all = grouped.watchlist.concat(grouped.others);
+        const q = normalizeSymbolQuery(input.value);
+        const exactBase = all.filter((s) => s.replace(/USDT$|USDC$/, "") === q);
+        if (exactBase.length === 1) return exactBase[0];
+        if (all.length === 1) return all[0];
+        return selected || "";
+      },
+    };
+  }
+
   function renderConditionRow(cond, index) {
     const row = document.createElement("div");
     row.className = "condition-row";
@@ -3477,12 +4442,10 @@
     const symRow = document.createElement("div");
     symRow.className = "alert-form-row";
     symRow.innerHTML = `<label>Sembol</label>`;
-    const symInput = document.createElement("input");
-    symInput.className = "alert-input";
-    symInput.id = "alert-symbol-input";
-    symInput.value = pendingConditions._symbol || "BTCUSDT";
-    symInput.style.textTransform = "uppercase";
-    symRow.appendChild(symInput);
+    const symbolCombo = createSymbolCombobox(pendingConditions._symbol || "BTCUSDT", (sym) => {
+      pendingConditions._symbol = sym;
+    });
+    symRow.appendChild(symbolCombo.el);
     body.appendChild(symRow);
 
     const condsLabel = document.createElement("div");
@@ -3521,9 +4484,13 @@
     saveBtn.className = "alert-btn";
     saveBtn.textContent = "Alarmı Kaydet";
     saveBtn.style.marginTop = "10px";
-    saveBtn.addEventListener("click", () => {
-      const symbol = symInput.value.trim().toUpperCase();
-      if (!/^[A-Z0-9]{5,15}$/.test(symbol)) { window.alert("Geçersiz sembol."); return; }
+    saveBtn.addEventListener("click", async () => {
+      let symbol = symbolCombo.getValue();
+      if (!symbol) {
+        const parsed = parseWatchlistSymbol(document.getElementById("alert-symbol-input").value);
+        if (parsed && await validateFuturesSymbol(parsed.toUpperCase())) symbol = parsed.toUpperCase();
+      }
+      if (!symbol) { window.alert("Listeden bir sembol seçin veya yazarak arayıp seçin."); return; }
       if (pendingConditions.length === 0) { window.alert("En az bir koşul ekleyin."); return; }
       const name = nameInput.value.trim() || `${symbol} Alarmı`;
       addAlert({
@@ -3598,13 +4565,21 @@
     }
     alertsStore.history.forEach((h) => {
       const row = document.createElement("div");
-      row.className = "alert-history-row";
+      row.className = "alert-history-row" + (h.symbol ? " clickable" : "");
       row.innerHTML = `<span class="time">${h.time}</span><span style="flex:1;">${h.alertName} — ${h.desc}</span>`;
+      if (h.symbol) {
+        row.title = h.symbol + " · Target 1 panellerine gönder";
+        row.addEventListener("click", () => {
+          closeAlertManager();
+          targetBus.emit(DEFAULT_TARGET_ID, h.symbol);
+        });
+      }
       body.appendChild(row);
     });
   }
 
   function renderAlertTab(tab) {
+    closeAlertSymbolCombo();
     if (tab === "new") renderNewAlertTab();
     else if (tab === "list") renderAlertList();
     else renderAlertHistory();
@@ -3621,14 +4596,18 @@
     alertModalBackdrop.classList.add("visible");
   }
   function closeAlertManager() {
+    closeAlertSymbolCombo();
     alertModalBackdrop.classList.remove("visible");
   }
 
   async function initAlertManager() {
     alertsStore = await loadAlertsStore();
+    await loadMarketEngine();
     alertsStore.alerts.forEach((a) => { a._wasTrue = false; });
     syncHubConnections();
     updateAlertButtonBadge();
+    initAllMarketHub();
+    loadFuturesSymbols();
     document.getElementById("alert-manager-btn").addEventListener("click", () => openAlertManager("BTCUSDT"));
   }
 
@@ -3867,6 +4846,7 @@
     if (type === "bot") return createBotPanel(id, symbol, targetId);
     if (type === "frscan") return createFrScanPanel(id, targetId);
     if (type === "checklist") return createChecklistPanel(id, targetId);
+    if (type === "mscanner") return createMarketScannerPanel(id, targetId);
     if (type === "volradar") return createVolRadarPanel(id, targetId);
     return createChartPanel(id, symbol, targetId);
   }
@@ -3912,6 +4892,8 @@
       { id: "panel-chart-default", x: 3, y: 0, w: 6, h: 8 });
     addPanelToGrid("panel-orderbook-default", "orderbook", "BTCUSDT", DEFAULT_TARGET_ID,
       { id: "panel-orderbook-default", x: 9, y: 0, w: 3, h: 8 });
+    addPanelToGrid("panel-scanner-default", "mscanner", null, DEFAULT_TARGET_ID,
+      { id: "panel-scanner-default", x: 0, y: 8, w: 12, h: 8 });
   }
 
   function renderSceneSelect() {
@@ -3979,6 +4961,11 @@
   // --- Ilk kurulum: eski (sahne oncesi) duz localStorage duzeni varsa
   // ilk sahneye tasi; hic veri yoksa varsayilan 3 panelli sahneyi olustur.
   (async function initScenes() {
+    await loadWatchlistStore();
+    await loadMarketEngine();
+    initAllMarketHub();
+    initMarketScanner();
+
     scenesStore = await loadScenesStore();
 
     if (scenesStore.scenes.length === 0) {
@@ -4021,7 +5008,6 @@
 
   initStickyBar();
   initAlertManager();
-  initMarketScanner();
 
   document.getElementById("scene-select").addEventListener("change", (e) => {
     switchToScene(e.target.value);
@@ -4037,6 +5023,8 @@
   // "Panel Ekle" - dropdown menu
   // =====================================================================
   const PANEL_TYPE_OPTIONS = [
+    { type: "mscanner", icon: "📊", name: "300+ Market Scanner", desc: "Tüm USDT-M perpetual: FR, 24s %, hacim — arama/sıralama/filtre", needsSymbol: false, size: { w: 12, h: 8 } },
+    { type: "watchlist", icon: "👁", name: "İzleme Listesi", desc: "Sembol ekle/çıkar, fiyat, FR ve açık pozisyon", needsSymbol: false, size: { w: 3, h: 8 } },
     { type: "chart", icon: "📈", name: "Grafik Paneli", desc: "TradingView Lightweight Charts (zaman dilimi + Target ID)", needsSymbol: true, size: { w: 6, h: 8 } },
     { type: "orderbook", icon: "📖", name: "Canlı Emir Defteri", desc: "Binance Futures Depth10 alım/satım duvarları", needsSymbol: true, size: { w: 3, h: 8 } },
     { type: "heatmap", icon: "🗺️", name: "Likidite Isı Haritası", desc: "Canvas tabanlı derinlik yoğunluk matrisi", needsSymbol: true, size: { w: 6, h: 6 } },
