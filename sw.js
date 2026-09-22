@@ -1,4 +1,4 @@
-const CACHE_NAME = "crypto-dashboard-v4";
+const CACHE_NAME = "crypto-dashboard-v12";
 const APP_SHELL = [
   "./",
   "./crypto-dashboard.html",
