@@ -5,8 +5,10 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "build:wave-browser": "node scripts/build-wave-browser.mjs",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "test": "tsx --test src/**/__tests__/**/*.test.ts"
   },
   "dependencies": {
     "ws": "^8.18.0"
@@ -16,5 +18,8 @@
     "tsx": "^4.19.2",
     "@types/node": "^20.14.9",
     "@types/ws": "^8.5.10"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }

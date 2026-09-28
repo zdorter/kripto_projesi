@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wave Engine · Analysis Demo</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222d;
+      --border: #2a3544;
+      --text: #e8edf4;
+      --muted: #8b98a8;
+      --accent: #5b9cf5;
+      --warn: #e8b84a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 1.5rem;
+      max-width: 52rem;
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 0.25rem; }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 0.75rem; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      font-size: 0.9rem;
+    }
+    .toolbar label { color: var(--muted); }
+    .toolbar select {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.35rem 0.5rem;
+    }
+    #data-banner {
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.35rem;
+    }
+    #load-status { font-size: 0.9rem; margin-bottom: 1rem; min-height: 1.25rem; }
+    .disclaimer {
+      font-size: 0.85rem;
+      color: var(--warn);
+      background: rgba(232, 184, 74, 0.08);
+      border: 1px solid rgba(232, 184, 74, 0.35);
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .card, .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+    }
+    .card label, .panel .panel-title {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .card .value { font-size: 1.15rem; font-weight: 600; }
+    .panel .row { margin: 0.2rem 0; font-size: 0.95rem; }
+    .panel .row strong { color: var(--text); font-weight: 600; }
+    .panel-muted { color: var(--muted); font-size: 0.85rem; margin-top: 0.5rem; }
+    section { margin-bottom: 1.25rem; }
+    section h2 {
+      font-size: 0.95rem;
+      margin: 0 0 0.5rem;
+      color: var(--accent);
+    }
+    .overlap-item {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .overlap-item .hint {
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-top: 0.35rem;
+    }
+    ul { margin: 0; padding-left: 1.25rem; }
+    pre {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow: auto;
+      font-size: 0.75rem;
+      margin: 0;
+    }
+    .hidden { display: none; }
+    .calibration-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+    }
+    .calibration-table th,
+    .calibration-table td {
+      border: 1px solid var(--border);
+      padding: 0.45rem 0.55rem;
+      text-align: left;
+    }
+    .calibration-table th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    .calibration-row { cursor: pointer; }
+    .calibration-row:hover { background: rgba(91, 156, 245, 0.08); }
+    .calibration-row.selected { background: rgba(91, 156, 245, 0.15); }
+    .calibration-detail { margin-top: 0.5rem; }
+    .stability-row { cursor: pointer; }
+    .stability-row:hover { background: rgba(91, 156, 245, 0.08); }
+    .stability-row.selected { background: rgba(91, 156, 245, 0.15); }
+    .stability-config-block {
+      margin-top: 0.5rem;
+      padding-top: 0.35rem;
+      border-top: 1px solid var(--border);
+    }
+    .hierarchy-highlight-row {
+      background: rgba(91, 156, 245, 0.12);
+    }
+  </style>
+</head>
+<body>
+  <h1>Wave Engine</h1>
+  <p class="subtitle">Checkpoint 5 · Binance Futures REST OHLCV</p>
+
+  <div class="toolbar">
+    <label for="data-source">Data source</label>
+    <select id="data-source">
+      <option value="BINANCE" selected>BINANCE</option>
+      <option value="DEMO">DEMO</option>
+    </select>
+  </div>
+
+  <div id="data-banner">—</div>
+  <div id="load-status"></div>
+
+  <p class="disclaimer" id="score-disclaimer">
+    Rule conformance score — not trading probability.
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <label>Market Trend</label>
+      <div class="value" id="market-trend">—</div>
+    </div>
+    <div class="card">
+      <label>Rule Conformance</label>
+      <div class="value" id="rule-conformance">—</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel" id="primary-panel">
+      <span class="panel-title">Primary</span>
+      <div class="row"><strong id="primary-structure">—</strong></div>
+      <div class="row">Primary Wave <strong id="primary-wave">—</strong></div>
+      <div class="row">Status <strong id="primary-status">—</strong></div>
+      <div class="row">Confidence <strong id="primary-confidence">—</strong></div>
+      <p class="panel-muted" id="primary-reason"></p>
+    </div>
+    <div class="panel hidden" id="alternative-panel">
+      <span class="panel-title">Alternative (focus pair)</span>
+      <div class="row"><strong id="alternative-structure">—</strong></div>
+      <div class="row">Wave <strong id="alternative-wave">—</strong></div>
+      <div class="row">Status <strong id="alternative-status">—</strong></div>
+      <div class="row">Confidence <strong id="alternative-confidence">—</strong></div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Trend Context</h2>
+    <div class="panel">
+      <div class="row">Alignment <strong id="trend-alignment">—</strong></div>
+      <p class="panel-muted" id="trend-note"></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Invalidation</h2>
+    <div class="panel" id="invalidation-panel">
+      <div id="invalidation-content">—</div>
+    </div>
+  </section>
+
+  <section class="hidden" id="overlaps-section">
+    <h2>Overlaps</h2>
+    <div id="overlaps-list"></div>
+  </section>
+
+  <section class="hidden" id="rival-section">
+    <h2>Rival Impulse</h2>
+    <div class="panel" id="rival-panel"></div>
+  </section>
+
+  <section>
+    <h2>Swing Calibration</h2>
+    <p class="panel-muted">Same candle series, different swing window presets. Observational only — no recommended config.</p>
+    <table class="calibration-table">
+      <thead>
+        <tr>
+          <th>Config</th>
+          <th>Swings</th>
+          <th>Trend</th>
+          <th>Primary</th>
+          <th>Alternative</th>
+          <th>Score</th>
+          <th>Overlaps</th>
+        </tr>
+      </thead>
+      <tbody id="calibration-table-body"></tbody>
+    </table>
+    <div id="calibration-swing-chart"></div>
+    <div id="calibration-detail"></div>
+  </section>
+
+  <section>
+    <h2>JSON (swing calibration)</h2>
+    <pre id="calibration-json"></pre>
+  </section>
+
+  <section>
+    <h2>Wave Stability</h2>
+    <p class="disclaimer" style="margin-bottom:0.75rem">
+      Persistence is structural consistency across swing resolutions, not probability.
+    </p>
+    <p class="panel-muted">Same wave label across calibration configs — presence and segment overlap only.</p>
+    <h3 style="font-size:0.9rem;color:var(--muted);margin:0.75rem 0 0.35rem">Persistence matrix</h3>
+    <table class="calibration-table">
+      <thead id="stability-matrix-head"></thead>
+      <tbody id="stability-matrix-body"></tbody>
+    </table>
+    <h3 style="font-size:0.9rem;color:var(--muted);margin:0.75rem 0 0.35rem">Summary</h3>
+    <table class="calibration-table">
+      <thead>
+        <tr>
+          <th>Wave</th>
+          <th>Presence</th>
+          <th>Configs</th>
+          <th>Index Overlap</th>
+          <th>Price Overlap</th>
+        </tr>
+      </thead>
+      <tbody id="stability-summary-body"></tbody>
+    </table>
+    <div id="stability-detail"></div>
+  </section>
+
+  <section>
+    <h2>JSON (wave stability)</h2>
+    <pre id="stability-json"></pre>
+  </section>
+
+  <section>
+    <h2>Multi-Timeframe Analysis</h2>
+    <p class="panel-muted">Independent wave analysis per timeframe — no parent/child mapping or trade signals.</p>
+    <div id="mtf-root"></div>
+    <h3 style="font-size:0.9rem;color:var(--muted);margin:1rem 0 0.35rem">Relationship</h3>
+    <div class="panel" id="mtf-relationship"></div>
+    <h3 style="font-size:0.9rem;color:var(--muted);margin:0.75rem 0 0.35rem">Time alignment</h3>
+    <div class="panel" id="mtf-timeline"></div>
+    <h3 style="font-size:0.9rem;color:var(--muted);margin:0.75rem 0 0.35rem">Notes</h3>
+    <ul id="mtf-notes"></ul>
+  </section>
+
+  <section>
+    <h2>JSON (multi-timeframe)</h2>
+    <pre id="multi-timeframe-json"></pre>
+  </section>
+
+  <section>
+    <h2>Wave Hierarchy Candidates</h2>
+    <p class="panel-muted">Candidate structural nesting only — not confirmed Elliott parent/child mapping or trade signals.</p>
+    <h3 style="font-size:0.9rem;color:var(--muted);margin:0.5rem 0">Primary → Primary</h3>
+    <div id="hierarchy-primary"></div>
+    <h3 style="font-size:0.9rem;color:var(--muted);margin:0.75rem 0 0.35rem">NESTED_CANDIDATE / POSSIBLE_NESTING</h3>
+    <table class="calibration-table">
+      <thead>
+        <tr>
+          <th>Higher Wave</th>
+          <th>Lower Wave</th>
+          <th>Time</th>
+          <th>Price</th>
+          <th>Relationship</th>
+        </tr>
+      </thead>
+      <tbody id="hierarchy-highlight-body"></tbody>
+    </table>
+    <h3 style="font-size:0.9rem;color:var(--muted);margin:0.75rem 0 0.35rem">All pairs</h3>
+    <table class="calibration-table">
+      <thead>
+        <tr>
+          <th>Higher Wave</th>
+          <th>Lower Wave</th>
+          <th>Time</th>
+          <th>Price</th>
+          <th>Relationship</th>
+        </tr>
+      </thead>
+      <tbody id="hierarchy-table-body"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>JSON (wave hierarchy)</h2>
+    <pre id="hierarchy-json"></pre>
+  </section>
+
+  <section>
+    <h2>Engine Waves (flat list)</h2>
+    <ul id="detected-waves"></ul>
+  </section>
+
+  <section>
+    <h2>Diagnostics · Confirmed Swings</h2>
+    <ul id="diag-swings"></ul>
+  </section>
+
+  <section>
+    <h2>Diagnostics · Market Structure (HH / HL / LH / LL)</h2>
+    <ul id="diag-structure"></ul>
+    <p class="panel-muted" id="diag-trend-source"></p>
+  </section>
+
+  <section>
+    <h2>Diagnostics · Wave Legs</h2>
+    <ul id="diag-wave-legs"></ul>
+  </section>
+
+  <section>
+    <h2>Diagnostics · Fibonacci (confidence component)</h2>
+    <div class="panel" id="diag-fibonacci"></div>
+  </section>
+
+  <section>
+    <h2>Diagnostics · Primary / Alternative Focus</h2>
+    <div class="panel" id="diag-focus"></div>
+  </section>
+
+  <section>
+    <h2>Diagnostics · Overlaps</h2>
+    <div id="diag-overlaps"></div>
+  </section>
+
+  <section>
+    <h2>JSON (analysis)</h2>
+    <pre id="analysis-json"></pre>
+  </section>
+
+  <section>
+    <h2>JSON (diagnostics)</h2>
+    <pre id="diagnostic-json"></pre>
+  </section>
+
+  <script type="module" src="./dist/wave/wave-analysis-app.js"></script>
+</body>
+</html>
