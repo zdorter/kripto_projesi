@@ -23,6 +23,9 @@ import {
 } from "../wave-scenarios";
 import type { WavePresentationState } from "../presentation-state";
 import type { WaveCandidate } from "../types";
+import { buildEntryPlanFromSetup } from "../setup/entry-plan";
+import { SETUP_SCHEMA_VERSION } from "../setup/setup-types";
+import type { SetupCandidate } from "../setup/setup-types";
 
 function klineRow(
   openTime: number,
@@ -403,6 +406,171 @@ describe("architecture contract", () => {
       assert.equal(c.close, 1.5);
       assert.equal(c.volume, 100);
       assert.equal(c.time, 1000);
+    });
+  });
+
+  describe("H — trade setup layer contract", () => {
+    it("trade catalog entries are TRADE_SETUP and structural remain non-trade", async () => {
+      const setup = await import("../setup/setup-catalog");
+      assert.equal(setup.listTradeSetupCatalogEntries().length, 2);
+      assert.equal(setup.listStructuralContextCatalogEntries().length, 5);
+      assert.ok(
+        setup.listStructuralContextCatalogEntries().every((e) => !e.isTradeSetup)
+      );
+    });
+
+    it("setup-detector module does not import wave engine pipeline", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/trade-setup-detector.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("analyzeWave"));
+      assert.ok(!text.includes("buildWaveAnalysis"));
+      assert.ok(!text.includes("runWaveScan"));
+    });
+  });
+
+  describe("K — stop-loss model layer contract (14D.3)", () => {
+    it("stop-loss-model module does not import wave engine, scanner, diagnostics, or providers", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/stop-loss-model.ts");
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("analyzeWave"));
+      assert.ok(!text.includes("runWaveScan"));
+      assert.ok(!text.includes("binance"));
+      assert.ok(!text.includes("takeProfit"));
+      assert.ok(!text.includes("riskReward"));
+    });
+
+    it("stop-loss types exclude order execution vocabulary", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/stop-loss-model-types.ts");
+      const text = fs.readFileSync(file, "utf8");
+      for (const token of ["stopOrder", "MARKET", "LIMIT", "positionSize", "leverage"]) {
+        assert.ok(!text.includes(token), token);
+      }
+    });
+  });
+
+  describe("J — entry model layer contract (14D.2)", () => {
+    it("entry-model module does not import wave engine, scanner, diagnostics, or providers", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/entry-model.ts");
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("analyzeWave"));
+      assert.ok(!text.includes("runWaveScan"));
+      assert.ok(!text.includes("wave-diagnostics"));
+      assert.ok(!text.includes("binance"));
+    });
+
+    it("entry-model types exclude SL/TP/RR and execution vocabulary", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/entry-model-types.ts");
+      const text = fs.readFileSync(file, "utf8");
+      for (const token of ["stopLoss", "takeProfit", "riskReward", "LONG", "SHORT", "BUY", "SELL"]) {
+        assert.ok(!text.includes(token), token);
+      }
+    });
+  });
+
+  describe("I — entry plan layer contract (14D.1)", () => {
+    it("entry-plan module does not import wave engine, scanner, or diagnostics pipeline", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/entry-plan.ts");
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("analyzeWave"));
+      assert.ok(!text.includes("analyzeWaveWithDiagnostics"));
+      assert.ok(!text.includes("runWaveScan"));
+      assert.ok(!text.includes("buildWaveScenarios"));
+    });
+
+    it("entry-plan types exclude execution prices and RR vocabulary", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/entry-plan-types.ts");
+      const text = fs.readFileSync(file, "utf8");
+      const forbidden = [
+        "stopLoss",
+        "stopPrice",
+        "slPrice",
+        "takeProfit",
+        "entryPrice",
+        "riskReward",
+        "positionSize",
+        "leverage",
+        "LONG",
+        "SHORT",
+        "MARKET",
+        "LIMIT",
+      ];
+      for (const token of forbidden) {
+        assert.ok(!text.includes(token), `forbidden token ${token}`);
+      }
+    });
+
+    it("only isTradeSetup CONFIRMED with closed bar yields eligible plan", () => {
+      const structural: SetupCandidate = {
+        schemaVersion: SETUP_SCHEMA_VERSION,
+        id: "s",
+        symbol: "X",
+        timeframe: "1H",
+        scenarioRef: {
+          scenarioId: "sc",
+          role: "PRIMARY" as const,
+          structure: "IMPULSE" as const,
+          waveLabel: "5" as const,
+          scenarioStatus: "ACTIVE" as const,
+        },
+        setupTypeId: "impulse-wave-segment",
+        setupTypeLabel: "seg",
+        category: "STRUCTURAL_CONTEXT" as const,
+        isTradeSetup: false,
+        status: "CONFIRMED" as const,
+        directionalBias: null,
+        directionalBasis: null,
+        trigger: { conditions: [], summary: "" },
+        confirmation: { conditions: [], summary: "" },
+        invalidation: { conditions: [], summary: "", usesScenarioInvalidation: false },
+        referenceLevels: [],
+        sourceScenario: {
+          confidence: 1,
+          startIndex: 0,
+          endIndex: 1,
+          startPrice: 1,
+          endPrice: 2,
+          evidence: [],
+          limitations: [],
+        },
+        context: {},
+        setupLimitations: [],
+        evaluationNotes: [],
+      };
+      assert.equal(buildEntryPlanFromSetup({ setup: structural }).plan, null);
+      const trade: SetupCandidate = {
+        ...structural,
+        isTradeSetup: true,
+        category: "TRADE_SETUP",
+        setupTypeId: "impulse-continuation",
+      };
+      assert.equal(
+        buildEntryPlanFromSetup({
+          setup: trade,
+          evaluationBar: {
+            evaluationBarIndex: 1,
+            evaluationBarBoundaryEstablished: true,
+            evaluationBarContractDetail: "test",
+          },
+        }).eligibility.reason,
+        "ENTRY_PLAN_ELIGIBLE"
+      );
     });
   });
 });
