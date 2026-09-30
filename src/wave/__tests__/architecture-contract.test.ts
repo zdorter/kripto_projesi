@@ -625,6 +625,27 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AB — Fibonacci anchor semantics (14M)", () => {
+    it("production policy registry empty; no implicit anchor model in resolver", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const policy = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/fibonacci-projection-policy.ts"),
+        "utf8"
+      );
+      const semantics = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/fibonacci-anchor-semantics.ts"),
+        "utf8"
+      );
+      assert.ok(policy.includes("PRODUCTION_FIBONACCI_PROJECTION_POLICIES"));
+      assert.ok(policy.includes("anchorModel"));
+      assert.ok(policy.includes("ANCHOR_TEMPORALLY_INVALID"));
+      assert.ok(!policy.includes("DEFAULT_FIB"));
+      assert.ok(!semantics.includes("fetch("));
+      assert.ok(!semantics.includes("analyzeWave"));
+    });
+  });
+
   describe("AA — Fibonacci projection policy (14L)", () => {
     it("no implicit ratio or nearestMatch in production policy registry", async () => {
       const fs = await import("node:fs");

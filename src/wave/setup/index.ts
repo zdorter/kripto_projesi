@@ -156,6 +156,21 @@ export type {
   FibonacciProjectionPolicyStatus,
 } from "./fibonacci-projection-policy-types";
 export {
+  auditFibonacciAnchorLookahead,
+  buildDiagnosticRatioProjections,
+  buildImpulsePivotDiagnostics,
+  compareDiagnosticsToPivotPrices,
+  computeProjectionForAnchorModel,
+  diagnosticProjectModelA,
+  diagnosticProjectModelB,
+  extractW1W2FibonacciAnchors,
+} from "./fibonacci-anchor-semantics";
+export type {
+  FibonacciAnchorModelSupportVerdict,
+  FibonacciProjectionAnchorModel,
+  FibonacciProjectionScope,
+} from "./fibonacci-anchor-semantics-types";
+export {
   buildObjectiveTargetSourceContextForPlan,
   buildObjectiveTargetSourceContextBySetupId,
   buildObjectiveTargetSourceContextBySetupIdFromTradeContext,

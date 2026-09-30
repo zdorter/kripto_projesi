@@ -1,7 +1,10 @@
-import { fibExtensionPrice } from "../fibonacci";
 import type { FibExtensionLevel } from "../fibonacci";
 import type { FibonacciDiagnostic } from "../wave-diagnostics";
 import type { WaveLabel } from "../types";
+import {
+  computeProjectionForAnchorModel,
+  extractW1W2FibonacciAnchors,
+} from "./fibonacci-anchor-semantics";
 import type { EntryPlanCandidate } from "./entry-plan-types";
 import type { ObjectiveTargetSourceContext } from "./objective-target-candidate-types";
 import type {
@@ -11,28 +14,24 @@ import type {
 } from "./fibonacci-projection-policy-types";
 
 /**
- * Production registry — empty by design until an explicit ENGINE_CONTRACT policy is approved.
- * No implicit 1.618 or default ratio.
+ * Production registry — empty by design until explicit ENGINE_CONTRACT policy is approved.
+ * No implicit 1.618, anchor model, or default ratio.
  */
 export const PRODUCTION_FIBONACCI_PROJECTION_POLICIES: readonly FibonacciObjectiveTargetProjectionPolicy[] =
   [];
 
+/** @deprecated Use extractW1W2FibonacciAnchors — kept for 14L diagnostics call sites. */
 export function extractW1LegAnchorsFromFibonacciDiagnostic(
   fib: FibonacciDiagnostic | undefined
 ): { rangeStartPrice: number; rangeEndPrice: number } | null {
-  if (!fib?.available) {
+  const anchors = extractW1W2FibonacciAnchors(fib);
+  if (!anchors) {
     return null;
   }
-  const { rangeStart, rangeEnd } = fib;
-  if (
-    rangeStart === undefined ||
-    rangeEnd === undefined ||
-    !Number.isFinite(rangeStart) ||
-    !Number.isFinite(rangeEnd)
-  ) {
-    return null;
-  }
-  return { rangeStartPrice: rangeStart, rangeEndPrice: rangeEnd };
+  return {
+    rangeStartPrice: anchors.w1StartPriceCandleExtreme,
+    rangeEndPrice: anchors.w1EndPriceCandleExtreme,
+  };
 }
 
 function policyAppliesToPlan(
@@ -82,6 +81,20 @@ function selectRatioFromRule(
   };
 }
 
+function anchorsWithinEvaluationBar(
+  anchors: ReturnType<typeof extractW1W2FibonacciAnchors>,
+  evaluationBarIndex: number
+): boolean {
+  if (!anchors) {
+    return false;
+  }
+  return (
+    anchors.w1StartIndex <= evaluationBarIndex &&
+    anchors.w1EndIndex <= evaluationBarIndex &&
+    anchors.w2EndIndex <= evaluationBarIndex
+  );
+}
+
 function resolveWithPolicy(
   policy: FibonacciObjectiveTargetProjectionPolicy,
   plan: EntryPlanCandidate,
@@ -96,6 +109,18 @@ function resolveWithPolicy(
       rangeEndPrice: null,
       projectionPrice: null,
       detail: `Policy ${policy.policyId} does not apply to ${plan.setupTypeId} wave ${plan.scenarioRef.waveLabel}.`,
+      policy,
+    };
+  }
+  if (!policy.anchorModel) {
+    return {
+      status: "ANCHOR_MODEL_UNSUPPORTED",
+      policyId: policy.policyId,
+      selectedRatio: null,
+      rangeStartPrice: null,
+      rangeEndPrice: null,
+      projectionPrice: null,
+      detail: "Policy missing required anchorModel.",
       policy,
     };
   }
@@ -141,7 +166,7 @@ function resolveWithPolicy(
       policy,
     };
   }
-  const anchors = extractW1LegAnchorsFromFibonacciDiagnostic(fib);
+  const anchors = extractW1W2FibonacciAnchors(fib);
   if (!anchors) {
     return {
       status: "ANCHORS_UNAVAILABLE",
@@ -151,24 +176,39 @@ function resolveWithPolicy(
       rangeEndPrice: null,
       projectionPrice: null,
       detail:
-        "W1 leg rangeStart/rangeEnd unavailable on diagnostics.fibonacci snapshot.",
+        "W1–W2 fibonacci diagnostic anchors unavailable on diagnostics.fibonacci snapshot.",
       policy,
     };
   }
-  const projectionPrice = fibExtensionPrice(
-    anchors.rangeStartPrice,
-    anchors.rangeEndPrice,
+  if (
+    !anchorsWithinEvaluationBar(anchors, plan.evaluationBar.evaluationBarIndex)
+  ) {
+    return {
+      status: "ANCHOR_TEMPORALLY_INVALID",
+      policyId: policy.policyId,
+      selectedRatio: ratioPick.ratio,
+      rangeStartPrice: anchors.w1StartPriceCandleExtreme,
+      rangeEndPrice: anchors.w1EndPriceCandleExtreme,
+      projectionPrice: null,
+      detail:
+        "Fibonacci anchor indices exceed evaluationBarIndex; future pivot leakage rejected.",
+      policy,
+    };
+  }
+  const projectionPrice = computeProjectionForAnchorModel(
+    policy.anchorModel,
+    anchors,
     ratioPick.ratio
   );
-  if (!Number.isFinite(projectionPrice)) {
+  if (projectionPrice === null || !Number.isFinite(projectionPrice)) {
     return {
       status: "PROJECTION_FORMULA_UNAVAILABLE",
       policyId: policy.policyId,
       selectedRatio: ratioPick.ratio,
-      rangeStartPrice: anchors.rangeStartPrice,
-      rangeEndPrice: anchors.rangeEndPrice,
+      rangeStartPrice: anchors.w1StartPriceCandleExtreme,
+      rangeEndPrice: anchors.w1EndPriceCandleExtreme,
       projectionPrice: null,
-      detail: "fibExtensionPrice did not yield a finite projection price.",
+      detail: `Projection formula unavailable for anchorModel ${policy.anchorModel}.`,
       policy,
     };
   }
@@ -176,10 +216,10 @@ function resolveWithPolicy(
     status: "POLICY_READY",
     policyId: policy.policyId,
     selectedRatio: ratioPick.ratio,
-    rangeStartPrice: anchors.rangeStartPrice,
-    rangeEndPrice: anchors.rangeEndPrice,
+    rangeStartPrice: anchors.w1StartPriceCandleExtreme,
+    rangeEndPrice: anchors.w1EndPriceCandleExtreme,
     projectionPrice,
-    detail: `Projection via fibExtensionPrice and policy ${policy.policyId}.`,
+    detail: `Projection via explicit anchorModel ${policy.anchorModel} and policy ${policy.policyId}.`,
     policy,
   };
 }

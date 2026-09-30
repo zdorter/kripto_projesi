@@ -1,7 +1,8 @@
 import type { FibExtensionLevel } from "../fibonacci";
 import type { WaveLabel } from "../types";
+import type { FibonacciProjectionAnchorModel } from "./fibonacci-anchor-semantics-types";
 
-export const FIBONACCI_PROJECTION_POLICY_SCHEMA_VERSION = "1.0" as const;
+export const FIBONACCI_PROJECTION_POLICY_SCHEMA_VERSION = "1.1" as const;
 
 /**
  * Where the projection ratio rule is defined (not probability or recommendation).
@@ -10,9 +11,6 @@ export type FibonacciProjectionPolicyProvenance =
   | "ENGINE_CONTRACT"
   | "CONFIGURED_POLICY"
   | "CALLER_POLICY";
-
-export type FibonacciProjectionAnchorSource =
-  | "DIAGNOSTICS_W1_LEG_RANGE";
 
 /**
  * Explicit ratio selection — no implicit defaults, nearestMatch, or first-ratio fallbacks.
@@ -36,7 +34,8 @@ export interface FibonacciObjectiveTargetProjectionPolicy {
   provenance: FibonacciProjectionPolicyProvenance;
   applicableSetupTypes: readonly string[];
   applicableWaveLabels?: readonly WaveLabel[];
-  projectionSource: FibonacciProjectionAnchorSource;
+  /** Required explicit anchor semantics — no implicit MODEL A default. */
+  anchorModel: FibonacciProjectionAnchorModel;
   allowedRatios: readonly FibExtensionLevel[];
   selectionRule: FibonacciProjectionRatioSelectionRule;
 }
@@ -47,6 +46,8 @@ export type FibonacciProjectionPolicyStatus =
   | "POLICY_NOT_APPLICABLE"
   | "AMBIGUOUS_PROJECTION_POLICY"
   | "ANCHORS_UNAVAILABLE"
+  | "ANCHOR_TEMPORALLY_INVALID"
+  | "ANCHOR_MODEL_UNSUPPORTED"
   | "PROJECTION_FORMULA_UNAVAILABLE";
 
 export interface FibonacciProjectionPolicyResolution {

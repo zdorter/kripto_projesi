@@ -27,12 +27,12 @@ const BAR = {
 
 function testPolicySingle1618(): FibonacciObjectiveTargetProjectionPolicy {
   return {
-    schemaVersion: "1.0",
+    schemaVersion: "1.1",
     policyId: "TEST_SINGLE_1618",
     policyVersion: "test-only",
     provenance: "CALLER_POLICY",
     applicableSetupTypes: ["impulse-continuation"],
-    projectionSource: "DIAGNOSTICS_W1_LEG_RANGE",
+    anchorModel: "DIAGNOSTICS_W1_LEG_RANGE",
     allowedRatios: [1.618],
     selectionRule: { kind: "SINGLE_EXPLICIT", ratio: 1.618 },
   };
@@ -40,12 +40,12 @@ function testPolicySingle1618(): FibonacciObjectiveTargetProjectionPolicy {
 
 function testPolicyMultiNoRule(): FibonacciObjectiveTargetProjectionPolicy {
   return {
-    schemaVersion: "1.0",
+    schemaVersion: "1.1",
     policyId: "TEST_MULTI_AMBIGUOUS",
     policyVersion: "test-only",
     provenance: "CALLER_POLICY",
     applicableSetupTypes: ["impulse-continuation"],
-    projectionSource: "DIAGNOSTICS_W1_LEG_RANGE",
+    anchorModel: "DIAGNOSTICS_W1_LEG_RANGE",
     allowedRatios: [1.0, 1.618],
     selectionRule: { kind: "SINGLE_EXPLICIT", ratio: 1.618 },
   };

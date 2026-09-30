@@ -18,6 +18,7 @@ import {
   buildInvalidationFlowSummary,
   summarizeZeroConfirmedRootCause,
 } from "./real-market-setup-diagnostics";
+import { buildFibonacciAnchorDiagnostic } from "./real-market-fibonacci-anchor-diagnostics";
 import {
   buildFibonacciProjectionPolicyDiagnostic,
   summarizeProjectionPolicyDiagnostics,
@@ -273,6 +274,29 @@ export function buildRealMarketValidationReport(
     fibonacciProjectionPolicyDiagnostics
   );
 
+  const fibonacciAnchorDiagnostics: ReturnType<
+    typeof buildFibonacciAnchorDiagnostic
+  >[] = [];
+  for (const item of pipelineReport.snapshots) {
+    const plan = pipelineReport.entryPlanReport.plans.find(
+      (p) => p.id === item.entryPlanId
+    );
+    const bundle = plan ? bundles[plan.symbol] : undefined;
+    if (!plan || !bundle) {
+      continue;
+    }
+    fibonacciAnchorDiagnostics.push(
+      buildFibonacciAnchorDiagnostic({
+        plan,
+        bundle,
+        entryReferencePrice: entryPriceByPlanId.get(plan.id) ?? null,
+      })
+    );
+  }
+  fibonacciAnchorDiagnostics.sort((a, b) =>
+    a.setupId.localeCompare(b.setupId)
+  );
+
   for (const setup of setupDetection.candidates) {
     if (!setup.isTradeSetup) {
       continue;
@@ -482,6 +506,7 @@ export function buildRealMarketValidationReport(
     selectedTargetSourceSummary,
     fibonacciProjectionPolicyDiagnostics,
     projectionPolicySummary,
+    fibonacciAnchorDiagnostics,
   };
 }
 
@@ -602,6 +627,13 @@ export function formatRealMarketValidationReport(
   lines.push("Fibonacci projection policy (aggregate status, not quality):");
   for (const [status, n] of Object.entries(report.projectionPolicySummary)) {
     lines.push(`  ${status}: ${n}`);
+  }
+  lines.push("");
+  lines.push("Fibonacci anchor lookahead (entry plans):");
+  for (const row of report.fibonacciAnchorDiagnostics) {
+    lines.push(
+      `  ${row.setupId}: safe=${row.lookahead.safe} maxAnchorIndex=${row.lookahead.maxAnchorIndex}`
+    );
   }
   lines.push("");
   lines.push(report.correctiveTrackInvalidationNote);
