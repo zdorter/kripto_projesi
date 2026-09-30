@@ -172,6 +172,20 @@ export type {
 } from "./fibonacci-anchor-semantics-types";
 export { projectBasePlusReferenceWaveDelta } from "./wave-projection-relationship-math";
 export { resolveWaveProjectionContext } from "./wave-projection-context";
+export {
+  characterizeImpulseLegAtBar,
+  buildNextStructuralEvidence,
+  resolveObjectiveWaveContext,
+} from "./objective-wave-resolution";
+export type {
+  CurrentWaveLabel,
+  ObjectiveWaveLabel,
+  ObjectiveWaveResolutionContext,
+  ObjectiveWaveResolutionStatus,
+  ImpulseLegTemporalState,
+  ObjectiveWaveTemporalCompatibility,
+  RelationshipTemplateKeyingVerdict,
+} from "./objective-wave-resolution-types";
 export type {
   WaveProjectionContext,
   WaveProjectionContextStatus,

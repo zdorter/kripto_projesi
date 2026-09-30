@@ -625,6 +625,27 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AD — objective wave resolution (14N-C)", () => {
+    it("no current+1 objective, no target price, setup confirmed != objective resolved", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/objective-wave-resolution.ts"),
+        "utf8"
+      );
+      const policy = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/fibonacci-projection-policy.ts"),
+        "utf8"
+      );
+      assert.ok(file.includes("resolveObjectiveWaveContext"));
+      assert.ok(file.includes("OBJECTIVE_WAVE_UNRESOLVED"));
+      assert.ok(file.includes("currentWave+1"));
+      assert.ok(!file.match(/objectiveWaveLabel\s*=\s*lookupNextImpulseLegLabel/));
+      assert.ok(!file.includes("fibExtensionPrice"));
+      assert.ok(policy.includes("PRODUCTION_FIBONACCI_PROJECTION_POLICIES"));
+    });
+  });
+
   describe("AC — wave projection context (14N-B)", () => {
     it("characterizes relationships without production policy or ratio selection", async () => {
       const fs = await import("node:fs");

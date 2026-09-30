@@ -20,6 +20,10 @@ import {
 } from "./real-market-setup-diagnostics";
 import { buildFibonacciAnchorDiagnostic } from "./real-market-fibonacci-anchor-diagnostics";
 import {
+  buildObjectiveWaveResolutionDiagnostic,
+  summarizeObjectiveWaveResolutionDiagnostics,
+} from "./real-market-objective-wave-resolution-diagnostics";
+import {
   buildWaveProjectionContextDiagnostic,
   summarizeWaveProjectionContextDiagnostics,
 } from "./real-market-wave-projection-context-diagnostics";
@@ -323,6 +327,29 @@ export function buildRealMarketValidationReport(
     waveProjectionContextDiagnostics
   );
 
+  const objectiveWaveResolutionDiagnostics: ReturnType<
+    typeof buildObjectiveWaveResolutionDiagnostic
+  >[] = [];
+  for (const item of pipelineReport.snapshots) {
+    const plan = pipelineReport.entryPlanReport.plans.find(
+      (p) => p.id === item.entryPlanId
+    );
+    const bundle = plan ? bundles[plan.symbol] : undefined;
+    if (!plan || !bundle) {
+      continue;
+    }
+    objectiveWaveResolutionDiagnostics.push(
+      buildObjectiveWaveResolutionDiagnostic({ plan, bundle })
+    );
+  }
+  objectiveWaveResolutionDiagnostics.sort((a, b) =>
+    a.setupId.localeCompare(b.setupId)
+  );
+  const objectiveWaveResolutionSummary =
+    summarizeObjectiveWaveResolutionDiagnostics(
+      objectiveWaveResolutionDiagnostics
+    );
+
   for (const setup of setupDetection.candidates) {
     if (!setup.isTradeSetup) {
       continue;
@@ -535,6 +562,8 @@ export function buildRealMarketValidationReport(
     fibonacciAnchorDiagnostics,
     waveProjectionContextDiagnostics,
     waveProjectionContextSummary,
+    objectiveWaveResolutionDiagnostics,
+    objectiveWaveResolutionSummary,
   };
 }
 
@@ -666,6 +695,11 @@ export function formatRealMarketValidationReport(
   lines.push("");
   lines.push("Wave projection context (14N-B, not target policy):");
   for (const [status, n] of Object.entries(report.waveProjectionContextSummary)) {
+    lines.push(`  ${status}: ${n}`);
+  }
+  lines.push("");
+  lines.push("Objective wave resolution (14N-C):");
+  for (const [status, n] of Object.entries(report.objectiveWaveResolutionSummary)) {
     lines.push(`  ${status}: ${n}`);
   }
   lines.push("");
