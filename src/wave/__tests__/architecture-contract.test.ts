@@ -625,6 +625,94 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("U — production setup confirmation / invalidation (14F)", () => {
+    it("trade-setup-rules do not shortcut ACTIVE or POTENTIAL into CONFIRMED", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/trade-setup-rules.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("resolveTradeSetupLifecycleStatus"));
+      assert.ok(!text.includes("scenarioStatus === \"ACTIVE\"") || text.includes('row.scenarioStatus === "ACTIVE"'));
+      assert.ok(!text.includes("POTENTIAL") || text.includes('w.status === "POTENTIAL"'));
+      assert.ok(!text.includes("return \"CONFIRMED\"") || text.includes("confirmReady"));
+    });
+
+    it("setup reference levels map existing scanner invalidation only", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/setup-rules.ts");
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("SCENARIO_INVALIDATION"));
+      assert.ok(text.includes("row.invalidation.available"));
+      assert.ok(!text.includes("attestedFibonacciProjection"));
+    });
+
+    it("validation diagnostics stay reporting-only", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/validation/real-market-setup-diagnostics.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("buildConditionSummary"));
+      assert.ok(!text.includes("resolveTradeSetupLifecycleStatus"));
+      assert.ok(!text.includes("return \"CONFIRMED\""));
+    });
+  });
+
+  describe("T — real market validation (14E)", () => {
+    it("validation runner script uses Binance provider and pipeline APIs", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const script = fs.readFileSync(
+        path.join(process.cwd(), "scripts/validate-real-market.ts"),
+        "utf8"
+      );
+      assert.ok(script.includes("runRealMarketValidation"));
+      assert.ok(!script.includes("detectWaves"));
+      assert.ok(!script.includes("buildWaveScenarios"));
+
+      const validation = fs.readFileSync(
+        path.join(process.cwd(), "src/validation/real-market-validation.ts"),
+        "utf8"
+      );
+      assert.ok(validation.includes("runWaveScan"));
+      assert.ok(validation.includes("buildTradeSetupEvaluationPipeline"));
+      assert.ok(validation.includes("BinanceFuturesOhlcvProvider"));
+      assert.ok(!validation.includes("attestedFibonacciProjection"));
+      assert.ok(!validation.includes("attestedAbcProjection"));
+      assert.ok(!validation.includes("candles.length - 1"));
+    });
+
+    it("wave/setup layers do not import real-market validation or Binance", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const dir = path.join(process.cwd(), "src/wave/setup");
+      const names = fs.readdirSync(dir).filter((n) => n.endsWith(".ts"));
+      for (const name of names) {
+        const text = fs.readFileSync(path.join(dir, name), "utf8");
+        assert.ok(!text.includes("real-market-validation"));
+        assert.ok(!text.includes("binance"));
+      }
+    });
+
+    it("real-market validation tests stay offline", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/validation/__tests__/real-market-validation.test.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("runRealMarketValidation"));
+      assert.ok(!text.includes("BinanceFuturesOhlcvProvider"));
+    });
+  });
+
   describe("S — MVP E2E fixture validation (14D.11)", () => {
     it("fixture validation tests are TEST_ONLY and do not import Binance", async () => {
       const fs = await import("node:fs");

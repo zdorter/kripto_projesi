@@ -8,7 +8,8 @@
     "build:wave-browser": "node scripts/build-wave-browser.mjs",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "test": "tsx --test src/**/__tests__/**/*.test.ts"
+    "test": "tsx --test src/**/__tests__/**/*.test.ts",
+    "validate:real-market": "tsx scripts/validate-real-market.ts"
   },
   "dependencies": {
     "ws": "^8.18.0"
