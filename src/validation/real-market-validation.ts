@@ -4,6 +4,7 @@ import { runWaveScan } from "../wave/wave-scanner";
 import type { WaveScanReport, WaveScanResult } from "../wave/wave-scanner";
 import { detectSetups } from "../wave/setup/setup-detector";
 import { buildTradeSetupEvaluationContext } from "../wave/setup/trade-setup-context";
+import { resolveTradeSetupEvaluationBoundary } from "../wave/setup/trade-setup-evaluation-bar";
 import { buildTradeSetupEvaluationPipeline } from "../wave/setup/trade-setup-evaluation-pipeline";
 import type { TradeSetupEvaluationPipelineReport } from "../wave/setup/trade-setup-evaluation-pipeline-types";
 import type { SetupDetectionReport, SetupLifecycleStatus } from "../wave/setup/setup-types";
@@ -27,6 +28,7 @@ import {
   buildProspectiveSetupDiagnostic,
   summarizeProspectiveSetupDiagnostics,
 } from "./real-market-prospective-setup-diagnostics";
+import { buildEvaluationScopedAnalysisDiagnostic } from "./real-market-evaluation-scoped-diagnostics";
 import {
   buildTradeSetupTemporalDiagnostic,
   summarizeTradeSetupTemporalDiagnostics,
@@ -547,6 +549,37 @@ export function buildRealMarketValidationReport(
     prospectiveSetupDiagnostics
   );
 
+  const evaluationScopedAnalysisDiagnostics: ReturnType<
+    typeof buildEvaluationScopedAnalysisDiagnostic
+  >[] = [];
+  for (const [symbol, candles] of Object.entries(candlesBySymbol)) {
+    if (!candles.length) {
+      continue;
+    }
+    const lastBar = resolveTradeSetupEvaluationBoundary({
+      candles,
+      closedSeriesOnly: true,
+    }).evaluationBarIndex;
+    const confirmedSetup = setupDetection.candidates.find(
+      (s) => s.symbol === symbol && s.status === "CONFIRMED"
+    );
+    evaluationScopedAnalysisDiagnostics.push(
+      buildEvaluationScopedAnalysisDiagnostic({
+        symbol,
+        candles,
+        evaluationBarIndex: lastBar,
+        timeframeId: config.timeframeId,
+        confirmedHistoricalSetup: confirmedSetup ?? null,
+        fullSetupCount: setupDetection.candidates.filter(
+          (s) => s.symbol === symbol
+        ).length,
+      })
+    );
+  }
+  evaluationScopedAnalysisDiagnostics.sort((a, b) =>
+    a.symbol.localeCompare(b.symbol)
+  );
+
   const aggregateStatus = emptyStatusCounts();
   for (const s of tradeSetups) {
     aggregateStatus[s.status]++;
@@ -631,6 +664,7 @@ export function buildRealMarketValidationReport(
     temporalSetupSummary,
     prospectiveSetupDiagnostics,
     prospectiveSetupSupportSummary,
+    evaluationScopedAnalysisDiagnostics,
   };
 }
 
@@ -785,6 +819,13 @@ export function formatRealMarketValidationReport(
   lines.push("Prospective setup contract (14N-E):");
   for (const [k, n] of Object.entries(report.prospectiveSetupSupportSummary)) {
     lines.push(`  ${k}: ${n}`);
+  }
+  lines.push("");
+  lines.push("Evaluation-scoped analysis (14N-F):");
+  for (const row of report.evaluationScopedAnalysisDiagnostics) {
+    lines.push(
+      `  ${row.symbol} bar=${row.evaluationBarIndex} futureSafe=${row.futureSafe} prefixInvariant=${row.prefixInvariant} parity=${row.parityAtLastClosedBar} openLeg=${row.openLegVerdict}`
+    );
   }
   lines.push("");
   lines.push(report.correctiveTrackInvalidationNote);

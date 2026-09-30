@@ -5,6 +5,27 @@ export {
   buildWaveAnalysis,
 } from "./analysis-pipeline";
 export type { WaveAnalysisResult } from "./analysis-pipeline";
+export {
+  analyzeWaveAtEvaluationBar,
+  analyzeWaveAtEvaluationBarFromSeries,
+  buildWaveScenariosAtEvaluationBar,
+  compareFullVsScopedWaveAnalysis,
+  evaluationScopedOpenLegVerdict,
+  scanSymbolWaveScenariosAtEvaluationBar,
+} from "./evaluation-scoped-analysis";
+export type {
+  EvaluationScopedAnalysisEvidence,
+  EvaluationScopedAnalysisStatus,
+  EvaluationScopedOpenLegVerdict,
+  EvaluationScopedSupportVerdict,
+  EvaluationScopedWaveAnalysis,
+  EvaluationScopedWaveAnalysisInput,
+  FullVsScopedAnalysisComparison,
+} from "./evaluation-scoped-analysis-types";
+export {
+  assertScenarioIndicesWithinBar,
+  collectEvaluationScopedInvariantViolations,
+} from "./evaluation-scoped-invariants";
 
 export { computeAtrSeries, computeSwingStrength, detectSwings } from "./swing-detector";
 export {

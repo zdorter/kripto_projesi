@@ -9,6 +9,7 @@ export {
 export { TRADE_SETUP_CATALOG } from "./trade-setup-catalog";
 export {
   buildSymbolEvaluationBundle,
+  buildSymbolEvaluationBundleAtEvaluationBar,
   buildTradeSetupEvaluationContext,
 } from "./trade-setup-context";
 export {

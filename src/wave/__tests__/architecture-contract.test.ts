@@ -625,6 +625,22 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AG — evaluation-scoped analysis (14N-F)", () => {
+    it("slice before engine; no filter-after-analysis; no target/ratio", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/evaluation-scoped-analysis.ts"),
+        "utf8"
+      );
+      assert.ok(file.includes("candles.slice(0, evaluationBarIndex + 1)"));
+      assert.ok(file.includes("effectiveCandles"));
+      assert.ok(file.includes("analyzeWaveAtEvaluationBar"));
+      assert.ok(!file.includes("fibExtensionPrice"));
+      assert.ok(!file.includes("flatWaves.filter"));
+    });
+  });
+
   describe("AF — prospective setup contract (14N-E)", () => {
     it("historical setups preserved; no target/ratio/future evidence", async () => {
       const fs = await import("node:fs");
