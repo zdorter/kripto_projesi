@@ -625,6 +625,26 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AC — wave projection context (14N-B)", () => {
+    it("characterizes relationships without production policy or ratio selection", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const ctx = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/wave-projection-context.ts"),
+        "utf8"
+      );
+      const policy = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/fibonacci-projection-policy.ts"),
+        "utf8"
+      );
+      assert.ok(ctx.includes("resolveWaveProjectionContext"));
+      assert.ok(ctx.includes("OBJECTIVE_WAVE_UNRESOLVED"));
+      assert.ok(!ctx.includes("1.618"));
+      assert.ok(!ctx.includes("nearestFibMatch"));
+      assert.ok(policy.includes("PRODUCTION_FIBONACCI_PROJECTION_POLICIES"));
+    });
+  });
+
   describe("AB — Fibonacci anchor semantics (14M)", () => {
     it("production policy registry empty; no implicit anchor model in resolver", async () => {
       const fs = await import("node:fs");

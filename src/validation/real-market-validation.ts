@@ -20,6 +20,10 @@ import {
 } from "./real-market-setup-diagnostics";
 import { buildFibonacciAnchorDiagnostic } from "./real-market-fibonacci-anchor-diagnostics";
 import {
+  buildWaveProjectionContextDiagnostic,
+  summarizeWaveProjectionContextDiagnostics,
+} from "./real-market-wave-projection-context-diagnostics";
+import {
   buildFibonacciProjectionPolicyDiagnostic,
   summarizeProjectionPolicyDiagnostics,
 } from "./real-market-fibonacci-projection-policy-diagnostics";
@@ -297,6 +301,28 @@ export function buildRealMarketValidationReport(
     a.setupId.localeCompare(b.setupId)
   );
 
+  const waveProjectionContextDiagnostics: ReturnType<
+    typeof buildWaveProjectionContextDiagnostic
+  >[] = [];
+  for (const item of pipelineReport.snapshots) {
+    const plan = pipelineReport.entryPlanReport.plans.find(
+      (p) => p.id === item.entryPlanId
+    );
+    const bundle = plan ? bundles[plan.symbol] : undefined;
+    if (!plan || !bundle) {
+      continue;
+    }
+    waveProjectionContextDiagnostics.push(
+      buildWaveProjectionContextDiagnostic({ plan, bundle })
+    );
+  }
+  waveProjectionContextDiagnostics.sort((a, b) =>
+    a.setupId.localeCompare(b.setupId)
+  );
+  const waveProjectionContextSummary = summarizeWaveProjectionContextDiagnostics(
+    waveProjectionContextDiagnostics
+  );
+
   for (const setup of setupDetection.candidates) {
     if (!setup.isTradeSetup) {
       continue;
@@ -507,6 +533,8 @@ export function buildRealMarketValidationReport(
     fibonacciProjectionPolicyDiagnostics,
     projectionPolicySummary,
     fibonacciAnchorDiagnostics,
+    waveProjectionContextDiagnostics,
+    waveProjectionContextSummary,
   };
 }
 
@@ -634,6 +662,11 @@ export function formatRealMarketValidationReport(
     lines.push(
       `  ${row.setupId}: safe=${row.lookahead.safe} maxAnchorIndex=${row.lookahead.maxAnchorIndex}`
     );
+  }
+  lines.push("");
+  lines.push("Wave projection context (14N-B, not target policy):");
+  for (const [status, n] of Object.entries(report.waveProjectionContextSummary)) {
+    lines.push(`  ${status}: ${n}`);
   }
   lines.push("");
   lines.push(report.correctiveTrackInvalidationNote);

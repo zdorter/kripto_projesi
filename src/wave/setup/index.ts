@@ -170,6 +170,15 @@ export type {
   FibonacciProjectionAnchorModel,
   FibonacciProjectionScope,
 } from "./fibonacci-anchor-semantics-types";
+export { projectBasePlusReferenceWaveDelta } from "./wave-projection-relationship-math";
+export { resolveWaveProjectionContext } from "./wave-projection-context";
+export type {
+  WaveProjectionContext,
+  WaveProjectionContextStatus,
+  WaveProjectionRelationshipCandidate,
+  WaveProjectionMathContract,
+  WaveProjectionBaseAnchorKind,
+} from "./wave-projection-relationship-types";
 export {
   buildObjectiveTargetSourceContextForPlan,
   buildObjectiveTargetSourceContextBySetupId,
