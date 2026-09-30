@@ -17,6 +17,8 @@ import {
 } from "./prospective-setup-production-types";
 
 import { PRODUCTION_TRANSITION_RULE_ID } from "./structural-transition-semantics";
+import { resolveProspectiveStructuralInvalidation } from "./prospective-structural-invalidation";
+import { evaluateProspectivePhaseTruth } from "./prospective-phase-semantics";
 
 /** @deprecated Use PRODUCTION_TRANSITION_RULE_ID */
 export const PRODUCTION_STRUCTURAL_TRANSITION_RULE =
@@ -46,6 +48,9 @@ function resolveFunnel(input: {
     return { stage: "SOURCE", code: "SOURCE_NOT_HISTORICAL_STRUCTURE" };
   }
   if (input.openLegStatus !== "AVAILABLE") {
+    if (input.anchorSelection === "CONFLICT" || input.openLegStatus === "ANCHOR_CONFLICT") {
+      return { stage: "ANCHOR", code: "ANCHOR_CONFLICT" };
+    }
     if (input.anchorSelection === "AMBIGUOUS") {
       return { stage: "ANCHOR", code: "ANCHOR_AMBIGUOUS" };
     }
@@ -142,11 +147,11 @@ export function evaluateProspectiveSetupProduction(input: {
     contract.openMovementVerdict === "OPEN_MOVEMENT_OBSERVED" &&
     !transitionObserved;
 
-  const invalidationTriggered = historicalSetup.status === "INVALID";
-  const invalidationOk =
-    !invalidationTriggered &&
-    historicalSetup.invalidation.usesScenarioInvalidation &&
-    historicalSetup.invalidation.conditions.some((c) => c.outcome === "MET");
+  const structuralInvalidation =
+    resolveProspectiveStructuralInvalidation(historicalSetup);
+  const invalidationTriggered =
+    historicalSetup.status === "INVALID" || structuralInvalidation.triggered;
+  const invalidationOk = structuralInvalidation.available;
 
   const completedAtIndex = contract.transitionEvidence.completedAtIndex;
   const anchorAtCompleted =
@@ -154,16 +159,20 @@ export function evaluateProspectiveSetupProduction(input: {
     completedAtIndex !== null &&
     openLegResolution.leg.anchorIndex === completedAtIndex;
 
-  const productionConfirmed =
-    sourceOk &&
-    openLegResolution.status === "AVAILABLE" &&
-    openLegResolution.anchorSelection === "SELECTED" &&
-    anchorAtCompleted &&
-    transitionObserved &&
-    contract.phaseStatus === "PHASE_IN_PROGRESS" &&
-    openLegResolution.futureSafe &&
-    contract.transitionEvidence.futureSafe &&
-    invalidationOk;
+  const phaseTruth = evaluateProspectivePhaseTruth({
+    sourceAccepted: sourceOk,
+    anchorMatchesCompletedEndpoint: anchorAtCompleted,
+    openLegAvailable: openLegResolution.status === "AVAILABLE",
+    anchorSelected: openLegResolution.anchorSelection === "SELECTED",
+    transitionObserved,
+    invalidationAvailable: invalidationOk,
+    invalidationTriggered,
+    futureSafe:
+      openLegResolution.futureSafe && contract.transitionEvidence.futureSafe,
+    phaseStatus: contract.phaseStatus,
+  });
+
+  const productionConfirmed = phaseTruth.productionConfirmed;
 
   const objectiveEligibility = productionConfirmed
     ? "ELIGIBLE"

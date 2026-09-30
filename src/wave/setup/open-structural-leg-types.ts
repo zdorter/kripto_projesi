@@ -11,17 +11,23 @@ export type OpenStructuralLegAnchorKind = "HIGH" | "LOW" | "STRUCTURAL_ENDPOINT"
 
 export type ObservedDirection = "BULLISH" | "BEARISH" | "UNRESOLVED";
 
+export type OpenStructuralLegAnchorSelection =
+  | "SELECTED"
+  | "NO_SELECTION"
+  | "AMBIGUOUS"
+  | "CONFLICT";
+
+export type OpenStructuralLegAnchorResolutionMode =
+  | "GLOBAL"
+  | "CANDIDATE_SCOPED";
+
 export type OpenStructuralLegStatus =
   | "AVAILABLE"
   | "NO_ANCHOR"
   | "AMBIGUOUS_ANCHOR"
+  | "ANCHOR_CONFLICT"
   | "NO_OBSERVED_SPAN"
   | "INSUFFICIENT_CONTEXT";
-
-export type OpenStructuralLegAnchorSelection =
-  | "SELECTED"
-  | "NO_SELECTION"
-  | "AMBIGUOUS";
 
 export interface OpenStructuralLegAnchorCandidate {
   anchorIndex: number;
@@ -62,6 +68,8 @@ export interface OpenStructuralLeg {
 export interface OpenStructuralLegResolution {
   status: OpenStructuralLegStatus;
   anchorSelection: OpenStructuralLegAnchorSelection;
+  anchorResolutionMode: OpenStructuralLegAnchorResolutionMode;
+  scopedCompletedEndpointIndex: number | null;
   anchorCandidates: OpenStructuralLegAnchorCandidate[];
   selectedAnchorSource: OpenStructuralLegAnchorSource | null;
   leg: OpenStructuralLeg | null;

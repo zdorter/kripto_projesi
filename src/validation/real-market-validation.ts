@@ -37,6 +37,11 @@ import { buildProspectiveProductionDiagnostics } from "./real-market-prospective
 import { buildAnchorIdentityDiagnostics } from "./real-market-anchor-identity-diagnostics";
 import { buildTransitionSemanticsDiagnostics } from "./real-market-transition-semantics-diagnostics";
 import { buildProspectiveReplayDiagnostics } from "./real-market-prospective-replay-diagnostics";
+import { buildCandidateScopedAnchorDiagnostics } from "./real-market-candidate-scoped-anchor-diagnostics";
+import { buildProspectivePhaseTruthTableDiagnostics } from "./real-market-prospective-phase-truth-table-diagnostics";
+import { buildNaturalProspectiveE2EDiagnostics } from "./real-market-natural-prospective-e2e-diagnostics";
+import { buildTargetPolicyDiagnostics } from "./real-market-target-policy-diagnostics";
+import { buildReadyFunnelDiagnostics } from "./real-market-ready-funnel-diagnostics";
 import { buildSymbolEvaluationBundleAtEvaluationBar } from "../wave/setup/trade-setup-context";
 import {
   buildTradeSetupTemporalDiagnostic,
@@ -641,6 +646,26 @@ export function buildRealMarketValidationReport(
     prospectiveProductionDiagnostics
   );
   const prospectiveReplayDiagnostics = buildProspectiveReplayDiagnostics();
+  const setupsById = new Map(tradeSetups.map((s) => [s.id, s]));
+  const candidateScopedAnchorDiagnostics = buildCandidateScopedAnchorDiagnostics(
+    prospectiveProductionDiagnostics
+  );
+  const prospectivePhaseTruthTableDiagnostics =
+    buildProspectivePhaseTruthTableDiagnostics({
+      candidates: prospectiveProductionDiagnostics,
+      tradeContext: input.tradeContext,
+      setupsById,
+    });
+  const naturalProspectiveE2E = buildNaturalProspectiveE2EDiagnostics();
+  const targetPolicyDiagnostics = buildTargetPolicyDiagnostics(
+    prospectiveProductionDiagnostics
+  );
+  const readyFunnel = buildReadyFunnelDiagnostics({
+    candidates: prospectiveProductionDiagnostics,
+    tradeContext: input.tradeContext,
+    setupsById,
+    candlesBySymbol,
+  });
 
   const aggregateStatus = emptyStatusCounts();
   for (const s of tradeSetups) {
@@ -735,6 +760,11 @@ export function buildRealMarketValidationReport(
     anchorIdentityDiagnostics,
     transitionSemanticsDiagnostics,
     prospectiveReplayDiagnostics,
+    candidateScopedAnchorDiagnostics,
+    prospectivePhaseTruthTableDiagnostics,
+    naturalProspectiveE2E,
+    targetPolicyDiagnostics,
+    readyFunnel,
   };
 }
 

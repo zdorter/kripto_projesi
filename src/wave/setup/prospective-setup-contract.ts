@@ -22,6 +22,7 @@ import {
 } from "./prospective-setup-contract-types";
 import { resolveTradeSetupTemporalContext } from "./trade-setup-temporal-semantics";
 import type { SymbolEvaluationBundle } from "./trade-setup-types";
+import { resolveProspectiveStructuralInvalidation } from "./prospective-structural-invalidation";
 import {
   PRODUCTION_TRANSITION_RULE_ID,
   characterizeSwingTransitionRelation,
@@ -394,8 +395,7 @@ export function resolveProspectiveSetupContract(input: {
   }
 
   const invalidationAvailable =
-    historicalSetup.invalidation.usesScenarioInvalidation &&
-    historicalSetup.invalidation.conditions.some((c) => c.outcome === "MET");
+    resolveProspectiveStructuralInvalidation(historicalSetup).available;
 
   const objectiveEligibility = objectiveEligibilityFromProspectivePhase(
     phaseStatus,

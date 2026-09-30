@@ -19,13 +19,18 @@ import { impulseContinuationSetup } from "../../wave/__tests__/fixtures/mvp-e2e-
 describe("real-market validation (14E)", () => {
   it("aggregate report fields", () => {
     const report = buildFixtureReportFromMvpCandidates();
-    assert.equal(report.schemaVersion, "2.5");
+    assert.equal(report.schemaVersion, "2.6");
     assert.ok(Array.isArray(report.evaluationScopedAnalysisDiagnostics));
     assert.ok(Array.isArray(report.openStructuralLegDiagnostics));
     assert.ok(Array.isArray(report.prospectiveProductionDiagnostics));
     assert.ok(report.anchorIdentityDiagnostics);
     assert.ok(report.transitionSemanticsDiagnostics);
     assert.ok(report.prospectiveReplayDiagnostics);
+    assert.ok(report.candidateScopedAnchorDiagnostics);
+    assert.ok(report.prospectivePhaseTruthTableDiagnostics);
+    assert.ok(report.naturalProspectiveE2E);
+    assert.ok(report.targetPolicyDiagnostics);
+    assert.ok(report.readyFunnel);
     assert.equal(report.symbols.length, 2);
     assert.ok(report.aggregate.tradeSetupCount >= 2);
     assert.ok(typeof report.aggregate.scenarioCount === "number");

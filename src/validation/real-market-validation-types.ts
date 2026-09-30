@@ -1,7 +1,7 @@
 import type { ConditionOutcome, SetupLifecycleStatus } from "../wave/setup/setup-types";
 import type { TradeSetupEvaluationAggregateState } from "../wave/setup/trade-setup-evaluation-types";
 
-export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "2.5" as const;
+export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "2.6" as const;
 
 export type RealMarketStopFailureReason =
   | "STOP_REFERENCE_AVAILABLE"
@@ -294,6 +294,11 @@ export interface RealMarketValidationReport {
   anchorIdentityDiagnostics: import("./real-market-anchor-identity-diagnostics").RealMarketAnchorIdentityDiagnostics;
   transitionSemanticsDiagnostics: import("./real-market-transition-semantics-diagnostics").RealMarketTransitionSemanticsDiagnostics;
   prospectiveReplayDiagnostics: import("./real-market-prospective-replay-diagnostics").RealMarketProspectiveReplayDiagnostics;
+  candidateScopedAnchorDiagnostics: import("./real-market-candidate-scoped-anchor-diagnostics").RealMarketCandidateScopedAnchorDiagnostics;
+  prospectivePhaseTruthTableDiagnostics: import("./real-market-prospective-phase-truth-table-diagnostics").RealMarketProspectivePhaseTruthTableDiagnostics;
+  naturalProspectiveE2E: import("./real-market-natural-prospective-e2e-diagnostics").RealMarketNaturalProspectiveE2EDiagnostics;
+  targetPolicyDiagnostics: import("./real-market-target-policy-diagnostics").RealMarketTargetPolicyDiagnostics;
+  readyFunnel: import("./real-market-ready-funnel-diagnostics").RealMarketReadyFunnelDiagnostics;
 }
 
 export interface RealMarketFibonacciProjectionPolicyDiagnostic {

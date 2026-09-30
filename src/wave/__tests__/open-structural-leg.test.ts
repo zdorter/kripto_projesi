@@ -195,6 +195,21 @@ describe("open structural leg (14N-G)", () => {
           alternative: null,
         },
       },
+      presentation: {
+        ...bundle.presentation,
+        engine: {
+          ...bundle.presentation.engine,
+          flatWaves: [
+            {
+              label: "3",
+              startIndex: 15,
+              endIndex: 30,
+              confidence: 1,
+              status: "CONFIRMED",
+            },
+          ],
+        },
+      },
     };
     const r = resolveOpenStructuralLeg({
       bundle: withFocus,
@@ -240,6 +255,7 @@ describe("open structural leg (14N-G)", () => {
       bundle: withSwings,
       candles: candles.slice(0, N + 1),
       historicalSetup: setupAtEnd(30, 110),
+      anchorResolutionMode: "GLOBAL",
     });
     assert.equal(r.anchorSelection, "AMBIGUOUS");
     assert.equal(r.status, "AMBIGUOUS_ANCHOR");

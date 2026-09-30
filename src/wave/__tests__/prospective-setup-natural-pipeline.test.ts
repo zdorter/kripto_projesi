@@ -6,7 +6,11 @@ import { PRODUCTION_FIBONACCI_PROJECTION_POLICIES } from "../setup/fibonacci-pro
 import { evaluateProspectiveSourcePolicy } from "../setup/prospective-setup-source-policy";
 import { buildTradeSetupEvaluationContext } from "../setup/trade-setup-context";
 import { detectSetups } from "../setup/setup-detector";
-import { evaluateProspectiveSetupProduction } from "../setup/prospective-setup-production";
+import {
+  detectProspectiveSetupProduction,
+  evaluateProspectiveSetupProduction,
+} from "../setup/prospective-setup-production";
+import { PRODUCTION_TRANSITION_RULE_ID } from "../setup/structural-transition-semantics";
 import { runWaveScan } from "../wave-scanner";
 import type { Candle } from "../types";
 import {
@@ -35,7 +39,7 @@ function demoPipelineAtBar(bar: number) {
   return { tradeContext, setupDetection };
 }
 
-describe("prospective natural production pipeline (14N-I)", () => {
+describe("prospective natural production pipeline (14N-I / 14N-J)", () => {
   it("I: full pipeline from candles without low-level transition patches", () => {
     const candles = naturalPipelineCandles();
     const milestones = discoverNaturalReplayMilestones(candles);
@@ -63,19 +67,59 @@ describe("prospective natural production pipeline (14N-I)", () => {
       bundle,
       candles: DEMO_OHLCV,
     });
-    assert.equal(prod.contract.structuralTransitionVerdict, "STRUCTURAL_TRANSITION_OBSERVED");
+    assert.equal(
+      prod.contract.transitionEvidence.transitionRuleId,
+      PRODUCTION_TRANSITION_RULE_ID
+    );
     assert.ok(
       (prod.contract.transitionEvidence.subsequentSwingIndex ?? 0) >
         (prod.contract.transitionEvidence.completedAtIndex ?? 0)
     );
     assert.ok(prod.contract.transitionEvidence.swingConfirmationLagBars !== null);
-    assert.notEqual(
-      prod.contract.transitionEvidence.transitionEvidenceLevel,
-      "STRUCTURAL_TRANSITION_CONFIRMED"
+    assert.ok(
+      prod.contract.transitionEvidence.transitionEvidenceLevel ===
+        "STRUCTURAL_TRANSITION_CONFIRMED" ||
+        prod.contract.transitionEvidence.transitionEvidenceLevel ===
+          "SWING_TRANSITION_OBSERVED"
     );
+    if (prod.status === "CONFIRMED") {
+      assert.equal(
+        prod.contract.transitionEvidence.transitionEvidenceLevel,
+        "STRUCTURAL_TRANSITION_CONFIRMED"
+      );
+    }
   });
 
-  it("F-G-H: open movement is not structural transition confirmation alone", () => {
+  it("J-hard: demo pipeline produces at least one CONFIRMED prospective", () => {
+    const bar = 22;
+    const scan = runWaveScan([{ symbol: "BTCUSDT", candles: DEMO_OHLCV }], {
+      timeframe: "1H",
+      engineOptions: DEMO_WAVE_ENGINE_OPTIONS,
+    });
+    const tradeContext = buildTradeSetupEvaluationContext(
+      scan,
+      {
+        BTCUSDT: {
+          candles: DEMO_OHLCV,
+          closedSeriesOnly: true,
+          evaluationBarIndex: bar,
+        },
+      },
+      DEMO_WAVE_ENGINE_OPTIONS
+    );
+    const production = detectProspectiveSetupProduction({
+      historicalTradeSetups: detectSetups({
+        scanReport: scan,
+        tradeContext,
+      }).candidates.filter((c) => c.isTradeSetup),
+      tradeContext,
+      candlesBySymbol: { BTCUSDT: DEMO_OHLCV },
+    });
+    assert.ok(production.summary.confirmed >= 1);
+    assert.ok(production.summary.targetGatePass >= 1);
+  });
+
+  it("F-G-H: CONFIRMED requires structural transition rule, not open movement alone", () => {
     const { tradeContext, setupDetection } = demoPipelineAtBar(22);
     const bundle = tradeContext.bundlesBySymbol!.BTCUSDT;
     const setup = setupDetection.candidates.find(
@@ -87,11 +131,18 @@ describe("prospective natural production pipeline (14N-I)", () => {
       bundle,
       candles: DEMO_OHLCV,
     });
-    assert.equal(prod.status, "CANDIDATE");
-    assert.notEqual(prod.status, "CONFIRMED");
+    assert.equal(prod.contract.structuralTransitionVerdict, "STRUCTURAL_TRANSITION_OBSERVED");
+    assert.equal(
+      prod.contract.transitionEvidence.transitionRuleId,
+      PRODUCTION_TRANSITION_RULE_ID
+    );
+    assert.notEqual(
+      prod.contract.transitionEvidence.transitionEvidenceLevel,
+      "OPEN_MOVEMENT_ONLY"
+    );
   });
 
-  it("M-N-O: gate PASS would not create targets; Fib registry empty", () => {
+  it("M-N-O: gate PASS is not a target; Fib registry stays empty", () => {
     assert.equal(PRODUCTION_FIBONACCI_PROJECTION_POLICIES.length, 0);
     const { tradeContext, setupDetection } = demoPipelineAtBar(22);
     const setup = setupDetection.candidates.find(
@@ -99,12 +150,13 @@ describe("prospective natural production pipeline (14N-I)", () => {
     );
     assert.ok(setup);
     const prod = evaluateProspectiveSetupProduction({
-      historicalSetup: setup,
+      historicalSetup: setup!,
       bundle: tradeContext.bundlesBySymbol!.BTCUSDT,
       candles: DEMO_OHLCV,
     });
-    assert.equal(prod.targetGateOutcome, "FAIL");
-    assert.notEqual(prod.status, "CONFIRMED");
+    assert.equal(prod.targetGateOutcome, "PASS");
+    assert.equal(prod.status, "CONFIRMED");
+    assert.ok(!("objectiveTarget" in prod) || prod.objectiveTarget == null);
   });
 
   it("R: prefix invariance on natural pipeline evaluation bar", () => {
@@ -140,7 +192,7 @@ describe("prospective natural production pipeline (14N-I)", () => {
     });
     assert.ok(!("entryPlan" in prod));
     const { plan } = buildEntryPlanFromSetup({
-      setup: { ...setup, status: "CONFIRMED" },
+      setup: { ...setup!, status: "CONFIRMED" },
       evaluationBar: {
         evaluationBarIndex: bundle.evaluationBarIndex,
         evaluationBarBoundaryEstablished: bundle.evaluationBarBoundaryEstablished,

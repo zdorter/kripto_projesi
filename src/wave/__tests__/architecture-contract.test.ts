@@ -656,6 +656,42 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AK — prospective completion and references (14N-J)", () => {
+    it("candidate-scoped anchor; no global best-anchor; explicit target policy; READY != signal", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const leg = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/open-structural-leg.ts"),
+        "utf8"
+      );
+      const prod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/prospective-setup-production.ts"),
+        "utf8"
+      );
+      const phase = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/prospective-phase-semantics.ts"),
+        "utf8"
+      );
+      const refs = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/prospective-reference-evaluation.ts"),
+        "utf8"
+      );
+      const fib = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/fibonacci-projection-policy.ts"),
+        "utf8"
+      );
+      assert.ok(leg.includes("CANDIDATE_SCOPED"));
+      assert.ok(leg.includes("no global best-anchor"));
+      assert.ok(!leg.includes("bestAnchor"));
+      assert.ok(prod.includes("evaluateProspectivePhaseTruth"));
+      assert.ok(phase.includes("productionConfirmed"));
+      assert.ok(refs.includes("readyForFurtherEvaluation"));
+      assert.ok(refs.includes("not a trade signal"));
+      assert.ok(fib.includes("PRODUCTION_FIBONACCI_PROJECTION_POLICIES"));
+      assert.ok(!prod.includes("fibExtensionPrice"));
+    });
+  });
+
   describe("AI — production prospective setup (14N-H)", () => {
     it("scoped context; no legacy POTENTIAL as production evidence", async () => {
       const fs = await import("node:fs");
