@@ -206,6 +206,27 @@ export {
   evaluateObjectiveTargetEligibilityGate,
 } from "./objective-target-eligibility-gate";
 export { resolveProspectiveSetupContract } from "./prospective-setup-contract";
+export {
+  detectProspectiveSetupProduction,
+  evaluateProspectiveSetupProduction,
+  PRODUCTION_STRUCTURAL_TRANSITION_RULE,
+} from "./prospective-setup-production";
+export { evaluateProspectiveSourcePolicy } from "./prospective-setup-source-policy";
+export {
+  PROSPECTIVE_ENTRY_PLAN_COMPATIBILITY_VERDICT,
+  PROSPECTIVE_PRODUCTION_FAMILY_STRUCTURAL_RESUMPTION_CONTEXT,
+  PROSPECTIVE_STOP_COMPATIBILITY_VERDICT,
+} from "./prospective-setup-production-types";
+export type {
+  ProspectiveSetupProductionCandidate,
+  ProspectiveSetupProductionReport,
+  ProspectiveFunnelReasonCode,
+  ProspectiveFunnelStage,
+} from "./prospective-setup-production-types";
+export {
+  buildEvaluationScopedWaveScanReport,
+  buildTradeSetupEvaluationContextWithScopedAnalysis,
+} from "./evaluation-scoped-trade-context";
 export { resolveOpenStructuralLeg } from "./open-structural-leg";
 export { compareOpenLegPaths } from "./open-structural-leg-comparison";
 export type {

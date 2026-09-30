@@ -193,7 +193,7 @@ export function resolveOpenStructuralLeg(input: {
     }
   }
 
-  const primary = bundle.diagnostics.focus.primary;
+  const primary = bundle.diagnostics.focus?.primary;
   if (
     primary &&
     primary.endIndex <= evaluationBarIndex &&
@@ -208,7 +208,7 @@ export function resolveOpenStructuralLeg(input: {
     });
   }
 
-  const swings = bundle.diagnostics.confirmedSwings.filter(
+  const swings = (bundle.diagnostics.confirmedSwings ?? []).filter(
     (s) => s.index <= evaluationBarIndex
   );
   if (swings.length > 0) {

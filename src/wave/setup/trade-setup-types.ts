@@ -3,8 +3,12 @@ import type { WavePresentationState } from "../presentation-state";
 import type { WaveScanReport } from "../wave-scanner";
 import type { SetupCatalogEntry } from "./setup-types";
 
+export type EvaluationAnalysisScope = "EVALUATION_SCOPED" | "FULL_SERIES";
+
 export interface SymbolEvaluationBundle {
   timeframeId: string;
+  /** How wave/presentation/diagnostics were produced for this bundle. */
+  evaluationAnalysisScope?: EvaluationAnalysisScope;
   /**
    * Last closed candle index (inclusive) for trade evaluation boundary.
    * -1 when closed boundary is not established.

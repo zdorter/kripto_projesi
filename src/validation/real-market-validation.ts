@@ -33,6 +33,7 @@ import {
   buildOpenStructuralLegDiagnostic,
   summarizeOpenStructuralLegDiagnostics,
 } from "./real-market-open-structural-leg-diagnostics";
+import { buildProspectiveProductionDiagnostics } from "./real-market-prospective-production-diagnostics";
 import { buildSymbolEvaluationBundleAtEvaluationBar } from "../wave/setup/trade-setup-context";
 import {
   buildTradeSetupTemporalDiagnostic,
@@ -621,6 +622,16 @@ export function buildRealMarketValidationReport(
     openStructuralLegDiagnostics
   );
 
+  const prospectiveProductionReport = buildProspectiveProductionDiagnostics({
+    tradeSetups: setupDetection.candidates,
+    tradeContext: input.tradeContext,
+    candlesBySymbol,
+  });
+  const prospectiveProductionDiagnostics =
+    prospectiveProductionReport.candidates;
+  const prospectiveProductionSummary = prospectiveProductionReport.summary;
+  const prospectiveFunnel = prospectiveProductionSummary;
+
   const aggregateStatus = emptyStatusCounts();
   for (const s of tradeSetups) {
     aggregateStatus[s.status]++;
@@ -708,6 +719,9 @@ export function buildRealMarketValidationReport(
     evaluationScopedAnalysisDiagnostics,
     openStructuralLegDiagnostics,
     openStructuralLegSummary,
+    prospectiveProductionDiagnostics,
+    prospectiveProductionSummary,
+    prospectiveFunnel,
   };
 }
 
@@ -864,6 +878,11 @@ export function formatRealMarketValidationReport(
     lines.push(`  ${k}: ${n}`);
   }
   lines.push("");
+  lines.push("Prospective production (14N-H):");
+  for (const [k, n] of Object.entries(report.prospectiveProductionSummary)) {
+    lines.push(`  ${k}: ${n}`);
+  }
+  lines.push("");
   lines.push("Open structural leg (14N-G):");
   for (const [k, n] of Object.entries(report.openStructuralLegSummary)) {
     lines.push(`  ${k}: ${n}`);
@@ -913,7 +932,7 @@ export async function runRealMarketValidation(
   );
 
   const setupDetection = detectSetups({
-    scanReport,
+    scanReport: tradeContext.scanReport,
     tradeContext,
   });
 

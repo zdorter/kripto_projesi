@@ -208,7 +208,7 @@ export function detectSetupsFromScanReport(
 }
 
 export function detectSetups(input: SetupDetectionInput): SetupDetectionReport {
-  const report = input.scanReport;
+  const report = input.tradeContext?.scanReport ?? input.scanReport;
   const candidates: SetupCandidate[] = [];
   const errors: SetupDetectionSymbolError[] = [...report.errors.map((e) => ({
     symbol: e.symbol,

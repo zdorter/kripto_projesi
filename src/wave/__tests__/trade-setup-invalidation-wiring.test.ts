@@ -57,15 +57,22 @@ describe("trade setup invalidation wiring (14F)", () => {
     );
     const detection = detectSetups({ scanReport: scan, tradeContext });
     const trade = detection.candidates.find(
-      (c) => c.isTradeSetup && c.setupTypeId === "impulse-continuation"
+      (c) =>
+        c.isTradeSetup &&
+        c.setupTypeId === "impulse-continuation" &&
+        c.referenceLevels.some((l) => l.kind === "SCENARIO_INVALIDATION")
     );
     assert.ok(trade);
+    const scopedRow = tradeContext.scanReport.results.find(
+      (r) => r.scenarioId === trade.scenarioRef.scenarioId
+    );
+    assert.ok(scopedRow);
+    assert.equal(scopedRow.invalidation.available, true);
     const ref = trade.referenceLevels.find(
       (l) => l.kind === "SCENARIO_INVALIDATION"
     );
     assert.ok(ref);
-    assert.equal(ref.price, INVALIDATION);
-    assert.equal(scan.results[0].invalidation.price, INVALIDATION);
+    assert.equal(ref.price, scopedRow.invalidation.price);
 
     const bundle = tradeContext.bundlesBySymbol!.BTCUSDT;
     const { plan } = buildEntryPlanFromSetup({
@@ -80,14 +87,14 @@ describe("trade setup invalidation wiring (14F)", () => {
     const planInv = plan.referenceLevels.find(
       (l) => l.kind === "SCENARIO_INVALIDATION"
     );
-    assert.equal(planInv?.price, INVALIDATION);
+    assert.equal(planInv?.price, ref.price);
 
     const stopRef = evaluateStopLossModel("SCENARIO_INVALIDATION_REFERENCE", {
       plan,
       priceContext: { candles: DEMO_OHLCV },
     });
     if (stopRef.outcome === "AVAILABLE") {
-      assert.equal(stopRef.price, INVALIDATION);
+      assert.equal(stopRef.price, ref.price);
     }
   });
 

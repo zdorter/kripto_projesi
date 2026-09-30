@@ -43,7 +43,10 @@ describe("trade-setup 14C.1", () => {
     const tradeCtx = buildTradeSetupEvaluationContext(scan, {
       BTCUSDT: { candles: DEMO_OHLCV, closedSeriesOnly: true },
     }, DEMO_WAVE_ENGINE_OPTIONS);
-    const report = detectSetups({ scanReport: scan, tradeContext: tradeCtx });
+    const report = detectSetups({
+      scanReport: tradeCtx.scanReport,
+      tradeContext: tradeCtx,
+    });
     const trade = report.candidates.filter((c) => c.isTradeSetup);
     assert.ok(trade.length > 0);
     assert.ok(
@@ -61,7 +64,10 @@ describe("trade-setup 14C.1", () => {
     const tradeCtx = buildTradeSetupEvaluationContext(scan, {
       BTCUSDT: { candles: DEMO_OHLCV, closedSeriesOnly: true },
     }, DEMO_WAVE_ENGINE_OPTIONS);
-    const report = detectSetups({ scanReport: scan, tradeContext: tradeCtx });
+    const report = detectSetups({
+      scanReport: tradeCtx.scanReport,
+      tradeContext: tradeCtx,
+    });
     const corr = report.candidates.filter(
       (c) => c.setupTypeId === "correction-end"
     );
@@ -75,7 +81,7 @@ describe("trade-setup 14C.1", () => {
       BTCUSDT: { candles: DEMO_OHLCV, closedSeriesOnly: true },
     }, DEMO_WAVE_ENGINE_OPTIONS);
     const bundle = tradeCtx.bundlesBySymbol!.BTCUSDT;
-    const row = scan.results.find(
+    const row = tradeCtx.scanReport.results.find(
       (r) => r.structure === "IMPULSE" && ["3", "4", "5"].includes(r.waveLabel)
     );
     if (!row) {
@@ -95,7 +101,10 @@ describe("trade-setup 14C.1", () => {
     const tradeCtx = buildTradeSetupEvaluationContext(scan, {
       BTCUSDT: { candles: DEMO_OHLCV, closedSeriesOnly: true },
     }, DEMO_WAVE_ENGINE_OPTIONS);
-    const report = detectSetups({ scanReport: scan, tradeContext: tradeCtx });
+    const report = detectSetups({
+      scanReport: tradeCtx.scanReport,
+      tradeContext: tradeCtx,
+    });
     for (const c of report.candidates.filter(
       (x) => x.isTradeSetup && x.scenarioRef.waveLabel === "5"
     )) {
@@ -166,8 +175,14 @@ describe("trade-setup 14C.1", () => {
     const tradeCtx = buildTradeSetupEvaluationContext(scan, {
       BTCUSDT: { candles: DEMO_OHLCV, closedSeriesOnly: true },
     }, DEMO_WAVE_ENGINE_OPTIONS);
-    const a = detectSetups({ scanReport: scan, tradeContext: tradeCtx });
-    const b = detectSetups({ scanReport: scan, tradeContext: tradeCtx });
+    const a = detectSetups({
+      scanReport: tradeCtx.scanReport,
+      tradeContext: tradeCtx,
+    });
+    const b = detectSetups({
+      scanReport: tradeCtx.scanReport,
+      tradeContext: tradeCtx,
+    });
     assert.deepEqual(a, b);
   });
 

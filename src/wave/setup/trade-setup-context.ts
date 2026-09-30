@@ -2,6 +2,7 @@ import { analyzeWaveWithDiagnostics } from "../analysis-pipeline";
 import { analyzeWaveAtEvaluationBar } from "../evaluation-scoped-analysis";
 import type { Candle, WaveEngineOptions } from "../types";
 import type { WaveScanReport } from "../wave-scanner";
+import { buildTradeSetupEvaluationContextWithScopedAnalysis } from "./evaluation-scoped-trade-context";
 import { resolveTradeSetupEvaluationBoundary } from "./trade-setup-evaluation-bar";
 import type {
   SymbolEvaluationBundle,
@@ -69,21 +70,9 @@ export function buildSymbolEvaluationBundleAtEvaluationBar(
     !scoped.diagnostics ||
     !scoped.presentation
   ) {
-    if (
-      resolved.boundaryEstablished &&
-      resolved.evaluationBarIndex >= 0
-    ) {
-      return buildSymbolEvaluationBundle(
-        candles.slice(0, resolved.evaluationBarIndex + 1),
-        timeframeId,
-        {
-          evaluationBarIndex: resolved.evaluationBarIndex,
-          closedSeriesOnly: input.closedSeriesOnly,
-        },
-        engineOptions
-      );
-    }
-    return buildSymbolEvaluationBundle(candles, timeframeId, input, engineOptions);
+    throw new Error(
+      `Evaluation-scoped analysis failed: ${scoped.detail} (${scoped.status})`
+    );
   }
   return {
     timeframeId,
@@ -101,20 +90,40 @@ export function buildTradeSetupEvaluationContext(
   symbols: Record<string, TradeSetupSymbolBuildInput>,
   engineOptions?: WaveEngineOptions
 ): TradeSetupEvaluationContext {
+  const usesEvaluationBoundary = Object.values(symbols).some((input) => {
+    const boundary = resolveTradeSetupEvaluationBoundary({
+      candles: input.candles,
+      evaluationBarIndex: input.evaluationBarIndex,
+      closedSeriesOnly: input.closedSeriesOnly,
+    });
+    return boundary.boundaryEstablished && boundary.evaluationBarIndex >= 0;
+  });
+
+  if (usesEvaluationBoundary) {
+    return buildTradeSetupEvaluationContextWithScopedAnalysis(
+      scanReport,
+      symbols,
+      engineOptions
+    );
+  }
+
   const bundlesBySymbol: Record<string, SymbolEvaluationBundle> = {};
   for (const [symbol, input] of Object.entries(symbols)) {
     if (input.candles.length === 0) {
       continue;
     }
-    bundlesBySymbol[symbol] = buildSymbolEvaluationBundle(
-      input.candles,
-      scanReport.timeframe,
-      {
-        evaluationBarIndex: input.evaluationBarIndex,
-        closedSeriesOnly: input.closedSeriesOnly,
-      },
-      engineOptions
-    );
+    bundlesBySymbol[symbol] = {
+      ...buildSymbolEvaluationBundle(
+        input.candles,
+        scanReport.timeframe,
+        {
+          evaluationBarIndex: input.evaluationBarIndex,
+          closedSeriesOnly: input.closedSeriesOnly,
+        },
+        engineOptions
+      ),
+      evaluationAnalysisScope: "FULL_SERIES",
+    };
   }
   return {
     scanReport,

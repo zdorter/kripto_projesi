@@ -625,6 +625,25 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AI — production prospective setup (14N-H)", () => {
+    it("scoped context; no legacy POTENTIAL as production evidence", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const prod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/prospective-setup-production.ts"),
+        "utf8"
+      );
+      const ctx = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/trade-setup-context.ts"),
+        "utf8"
+      );
+      assert.ok(prod.includes("usesLegacyPotentialAsProductionEvidence: false"));
+      assert.ok(prod.includes("CONFIRMED_SWING_AFTER_COMPLETED_ENDPOINT"));
+      assert.ok(ctx.includes("buildTradeSetupEvaluationContextWithScopedAnalysis"));
+      assert.ok(!prod.includes("fibExtensionPrice"));
+    });
+  });
+
   describe("AH — open structural leg (14N-G)", () => {
     it("evaluation-scoped anchor only; no fake pivot; no target", async () => {
       const fs = await import("node:fs");
