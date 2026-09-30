@@ -206,6 +206,15 @@ export {
   evaluateObjectiveTargetEligibilityGate,
 } from "./objective-target-eligibility-gate";
 export { resolveProspectiveSetupContract } from "./prospective-setup-contract";
+export { resolveOpenStructuralLeg } from "./open-structural-leg";
+export { compareOpenLegPaths } from "./open-structural-leg-comparison";
+export type {
+  OpenStructuralLegResolution,
+  OpenStructuralLegStatus,
+  OpenStructuralLegAnchorSource,
+  OpenStructuralLegAnchorCandidate,
+  OpenLegPathComparison,
+} from "./open-structural-leg-types";
 export type {
   ObjectiveTargetEligibilityGateResult,
   ProspectiveSetupContractResult,

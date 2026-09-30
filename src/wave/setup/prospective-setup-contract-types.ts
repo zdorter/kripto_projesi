@@ -20,6 +20,7 @@ export type ProspectiveSetupFamilyId =
 export type ProspectivePhaseStatus =
   | "NOT_ESTABLISHED"
   | "TRANSITION_OBSERVED"
+  | "OPEN_MOVEMENT_OBSERVED"
   | "PHASE_IN_PROGRESS"
   | "PHASE_ALREADY_COMPLETED"
   | "INSUFFICIENT_CONTEXT";
@@ -40,16 +41,14 @@ export type ProspectiveProductionSupportVerdict =
 
 export type OpenStructuralLegDirection = "BULLISH" | "BEARISH" | "UNRESOLVED";
 
-export interface OpenStructuralLeg {
-  startIndex: number;
-  startPrice: number | null;
-  evaluationBarIndex: number;
-  /** Bar close at evaluation index — not an objective target or signal. */
-  evaluationPrice: number | null;
-  direction: OpenStructuralLegDirection;
-  state: "IN_PROGRESS";
-  evidence: string[];
-}
+export type {
+  OpenLegComparisonVerdict,
+  OpenLegPathComparison,
+  OpenMovementVerdict,
+  OpenStructuralLeg,
+  OpenStructuralLegResolution,
+  StructuralTransitionVerdict,
+} from "./open-structural-leg-types";
 
 export interface ProspectiveTransitionEvidence {
   sourceSetupId: string;
@@ -73,8 +72,16 @@ export interface ProspectiveSetupContractResult {
   sourceSetupId: string;
   sourceSetupType: string;
   transitionEvidence: ProspectiveTransitionEvidence;
-  openLeg: OpenStructuralLeg | null;
+  /** First-class open leg when AVAILABLE (14N-G). */
+  openLeg: import("./open-structural-leg-types").OpenStructuralLeg | null;
+  openLegResolution: import("./open-structural-leg-types").OpenStructuralLegResolution | null;
+  legacyPotentialOpenLeg: import("./open-structural-leg-types").OpenStructuralLeg | null;
+  openLegPathComparison: import("./open-structural-leg-types").OpenLegPathComparison | null;
+  openMovementVerdict: import("./open-structural-leg-types").OpenMovementVerdict;
+  structuralTransitionVerdict: import("./open-structural-leg-types").StructuralTransitionVerdict;
+  legacyPhaseStatus: ProspectivePhaseStatus;
   phaseStatus: ProspectivePhaseStatus;
+  objectiveEligibilityReasons: string[];
   prospectiveWaveLabel: WaveLabel | null;
   objectiveEligibility: ObjectiveEligibility;
   invalidationAvailable: boolean;
@@ -96,6 +103,7 @@ export type ObjectiveTargetEligibilityGateReasonCode =
   | "INVALIDATION_UNAVAILABLE"
   | "OBJECTIVE_NOT_ELIGIBLE"
   | "PROSPECTIVE_CONTRACT_UNSUPPORTED"
+  | "OPEN_LEG_AVAILABLE_BUT_TRANSITION_UNRESOLVED"
   | "GATE_INPUT_MISSING";
 
 export interface ObjectiveTargetEligibilityGateResult {

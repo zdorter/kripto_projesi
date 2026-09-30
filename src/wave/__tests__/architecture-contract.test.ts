@@ -625,6 +625,22 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AH — open structural leg (14N-G)", () => {
+    it("evaluation-scoped anchor only; no fake pivot; no target", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/open-structural-leg.ts"),
+        "utf8"
+      );
+      assert.ok(file.includes("resolveOpenStructuralLeg"));
+      assert.ok(file.includes("observationEndIndex"));
+      assert.ok(!file.includes("endPivot"));
+      assert.ok(!file.includes("fibExtensionPrice"));
+      assert.ok(!file.includes("confirmedEnd"));
+    });
+  });
+
   describe("AG — evaluation-scoped analysis (14N-F)", () => {
     it("slice before engine; no filter-after-analysis; no target/ratio", async () => {
       const fs = await import("node:fs");

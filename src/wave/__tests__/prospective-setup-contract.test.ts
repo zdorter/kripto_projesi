@@ -113,17 +113,29 @@ describe("prospective setup contract (14N-E)", () => {
     assert.equal(r.prospectiveWaveLabel, null);
   });
 
-  it("PHASE_IN_PROGRESS when open WaveCandidate leg spans past bar", () => {
+  it("legacy PHASE_IN_PROGRESS when POTENTIAL span; first-class path separate", () => {
     const setup = historicalImpulse("3");
     const b = bundleAt(35, [
       { label: "3", startIndex: 20, endIndex: 30, status: "CONFIRMED" },
       { label: "4", startIndex: 32, endIndex: 45, status: "POTENTIAL" },
     ]);
-    const r = resolveProspectiveSetupContract({ historicalSetup: setup, bundle: b });
-    assert.equal(r.phaseStatus, "PHASE_IN_PROGRESS");
-    assert.ok(r.openLeg);
+    const candles = Array.from({ length: 36 }, (_, i) => ({
+      time: i,
+      open: 100,
+      high: 120,
+      low: 90,
+      close: 105 + i * 0.1,
+      volume: 1,
+    }));
+    const r = resolveProspectiveSetupContract({
+      historicalSetup: setup,
+      bundle: b,
+      candles,
+    });
+    assert.equal(r.legacyPhaseStatus, "PHASE_IN_PROGRESS");
+    assert.ok(r.legacyPotentialOpenLeg);
     assert.equal(r.prospectiveWaveLabel, null);
-    assert.equal(r.labelFreeVerdict, "SUPPORTED");
+    assert.ok(r.openLegPathComparison);
   });
 
   it("future swing excluded at bar N", () => {
@@ -169,7 +181,7 @@ describe("prospective setup contract (14N-E)", () => {
         { label: "4", startIndex: 32, endIndex: 45, status: "CONFIRMED" },
       ]),
     });
-    assert.equal(r35a.phaseStatus, "PHASE_IN_PROGRESS");
+    assert.equal(r35a.legacyPhaseStatus, "PHASE_IN_PROGRESS");
     assert.equal(r46.phaseStatus, "PHASE_ALREADY_COMPLETED");
   });
 

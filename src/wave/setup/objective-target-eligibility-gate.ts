@@ -28,6 +28,12 @@ export function evaluateObjectiveTargetEligibilityGate(
   }
   if (prospective.phaseStatus !== "PHASE_IN_PROGRESS") {
     reasonCodes.push("PHASE_NOT_IN_PROGRESS");
+    if (
+      prospective.openMovementVerdict === "OPEN_MOVEMENT_OBSERVED" &&
+      prospective.structuralTransitionVerdict !== "STRUCTURAL_TRANSITION_OBSERVED"
+    ) {
+      reasonCodes.push("OPEN_LEG_AVAILABLE_BUT_TRANSITION_UNRESOLVED");
+    }
   }
   if (!prospective.transitionEvidence.futureSafe) {
     reasonCodes.push("NOT_FUTURE_SAFE");

@@ -1,7 +1,7 @@
 import type { ConditionOutcome, SetupLifecycleStatus } from "../wave/setup/setup-types";
 import type { TradeSetupEvaluationAggregateState } from "../wave/setup/trade-setup-evaluation-types";
 
-export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "2.2" as const;
+export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "2.3" as const;
 
 export type RealMarketStopFailureReason =
   | "STOP_REFERENCE_AVAILABLE"
@@ -286,6 +286,8 @@ export interface RealMarketValidationReport {
   prospectiveSetupDiagnostics: import("./real-market-prospective-setup-diagnostics").RealMarketProspectiveSetupDiagnostic[];
   prospectiveSetupSupportSummary: Record<string, number>;
   evaluationScopedAnalysisDiagnostics: import("./real-market-evaluation-scoped-diagnostics").RealMarketEvaluationScopedAnalysisDiagnostic[];
+  openStructuralLegDiagnostics: import("./real-market-open-structural-leg-diagnostics").RealMarketOpenStructuralLegDiagnostic[];
+  openStructuralLegSummary: Record<string, number>;
 }
 
 export interface RealMarketFibonacciProjectionPolicyDiagnostic {

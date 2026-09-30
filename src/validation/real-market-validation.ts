@@ -30,6 +30,11 @@ import {
 } from "./real-market-prospective-setup-diagnostics";
 import { buildEvaluationScopedAnalysisDiagnostic } from "./real-market-evaluation-scoped-diagnostics";
 import {
+  buildOpenStructuralLegDiagnostic,
+  summarizeOpenStructuralLegDiagnostics,
+} from "./real-market-open-structural-leg-diagnostics";
+import { buildSymbolEvaluationBundleAtEvaluationBar } from "../wave/setup/trade-setup-context";
+import {
   buildTradeSetupTemporalDiagnostic,
   summarizeTradeSetupTemporalDiagnostics,
 } from "./real-market-trade-setup-temporal-diagnostics";
@@ -529,16 +534,25 @@ export function buildRealMarketValidationReport(
     if (setup.status !== "CONFIRMED") {
       continue;
     }
-    const bundle = bundles[setup.symbol];
-    if (!bundle) {
+    const candles = candlesBySymbol[setup.symbol];
+    if (!candles?.length) {
       continue;
     }
-    const candles = candlesBySymbol[setup.symbol];
+    const bar = resolveTradeSetupEvaluationBoundary({
+      candles,
+      closedSeriesOnly: true,
+    }).evaluationBarIndex;
+    const bundle = buildSymbolEvaluationBundleAtEvaluationBar(
+      candles,
+      config.timeframeId,
+      { evaluationBarIndex: bar, closedSeriesOnly: true }
+    );
+    const effective = candles.slice(0, bundle.evaluationBarIndex + 1);
     prospectiveSetupDiagnostics.push(
       buildProspectiveSetupDiagnostic({
         historicalSetup: setup,
         bundle,
-        candles,
+        candles: effective,
       })
     );
   }
@@ -578,6 +592,33 @@ export function buildRealMarketValidationReport(
   }
   evaluationScopedAnalysisDiagnostics.sort((a, b) =>
     a.symbol.localeCompare(b.symbol)
+  );
+
+  const openStructuralLegDiagnostics: ReturnType<
+    typeof buildOpenStructuralLegDiagnostic
+  >[] = [];
+  for (const setup of tradeSetups) {
+    if (setup.status !== "CONFIRMED") {
+      continue;
+    }
+    const candles = candlesBySymbol[setup.symbol];
+    if (!candles?.length) {
+      continue;
+    }
+    openStructuralLegDiagnostics.push(
+      buildOpenStructuralLegDiagnostic({
+        symbol: setup.symbol,
+        candles,
+        historicalSetup: setup,
+        timeframeId: config.timeframeId,
+      })
+    );
+  }
+  openStructuralLegDiagnostics.sort((a, b) =>
+    a.setupId.localeCompare(b.setupId)
+  );
+  const openStructuralLegSummary = summarizeOpenStructuralLegDiagnostics(
+    openStructuralLegDiagnostics
   );
 
   const aggregateStatus = emptyStatusCounts();
@@ -665,6 +706,8 @@ export function buildRealMarketValidationReport(
     prospectiveSetupDiagnostics,
     prospectiveSetupSupportSummary,
     evaluationScopedAnalysisDiagnostics,
+    openStructuralLegDiagnostics,
+    openStructuralLegSummary,
   };
 }
 
@@ -818,6 +861,11 @@ export function formatRealMarketValidationReport(
   lines.push("");
   lines.push("Prospective setup contract (14N-E):");
   for (const [k, n] of Object.entries(report.prospectiveSetupSupportSummary)) {
+    lines.push(`  ${k}: ${n}`);
+  }
+  lines.push("");
+  lines.push("Open structural leg (14N-G):");
+  for (const [k, n] of Object.entries(report.openStructuralLegSummary)) {
     lines.push(`  ${k}: ${n}`);
   }
   lines.push("");

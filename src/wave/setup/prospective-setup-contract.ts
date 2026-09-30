@@ -1,10 +1,16 @@
 import type { Candle } from "../types";
 import type { WaveLabel } from "../types";
 import { characterizeImpulseLegAtBar } from "./objective-wave-resolution";
+import { compareOpenLegPaths } from "./open-structural-leg-comparison";
+import { resolveOpenStructuralLeg } from "./open-structural-leg";
+import type {
+  OpenMovementVerdict,
+  OpenStructuralLeg,
+  StructuralTransitionVerdict,
+} from "./open-structural-leg-types";
 import type { SetupCandidate } from "./setup-types";
 import { objectiveEligibilityFromProspectivePhase } from "./objective-target-eligibility-gate";
 import type {
-  OpenStructuralLeg,
   ProspectiveProductionSupportVerdict,
   ProspectiveSetupContractResult,
   ProspectiveSetupSupportVerdict,
@@ -69,12 +75,14 @@ function subsequentSwingAfter(
   return next ? { index: next.index, type: next.type } : null;
 }
 
-function evaluationBarClose(
+function scopedCandles(
   candles: Candle[] | undefined,
   evaluationBarIndex: number
-): number | null {
-  const c = candles?.[evaluationBarIndex];
-  return c && Number.isFinite(c.close) ? c.close : null;
+): Candle[] {
+  if (!candles?.length) {
+    return [];
+  }
+  return candles.slice(0, evaluationBarIndex + 1);
 }
 
 function legStartPrice(
@@ -94,38 +102,106 @@ function legStartPrice(
   return swing?.price ?? null;
 }
 
-function openLegDirection(
+function buildLegacyPotentialOpenLeg(
   bundle: SymbolEvaluationBundle,
-  startPrice: number | null,
-  evaluationPrice: number | null
-): OpenStructuralLeg["direction"] {
+  candidate: {
+    label: WaveLabel;
+    startIndex: number;
+    endIndex: number;
+    status: string;
+  },
+  evaluationBarIndex: number,
+  candles: Candle[]
+): OpenStructuralLeg | null {
+  const effective = scopedCandles(candles, evaluationBarIndex);
+  let startPrice = legStartPrice(
+    bundle,
+    candidate.label,
+    candidate.startIndex
+  );
+  if (startPrice === null) {
+    startPrice = effective[candidate.startIndex]?.close ?? null;
+  }
+  const evaluationPrice = effective[evaluationBarIndex]?.close;
   if (
     startPrice === null ||
-    evaluationPrice === null ||
-    !Number.isFinite(startPrice) ||
-    !Number.isFinite(evaluationPrice)
+    !Number.isFinite(evaluationPrice) ||
+    !Number.isFinite(startPrice)
   ) {
-    return "UNRESOLVED";
+    return null;
   }
-  if (evaluationPrice > startPrice) {
-    return "BULLISH";
+  let high = -Infinity;
+  let low = Infinity;
+  for (let i = candidate.startIndex; i <= evaluationBarIndex; i++) {
+    high = Math.max(high, effective[i].high);
+    low = Math.min(low, effective[i].low);
   }
-  if (evaluationPrice < startPrice) {
-    return "BEARISH";
+  const dir =
+    evaluationPrice > startPrice
+      ? "BULLISH"
+      : evaluationPrice < startPrice
+        ? "BEARISH"
+        : "UNRESOLVED";
+  return {
+    anchorIndex: candidate.startIndex,
+    anchorPrice: startPrice,
+    anchorKind: "STRUCTURAL_ENDPOINT",
+    selectedAnchorSources: [],
+    observationEndIndex: evaluationBarIndex,
+    evaluationBarIndex,
+    evaluationPrice,
+    observedHigh: high,
+    observedLow: low,
+    observedDirection: dir,
+    state: "IN_PROGRESS",
+    observationSpanBars: evaluationBarIndex - candidate.startIndex,
+    futureSafe: candidate.endIndex <= evaluationBarIndex,
+    evidence: [
+      "LEGACY_POTENTIAL_OPEN_SPAN: WaveCandidate end beyond evaluation bar.",
+    ],
+    startIndex: candidate.startIndex,
+    startPrice,
+    direction: dir,
+  };
+}
+
+function resolveLegacyPhase(
+  completedAtIndex: number | null,
+  candidate: ReturnType<typeof findInProgressImpulseLegAfter>,
+  subsequent: ReturnType<typeof subsequentSwingAfter>,
+  bundle: SymbolEvaluationBundle,
+  focus: WaveLabel,
+  evaluationBarIndex: number
+): ProspectiveSetupContractResult["legacyPhaseStatus"] {
+  if (completedAtIndex === null) {
+    return "INSUFFICIENT_CONTEXT";
   }
-  return "UNRESOLVED";
+  if (candidate) {
+    return "PHASE_IN_PROGRESS";
+  }
+  if (subsequent) {
+    return "TRANSITION_OBSERVED";
+  }
+  const nextLabel = focus === "3" ? "4" : focus === "4" ? "5" : null;
+  if (nextLabel) {
+    const nw = flatWave(bundle, nextLabel);
+    if (nw && nw.endIndex <= evaluationBarIndex && nw.status === "CONFIRMED") {
+      return "PHASE_ALREADY_COMPLETED";
+    }
+  }
+  return "NOT_ESTABLISHED";
 }
 
 function maxEvidenceIndex(
   transition: ProspectiveTransitionEvidence,
-  openLeg: OpenStructuralLeg | null
+  anchorIndex: number | null
 ): number | null {
   const indices = [
     transition.completedAtIndex,
     transition.subsequentSwingIndex,
     transition.candidateLegStartIndex,
     transition.candidateLegEndIndex,
-    openLeg?.startIndex ?? null,
+    anchorIndex,
   ].filter((x): x is number => x !== null && Number.isFinite(x));
   if (indices.length === 0) {
     return null;
@@ -141,6 +217,7 @@ export function resolveProspectiveSetupContract(input: {
   const { historicalSetup, bundle, candles } = input;
   const evaluationBarIndex = bundle.evaluationBarIndex;
   const reasons: string[] = [];
+  const objectiveEligibilityReasons: string[] = [];
   const temporal = resolveTradeSetupTemporalContext(historicalSetup, bundle);
 
   if (temporal.temporalClass !== "HISTORICAL_STRUCTURE") {
@@ -193,56 +270,104 @@ export function resolveProspectiveSetupContract(input: {
     notes: [],
   };
 
-  let phase: ProspectiveSetupContractResult["phaseStatus"] = "NOT_ESTABLISHED";
-  if (completedAtIndex === null) {
-    phase = "INSUFFICIENT_CONTEXT";
-  } else if (candidate) {
-    phase = "PHASE_IN_PROGRESS";
+  const legacyPhaseStatus = resolveLegacyPhase(
+    completedAtIndex,
+    candidate,
+    subsequent,
+    bundle,
+    focus,
+    evaluationBarIndex
+  );
+  if (candidate) {
     transition.notes.push(
-      "Candidate impulse leg has start at/before bar and end after bar (open segment in WaveCandidate pivot model)."
+      "LEGACY: Candidate impulse leg has end after bar (POTENTIAL open span)."
     );
   } else if (subsequent) {
-    phase = "TRANSITION_OBSERVED";
     transition.notes.push(
-      "Subsequent confirmed swing after completed structure; no open WaveCandidate leg at bar."
+      "Subsequent confirmed swing after completed structure."
     );
+  }
+
+  const effectiveCandles = scopedCandles(candles, evaluationBarIndex);
+  const openLegResolution =
+    effectiveCandles.length > 0
+      ? resolveOpenStructuralLeg({
+          bundle,
+          candles: effectiveCandles,
+          historicalSetup,
+        })
+      : null;
+
+  const legacyPotentialOpenLeg =
+    candidate && effectiveCandles.length > 0
+      ? buildLegacyPotentialOpenLeg(
+          bundle,
+          candidate,
+          evaluationBarIndex,
+          effectiveCandles
+        )
+      : null;
+
+  const openLegPathComparison = compareOpenLegPaths({
+    legacyPotentialOpenLeg,
+    openLegResolution,
+  });
+
+  const structuralTransitionVerdict: StructuralTransitionVerdict =
+    subsequent !== null
+      ? "STRUCTURAL_TRANSITION_OBSERVED"
+      : "NO_STRUCTURAL_TRANSITION";
+
+  const openMovementVerdict: OpenMovementVerdict =
+    openLegResolution?.status === "AVAILABLE" &&
+    openLegResolution.leg !== null &&
+    openLegResolution.leg.anchorIndex === completedAtIndex
+      ? "OPEN_MOVEMENT_OBSERVED"
+      : openLegResolution?.status === "AVAILABLE"
+        ? "OPEN_MOVEMENT_OBSERVED"
+        : "NO_OPEN_MOVEMENT";
+
+  let phaseStatus: ProspectiveSetupContractResult["phaseStatus"] =
+    "NOT_ESTABLISHED";
+  if (completedAtIndex === null) {
+    phaseStatus = "INSUFFICIENT_CONTEXT";
+  } else if (
+    structuralTransitionVerdict === "STRUCTURAL_TRANSITION_OBSERVED" &&
+    openMovementVerdict === "OPEN_MOVEMENT_OBSERVED" &&
+    openLegResolution?.anchorSelection === "SELECTED" &&
+    openLegResolution.leg?.anchorIndex === completedAtIndex
+  ) {
+    phaseStatus = "PHASE_IN_PROGRESS";
+  } else if (openMovementVerdict === "OPEN_MOVEMENT_OBSERVED") {
+    phaseStatus = "OPEN_MOVEMENT_OBSERVED";
+    objectiveEligibilityReasons.push(
+      "OPEN_LEG_AVAILABLE_BUT_TRANSITION_UNRESOLVED"
+    );
+  } else if (structuralTransitionVerdict === "STRUCTURAL_TRANSITION_OBSERVED") {
+    phaseStatus = "TRANSITION_OBSERVED";
   } else {
-    const nextLabel =
-      focus === "3" ? "4" : focus === "4" ? "5" : null;
+    const nextLabel = focus === "3" ? "4" : focus === "4" ? "5" : null;
     if (nextLabel) {
       const nw = flatWave(bundle, nextLabel);
       if (nw && nw.endIndex <= evaluationBarIndex && nw.status === "CONFIRMED") {
-        phase = "PHASE_ALREADY_COMPLETED";
+        phaseStatus = "PHASE_ALREADY_COMPLETED";
       }
     }
   }
 
-  const evalPrice = evaluationBarClose(candles, evaluationBarIndex);
-  let openLeg: OpenStructuralLeg | null = null;
-  if (candidate) {
-    const startPrice = legStartPrice(
-      bundle,
-      candidate.label,
-      candidate.startIndex
-    );
-    openLeg = {
-      startIndex: candidate.startIndex,
-      startPrice,
-      evaluationBarIndex,
-      evaluationPrice: evalPrice,
-      direction: openLegDirection(bundle, startPrice, evalPrice),
-      state: "IN_PROGRESS",
-      evidence: [
-        "Open leg derived from WaveCandidate with end pivot beyond evaluation bar.",
-        "POTENTIAL/CONFIRMED status does not alone identify objective wave label.",
-      ],
-    };
-  }
+  const firstClassLeg =
+    openLegResolution?.status === "AVAILABLE" ? openLegResolution.leg : null;
 
-  const maxIdx = maxEvidenceIndex(transition, openLeg);
+  const maxIdx = maxEvidenceIndex(
+    transition,
+    firstClassLeg?.anchorIndex ?? legacyPotentialOpenLeg?.anchorIndex ?? null
+  );
   if (maxIdx !== null && maxIdx > evaluationBarIndex) {
     transition.futureSafe = false;
     reasons.push("POTENTIAL_LOOKAHEAD_RISK: evidence index exceeds evaluationBarIndex.");
+  }
+  if (openLegResolution && !openLegResolution.futureSafe) {
+    transition.futureSafe = false;
   }
 
   const invalidationAvailable =
@@ -250,29 +375,51 @@ export function resolveProspectiveSetupContract(input: {
     historicalSetup.invalidation.conditions.some((c) => c.outcome === "MET");
 
   const objectiveEligibility = objectiveEligibilityFromProspectivePhase(
-    phase,
+    phaseStatus,
     transition.futureSafe,
     invalidationAvailable
   );
+
+  if (
+    openMovementVerdict === "OPEN_MOVEMENT_OBSERVED" &&
+    phaseStatus !== "PHASE_IN_PROGRESS"
+  ) {
+    objectiveEligibilityReasons.push(
+      "Open movement alone does not establish prospective objective phase."
+    );
+  }
 
   const prospectiveWaveLabel = null;
 
   let supportVerdict: ProspectiveSetupSupportVerdict =
     "NO_IMPLEMENTABLE_PROSPECTIVE_FAMILY";
-  if (phase === "PHASE_IN_PROGRESS" && transition.futureSafe) {
+  if (phaseStatus === "PHASE_IN_PROGRESS" && transition.futureSafe) {
     supportVerdict = "SUPPORTED_BY_CONTRACT";
-  } else if (phase === "TRANSITION_OBSERVED" && !candidate) {
+  } else if (
+    phaseStatus === "TRANSITION_OBSERVED" &&
+    openLegResolution?.status !== "AVAILABLE"
+  ) {
     supportVerdict = "ENGINE_CANNOT_REPRESENT_OPEN_OBJECTIVE_LEG";
     reasons.push(
-      "Transition swing observed but engine lacks open objective leg representation at evaluation bar."
+      "Structural transition without first-class open leg at evaluation bar."
+    );
+  } else if (
+    openLegResolution?.status === "AVAILABLE" &&
+    phaseStatus === "OPEN_MOVEMENT_OBSERVED"
+  ) {
+    reasons.push(
+      "First-class open leg observed; structural transition not fully established for phase."
     );
   }
 
-  const productionSupportVerdicts: ProspectiveProductionSupportVerdict[] = [
-    "NEEDS_EVALUATION_SCOPED_ENGINE",
-  ];
-  if (!candidate && phase === "TRANSITION_OBSERVED") {
+  const productionSupportVerdicts: ProspectiveProductionSupportVerdict[] = [];
+  if (openLegResolution?.status === "AVAILABLE") {
+    productionSupportVerdicts.push("EXISTING_ENGINE_SUPPORTS_PROSPECTIVE_SETUP");
+  } else {
     productionSupportVerdicts.push("NEEDS_OPEN_LEG_ABSTRACTION");
+  }
+  if (!transition.futureSafe) {
+    productionSupportVerdicts.push("NEEDS_EVALUATION_SCOPED_ENGINE");
   }
   if (supportVerdict === "NO_IMPLEMENTABLE_PROSPECTIVE_FAMILY") {
     productionSupportVerdicts.push("NEEDS_NEW_WAVE_TRANSITION_POLICY");
@@ -282,9 +429,14 @@ export function resolveProspectiveSetupContract(input: {
     "Prospective setup is structural phase context only — not prediction, signal, or recommendation."
   );
   reasons.push("prospectiveWaveLabel is not inferred from currentWave+1.");
+  if (openLegPathComparison.verdict === "DIVERGENT") {
+    reasons.push(
+      `Open leg path divergence: ${openLegPathComparison.notes.join(" ")}`
+    );
+  }
 
   const labelFreeVerdict =
-    phase === "PHASE_IN_PROGRESS" && openLeg !== null
+    firstClassLeg !== null && openLegResolution?.anchorSelection === "SELECTED"
       ? "SUPPORTED"
       : "UNRESOLVED";
 
@@ -294,10 +446,17 @@ export function resolveProspectiveSetupContract(input: {
     sourceSetupId: historicalSetup.id,
     sourceSetupType: historicalSetup.setupTypeId,
     transitionEvidence: transition,
-    openLeg,
-    phaseStatus: phase,
+    openLeg: firstClassLeg,
+    openLegResolution,
+    legacyPotentialOpenLeg,
+    openLegPathComparison,
+    openMovementVerdict,
+    structuralTransitionVerdict,
+    legacyPhaseStatus,
+    phaseStatus,
     prospectiveWaveLabel,
     objectiveEligibility,
+    objectiveEligibilityReasons,
     invalidationAvailable,
     labelFreeVerdict,
     supportVerdict,
@@ -333,9 +492,16 @@ function unsupportedResult(
       notes: [],
     },
     openLeg: null,
+    openLegResolution: null,
+    legacyPotentialOpenLeg: null,
+    openLegPathComparison: null,
+    openMovementVerdict: "NO_OPEN_MOVEMENT",
+    structuralTransitionVerdict: "NO_STRUCTURAL_TRANSITION",
+    legacyPhaseStatus: "INSUFFICIENT_CONTEXT",
     phaseStatus: "INSUFFICIENT_CONTEXT",
     prospectiveWaveLabel: null,
     objectiveEligibility: "INSUFFICIENT_CONTEXT",
+    objectiveEligibilityReasons: [],
     invalidationAvailable: false,
     labelFreeVerdict: "UNRESOLVED",
     supportVerdict: "INSUFFICIENT_CONTEXT",
