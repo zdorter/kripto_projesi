@@ -201,6 +201,17 @@ export type {
   TradeSetupTemporalClass,
   TradeSetupTemporalContext,
 } from "./trade-setup-temporal-types";
+export {
+  evaluateObjectiveTargetEligibilityGate,
+} from "./objective-target-eligibility-gate";
+export { resolveProspectiveSetupContract } from "./prospective-setup-contract";
+export type {
+  ObjectiveTargetEligibilityGateResult,
+  ProspectiveSetupContractResult,
+  ProspectivePhaseStatus,
+  OpenStructuralLeg,
+  ProspectiveTransitionEvidence,
+} from "./prospective-setup-contract-types";
 export type {
   WaveProjectionContext,
   WaveProjectionContextStatus,

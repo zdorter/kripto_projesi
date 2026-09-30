@@ -24,6 +24,10 @@ import {
   summarizeObjectiveWaveResolutionDiagnostics,
 } from "./real-market-objective-wave-resolution-diagnostics";
 import {
+  buildProspectiveSetupDiagnostic,
+  summarizeProspectiveSetupDiagnostics,
+} from "./real-market-prospective-setup-diagnostics";
+import {
   buildTradeSetupTemporalDiagnostic,
   summarizeTradeSetupTemporalDiagnostics,
 } from "./real-market-trade-setup-temporal-diagnostics";
@@ -516,6 +520,33 @@ export function buildRealMarketValidationReport(
     tradeSetupTemporalDiagnostics
   );
 
+  const prospectiveSetupDiagnostics: ReturnType<
+    typeof buildProspectiveSetupDiagnostic
+  >[] = [];
+  for (const setup of tradeSetups) {
+    if (setup.status !== "CONFIRMED") {
+      continue;
+    }
+    const bundle = bundles[setup.symbol];
+    if (!bundle) {
+      continue;
+    }
+    const candles = candlesBySymbol[setup.symbol];
+    prospectiveSetupDiagnostics.push(
+      buildProspectiveSetupDiagnostic({
+        historicalSetup: setup,
+        bundle,
+        candles,
+      })
+    );
+  }
+  prospectiveSetupDiagnostics.sort((a, b) =>
+    a.sourceSetupId.localeCompare(b.sourceSetupId)
+  );
+  const prospectiveSetupSupportSummary = summarizeProspectiveSetupDiagnostics(
+    prospectiveSetupDiagnostics
+  );
+
   const aggregateStatus = emptyStatusCounts();
   for (const s of tradeSetups) {
     aggregateStatus[s.status]++;
@@ -598,6 +629,8 @@ export function buildRealMarketValidationReport(
     objectiveWaveResolutionSummary,
     tradeSetupTemporalDiagnostics,
     temporalSetupSummary,
+    prospectiveSetupDiagnostics,
+    prospectiveSetupSupportSummary,
   };
 }
 
@@ -747,6 +780,11 @@ export function formatRealMarketValidationReport(
     lines.push(
       `  ${row.setupId}: objective=${row.objectiveEligibility} entry=${row.entryAvailability} stop=${row.stopAvailability}`
     );
+  }
+  lines.push("");
+  lines.push("Prospective setup contract (14N-E):");
+  for (const [k, n] of Object.entries(report.prospectiveSetupSupportSummary)) {
+    lines.push(`  ${k}: ${n}`);
   }
   lines.push("");
   lines.push(report.correctiveTrackInvalidationNote);

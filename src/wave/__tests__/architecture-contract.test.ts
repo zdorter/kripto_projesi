@@ -625,6 +625,21 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AF — prospective setup contract (14N-E)", () => {
+    it("historical setups preserved; no target/ratio/future evidence", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/prospective-setup-contract.ts"),
+        "utf8"
+      );
+      assert.ok(file.includes("resolveProspectiveSetupContract"));
+      assert.ok(file.includes("prospectiveWaveLabel = null"));
+      assert.ok(!file.includes("fibExtensionPrice"));
+      assert.ok(!file.includes("analyzeWave"));
+    });
+  });
+
   describe("AE — trade setup temporal semantics (14N-D)", () => {
     it("setup confirmed != prospective; objective eligibility separate", async () => {
       const fs = await import("node:fs");
