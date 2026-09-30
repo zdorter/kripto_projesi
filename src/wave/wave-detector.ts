@@ -12,6 +12,32 @@ const CORRECTIVE_LABELS: WaveLabel[] = ["A", "B", "C"];
 
 const WAVE3_MIN_EXPANSION_RATIO = 0.8;
 
+/**
+ * Wave 2 structural invalidation boundary (impulse count).
+ * Same price threshold used when marking Wave 2 INVALIDATED.
+ */
+export function wave2StructuralInvalidationPrice(wave1Origin: number): number {
+  return wave1Origin;
+}
+
+function applyWave2InvalidationRule(
+  waves: WaveCandidate[],
+  wave1Origin: number,
+  wave2End: number,
+  bullish: boolean
+): void {
+  const w2 = waves.find((w) => w.label === "2");
+  if (!w2) {
+    return;
+  }
+  const boundary = wave2StructuralInvalidationPrice(wave1Origin);
+  w2.invalidationPrice = boundary;
+  const breached = bullish ? wave2End < boundary : wave2End > boundary;
+  if (breached) {
+    w2.status = "INVALIDATED";
+  }
+}
+
 export interface WaveDetectionResult {
   impulse: WaveCandidate[];
   corrective: WaveCandidate[];
@@ -93,14 +119,9 @@ function buildImpulseFromPivots(
   const w1End = swingPriceAt(p1);
   const w2End = swingPriceAt(p2);
 
+  applyWave2InvalidationRule(waves, w1Start, w2End, bullish);
+
   if (bullish) {
-    if (w2End < w1Start) {
-      const w2 = waves.find((w) => w.label === "2");
-      if (w2) {
-        w2.status = "INVALIDATED";
-        w2.invalidationPrice = w1Start;
-      }
-    }
     const wave1Len = w1End - w1Start;
     const wave3Len = swingPriceAt(p3) - w2End;
     const w3 = waves.find((w) => w.label === "3");
@@ -118,13 +139,6 @@ function buildImpulseFromPivots(
       w5.status = "POTENTIAL";
     }
   } else {
-    if (w2End > w1Start) {
-      const w2 = waves.find((w) => w.label === "2");
-      if (w2) {
-        w2.status = "INVALIDATED";
-        w2.invalidationPrice = w1Start;
-      }
-    }
     const wave1Len = w1Start - w1End;
     const wave3Len = w2End - swingPriceAt(p3);
     const w3 = waves.find((w) => w.label === "3");
@@ -300,10 +314,10 @@ export function currentWaveLabel(
 export function primaryInvalidationPrice(
   waves: WaveCandidate[]
 ): number | undefined {
-  const w2 = waves.find((w) => w.label === "2" && w.status === "INVALIDATED");
+  const w2 = waves.find((w) => w.label === "2");
   if (w2?.invalidationPrice !== undefined) {
     return w2.invalidationPrice;
   }
-  const invalidated = waves.find((w) => w.invalidationPrice !== undefined);
-  return invalidated?.invalidationPrice;
+  const withPrice = waves.find((w) => w.invalidationPrice !== undefined);
+  return withPrice?.invalidationPrice;
 }

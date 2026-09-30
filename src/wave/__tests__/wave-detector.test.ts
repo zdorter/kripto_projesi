@@ -52,6 +52,7 @@ describe("wave-detector", () => {
     const w2 = result.impulse.find((w) => w.label === "2");
     assert.ok(w2);
     assert.notEqual(w2!.status, "INVALIDATED");
+    assert.equal(w2!.invalidationPrice, 100);
   });
 
   it("invalidates Wave 2 when retracement exceeds wave 1 start", () => {

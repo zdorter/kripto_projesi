@@ -625,6 +625,29 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("V — upstream structural invalidation (14G)", () => {
+    it("wave-detector exposes Wave 2 boundary without separate formula", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/wave-detector.ts");
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("wave2StructuralInvalidationPrice"));
+      assert.ok(text.includes("applyWave2InvalidationRule"));
+      assert.ok(!text.includes("ATR"));
+      assert.ok(!text.includes("nearestSwing"));
+    });
+
+    it("invalidation wiring does not add execution or confirmation shortcuts", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/wave-detector.ts");
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("BUY"));
+      assert.ok(!text.includes("SELL"));
+      assert.ok(!text.includes("stopLoss"));
+    });
+  });
+
   describe("U — production setup confirmation / invalidation (14F)", () => {
     it("trade-setup-rules do not shortcut ACTIVE or POTENTIAL into CONFIRMED", async () => {
       const fs = await import("node:fs");
