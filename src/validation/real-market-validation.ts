@@ -1,7 +1,7 @@
 import { BinanceFuturesOhlcvProvider } from "../providers/binance-ohlcv";
 import type { Candle, WaveEngineOptions } from "../wave/types";
 import { runWaveScan } from "../wave/wave-scanner";
-import type { WaveScanReport } from "../wave/wave-scanner";
+import type { WaveScanReport, WaveScanResult } from "../wave/wave-scanner";
 import { detectSetups } from "../wave/setup/setup-detector";
 import { buildTradeSetupEvaluationContext } from "../wave/setup/trade-setup-context";
 import { buildTradeSetupEvaluationPipeline } from "../wave/setup/trade-setup-evaluation-pipeline";
@@ -19,6 +19,7 @@ import {
   buildInvalidationFlowSummary,
   summarizeZeroConfirmedRootCause,
 } from "./real-market-setup-diagnostics";
+import { buildStopDiagnosticsFromPipeline } from "./real-market-stop-diagnostics";
 import type {
   LayerAvailability,
   RealMarketTradeSetupDetail,
@@ -147,6 +148,33 @@ export function buildRealMarketValidationReport(
   const zeroConfirmedRootCauseNotes = summarizeZeroConfirmedRootCause(
     conditionSummary
   );
+
+  const scanRowBySetupId = new Map<string, WaveScanResult>();
+  for (const setup of setupDetection.candidates) {
+    const row = scanRowByScenario.get(
+      `${setup.symbol}:${setup.scenarioRef.scenarioId}`
+    );
+    if (row) {
+      scanRowBySetupId.set(setup.id, row);
+    }
+  }
+  const entryPriceByPlanId = new Map<string, number>();
+  for (const item of pipelineReport.snapshots) {
+    const price = item.snapshot.selectedEntryReference?.referencePrice;
+    if (price !== undefined && Number.isFinite(price)) {
+      entryPriceByPlanId.set(item.entryPlanId, price);
+    }
+  }
+  const setupIdByPlanId = new Map(
+    pipelineReport.entryPlanReport.plans.map((p) => [p.id, p.setupRef.setupId])
+  );
+  const { stopDiagnostics, stopFailureSummary } =
+    buildStopDiagnosticsFromPipeline({
+      plans: pipelineReport.entryPlanReport.plans,
+      setupIdByPlanId,
+      scanRowBySetupId,
+      entryPriceByPlanId,
+    });
 
   for (const setup of setupDetection.candidates) {
     if (!setup.isTradeSetup) {
@@ -340,6 +368,8 @@ export function buildRealMarketValidationReport(
     conditionSummary,
     invalidationFlowSummary,
     zeroConfirmedRootCauseNotes,
+    stopDiagnostics,
+    stopFailureSummary,
   };
 }
 
@@ -401,6 +431,13 @@ export function formatRealMarketValidationReport(
   lines.push(
     `  scanner→setup mapping gaps: ${inv.scannerAvailableSetupReferenceMissing}`
   );
+  lines.push("");
+  lines.push("Stop failure summary (frequency only):");
+  for (const [k, v] of Object.entries(report.stopFailureSummary).sort(
+    (a, b) => b[1] - a[1]
+  )) {
+    lines.push(`  ${k}: ${v}`);
+  }
   return lines.join("\n");
 }
 

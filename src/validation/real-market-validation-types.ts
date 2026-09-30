@@ -1,7 +1,51 @@
 import type { ConditionOutcome, SetupLifecycleStatus } from "../wave/setup/setup-types";
 import type { TradeSetupEvaluationAggregateState } from "../wave/setup/trade-setup-evaluation-types";
 
-export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "1.1" as const;
+export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "1.2" as const;
+
+export type RealMarketStopFailureReason =
+  | "STOP_REFERENCE_AVAILABLE"
+  | "STOP_SOURCE_MISSING"
+  | "STOP_DIRECTION_MISSING"
+  | "STOP_CLOSED_BAR_MISSING"
+  | "STOP_INVALIDATION_ALREADY_TRIGGERED"
+  | "STOP_GEOMETRY_INVALID"
+  | "STOP_SOURCE_SCOPE_UNAVAILABLE"
+  | "STOP_PLAN_INELIGIBLE"
+  | "STOP_SETUP_NOT_CONFIRMED"
+  | "OTHER_CONTRACT_FAILURE";
+
+export interface RealMarketStopPlanDiagnostic {
+  symbol: string;
+  timeframe: string;
+  setupId: string;
+  entryPlanId: string;
+  setupTypeId: string;
+  directionalBias: string | null;
+  directionalBasis: string | null;
+  scenarioWaveLabel: string;
+  segmentStartIndex: number;
+  segmentEndIndex: number;
+  segmentStartPrice: number;
+  segmentEndPrice: number;
+  envelopeLow: number;
+  envelopeHigh: number;
+  evaluationBarIndex: number;
+  evaluationBarBoundaryEstablished: boolean;
+  invalidationSource: string | null;
+  invalidationPrice: number | null;
+  usesScenarioInvalidation: boolean;
+  scenarioInvalidationAvailable: boolean | null;
+  stopModelId: string;
+  stopOutcome: string;
+  stopRationale: string;
+  stopPrice: number | null;
+  failureReason: RealMarketStopFailureReason;
+  geometryValid: boolean | null;
+  entryReferencePrice: number | null;
+  entryVsInvalidationNote: string | null;
+  stopLimitations: string[];
+}
 
 export type ConditionOutcomeCounts = Record<ConditionOutcome, number>;
 
@@ -134,4 +178,6 @@ export interface RealMarketValidationReport {
   conditionSummary: RealMarketConditionSummary;
   invalidationFlowSummary: RealMarketInvalidationFlowSummary;
   zeroConfirmedRootCauseNotes: Record<string, string[]>;
+  stopDiagnostics: RealMarketStopPlanDiagnostic[];
+  stopFailureSummary: Record<string, number>;
 }

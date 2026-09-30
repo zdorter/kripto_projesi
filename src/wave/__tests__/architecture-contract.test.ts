@@ -625,6 +625,38 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("W — stop reference diagnostics (14H)", () => {
+    it("stop diagnostics layer does not change stop-loss-model geometry", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const diag = fs.readFileSync(
+        path.join(process.cwd(), "src/validation/real-market-stop-diagnostics.ts"),
+        "utf8"
+      );
+      const model = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/stop-loss-model.ts"),
+        "utf8"
+      );
+      assert.ok(diag.includes("evaluateStopLossModel"));
+      assert.ok(!diag.includes("ATR"));
+      assert.ok(!model.includes("ATR"));
+      assert.ok(!diag.includes("return \"STOP_REFERENCE_AVAILABLE\""));
+    });
+
+    it("validation stop diagnostics do not alter confirmation or target layers", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/validation/real-market-stop-diagnostics.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("buildTargetModelReport"));
+      assert.ok(!text.includes("resolveTradeSetupLifecycleStatus"));
+      assert.ok(!text.includes("attestedFibonacciProjection"));
+    });
+  });
+
   describe("V — upstream structural invalidation (14G)", () => {
     it("wave-detector exposes Wave 2 boundary without separate formula", async () => {
       const fs = await import("node:fs");

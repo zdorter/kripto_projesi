@@ -78,6 +78,8 @@ describe("real-market setup diagnostics (14F)", () => {
     assert.ok(report.conditionSummary.bySetupType);
     assert.ok(report.invalidationFlowSummary);
     assert.ok(report.zeroConfirmedRootCauseNotes);
+    assert.ok(Array.isArray(report.stopDiagnostics));
+    assert.ok(report.stopFailureSummary);
   });
 
   it("collectTradeSetupConditionEvaluations includes shared prerequisites", () => {
