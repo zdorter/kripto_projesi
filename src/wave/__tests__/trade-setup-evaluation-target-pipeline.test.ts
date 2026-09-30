@@ -174,7 +174,7 @@ describe("trade-setup-evaluation-target-pipeline 14D.10 E2E", () => {
     ), false);
   });
 
-  it("B: production-style — no objective context map → target/RR insufficient", () => {
+  it("B: production-style — engine diagnostics only → target/RR insufficient", () => {
     const setupReport: SetupDetectionReport = {
       schemaVersion: SETUP_SCHEMA_VERSION,
       timeframe: TF,
@@ -201,8 +201,14 @@ describe("trade-setup-evaluation-target-pipeline 14D.10 E2E", () => {
       setupDetectionReport: setupReport,
     });
     const snap = result.snapshots[0].snapshot;
-    assert.equal(snap.objectiveTargetCandidates, undefined);
-    assert.equal(snap.objectiveTargetSelection, undefined);
+    assert.ok(snap.objectiveTargetCandidates);
+    assert.equal(
+      snap.objectiveTargetCandidates?.candidates.every(
+        (c) => c.outcome !== "AVAILABLE"
+      ),
+      true
+    );
+    assert.notEqual(snap.objectiveTargetSelection?.outcome, "SELECTED");
     assert.equal(snap.evaluationState, "INSUFFICIENT_CONTEXT");
   });
 

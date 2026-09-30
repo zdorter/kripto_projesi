@@ -6,7 +6,6 @@ import { detectSetups } from "../wave/setup/setup-detector";
 import { buildTradeSetupEvaluationContext } from "../wave/setup/trade-setup-context";
 import { buildTradeSetupEvaluationPipeline } from "../wave/setup/trade-setup-evaluation-pipeline";
 import type { TradeSetupEvaluationPipelineReport } from "../wave/setup/trade-setup-evaluation-pipeline-types";
-import type { ObjectiveTargetSourceContext } from "../wave/setup/objective-target-candidate-types";
 import type { SetupDetectionReport, SetupLifecycleStatus } from "../wave/setup/setup-types";
 import type { TradeSetupEvaluationAggregateState } from "../wave/setup/trade-setup-evaluation-types";
 import type { TradeSetupEvaluationContext } from "../wave/setup/trade-setup-types";
@@ -19,6 +18,11 @@ import {
   buildInvalidationFlowSummary,
   summarizeZeroConfirmedRootCause,
 } from "./real-market-setup-diagnostics";
+import {
+  buildObjectiveTargetProductionDiagnostic,
+  summarizeObjectiveTargetSources,
+  summarizeSelectedTargetSources,
+} from "./real-market-objective-target-diagnostics";
 import {
   buildStopDiagnosticsFromPipeline,
   buildStopModelSummary,
@@ -88,19 +92,6 @@ function layerFromReference(
   return "NOT_APPLICABLE";
 }
 
-function objectiveContextFromTradeContext(
-  tradeContext: TradeSetupEvaluationContext
-): Record<string, ObjectiveTargetSourceContext> {
-  const out: Record<string, ObjectiveTargetSourceContext> = {};
-  const bundles = tradeContext.bundlesBySymbol;
-  if (!bundles) {
-    return out;
-  }
-  for (const [symbol, bundle] of Object.entries(bundles)) {
-    out[symbol] = { diagnostics: bundle.diagnostics };
-  }
-  return out;
-}
 
 export interface RealMarketValidationInputs {
   config: RealMarketValidationRunConfig;
@@ -214,6 +205,43 @@ export function buildRealMarketValidationReport(
         (selectedStopModelSummary.byModelId[d.selectedStopModelId] ?? 0) + 1;
     }
   }
+
+  const stopDiagBySetupId = new Map(
+    stopDiagnostics.map((d) => [d.setupId, d])
+  );
+  const objectiveTargetProductionDiagnostics: ReturnType<
+    typeof buildObjectiveTargetProductionDiagnostic
+  >[] = [];
+  const bundles = input.tradeContext.bundlesBySymbol ?? {};
+  for (const item of pipelineReport.snapshots) {
+    const plan = pipelineReport.entryPlanReport.plans.find(
+      (p) => p.id === item.entryPlanId
+    );
+    const bundle = plan ? bundles[plan.symbol] : undefined;
+    if (!plan || !bundle) {
+      continue;
+    }
+    const stopDiag = stopDiagBySetupId.get(plan.setupRef.setupId);
+    objectiveTargetProductionDiagnostics.push(
+      buildObjectiveTargetProductionDiagnostic({
+        plan,
+        bundle,
+        snapshot: item.snapshot,
+        entryReferencePrice: entryPriceByPlanId.get(plan.id),
+        stopReferencePrice: stopDiag?.selectedStopPrice ?? stopDiag?.stopPrice ?? undefined,
+        stopModelId: stopDiag?.selectedStopModelId ?? stopDiag?.stopModelId ?? null,
+      })
+    );
+  }
+  objectiveTargetProductionDiagnostics.sort((a, b) =>
+    a.symbol.localeCompare(b.symbol) || a.setupId.localeCompare(b.setupId)
+  );
+  const objectiveTargetSourceSummary = summarizeObjectiveTargetSources(
+    objectiveTargetProductionDiagnostics
+  );
+  const selectedTargetSourceSummary = summarizeSelectedTargetSources(
+    objectiveTargetProductionDiagnostics
+  );
 
   for (const setup of setupDetection.candidates) {
     if (!setup.isTradeSetup) {
@@ -419,6 +447,9 @@ export function buildRealMarketValidationReport(
     ),
     stopModelSummary,
     selectedStopModelSummary,
+    objectiveTargetProductionDiagnostics,
+    objectiveTargetSourceSummary,
+    selectedTargetSourceSummary,
   };
 }
 
@@ -527,6 +558,15 @@ export function formatRealMarketValidationReport(
     lines.push(`  ${modelId}: ${n}`);
   }
   lines.push("");
+  lines.push("Objective target source summary:");
+  for (const [src, stats] of Object.entries(
+    report.objectiveTargetSourceSummary
+  )) {
+    lines.push(
+      `  ${src}: available=${stats.available} insufficient=${stats.insufficient} notApplicable=${stats.notApplicable}`
+    );
+  }
+  lines.push("");
   lines.push(report.correctiveTrackInvalidationNote);
   return lines.join("\n");
 }
@@ -568,15 +608,11 @@ export async function runRealMarketValidation(
     tradeContext,
   });
 
-  const objectiveTargetSourceContextBySymbol =
-    objectiveContextFromTradeContext(tradeContext);
-
   const pipelineReport = buildTradeSetupEvaluationPipeline({
     scanReport,
     tradeContext,
     candlesBySymbol,
     setupDetectionReport: setupDetection,
-    objectiveTargetSourceContextBySymbol,
   });
 
   return buildRealMarketValidationReport({

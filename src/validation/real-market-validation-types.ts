@@ -1,7 +1,7 @@
 import type { ConditionOutcome, SetupLifecycleStatus } from "../wave/setup/setup-types";
 import type { TradeSetupEvaluationAggregateState } from "../wave/setup/trade-setup-evaluation-types";
 
-export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "1.4" as const;
+export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "1.5" as const;
 
 export type RealMarketStopFailureReason =
   | "STOP_REFERENCE_AVAILABLE"
@@ -268,4 +268,42 @@ export interface RealMarketValidationReport {
   correctiveTrackInvalidationNote: string;
   stopModelSummary: RealMarketStopModelSummary;
   selectedStopModelSummary: RealMarketSelectedStopModelSummary;
+  objectiveTargetProductionDiagnostics: RealMarketObjectiveTargetProductionDiagnostic[];
+  objectiveTargetSourceSummary: Record<
+    string,
+    { available: number; insufficient: number; notApplicable: number }
+  >;
+  selectedTargetSourceSummary: Record<string, number>;
+}
+
+export interface RealMarketObjectiveTargetSourceDiagnosticRow {
+  sourceId: string;
+  outcome: string;
+  provenance: string | null;
+  targetPrice: number | null;
+  reason: string;
+  inputsUsed: string[];
+}
+
+export interface RealMarketObjectiveTargetProductionDiagnostic {
+  setupId: string;
+  setupTypeId: string;
+  symbol: string;
+  scenarioWaveLabel: string;
+  directionalBias: string | null;
+  evaluationBarIndex: number;
+  entryReferencePrice: number | null;
+  stopReferencePrice: number | null;
+  stopModelId: string | null;
+  sources: RealMarketObjectiveTargetSourceDiagnosticRow[];
+  selectionOutcome: string | null;
+  selectedSource: string | null;
+  selectedPrice: number | null;
+  targetModelOutcome: string | null;
+  targetModelPrice: number | null;
+  rrOutcome: string | null;
+  rrRatio: number | null;
+  fibonacciDiagnosticAvailable: boolean;
+  confirmedSwingCountAtBar: number;
+  segmentOriginIndex: number;
 }

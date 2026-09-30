@@ -19,7 +19,16 @@ export type ObjectiveTargetCandidateOutcome =
 /**
  * Upstream attestation and diagnostics snapshots — not recomputed here.
  */
+export type ObjectiveTargetSourceProvenance =
+  | "ENGINE_DIAGNOSTICS"
+  | "CALLER_ATTESTED";
+
 export interface ObjectiveTargetSourceContext {
+  /**
+   * ENGINE_DIAGNOSTICS: snapshot from wave analysis bundle (no attested price fields).
+   * CALLER_ATTESTED: explicit attested* fields supplied by caller/tests.
+   */
+  sourceProvenance?: ObjectiveTargetSourceProvenance;
   diagnostics?: WaveDiagnostics;
   /**
    * Attested impulse leg anchors for extension math (existing fibExtensionPrice).

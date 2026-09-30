@@ -324,14 +324,14 @@ describe("14D.11 TEST_ONLY realistic E2E fixture validation", () => {
   });
 
   describe("negative cases", () => {
-    it("A: no objective context → insufficient evaluation", () => {
+    it("A: engine diagnostics only (no attestation) → insufficient evaluation", () => {
       const snap = buildMvpPipeline({
         symbols: ["BTCUSDT"],
         candidates: [impulseContinuationSetup("BTCUSDT")],
         objectiveBySymbol: {},
       }).snapshots[0].snapshot;
       assert.equal(snap.evaluationState, "INSUFFICIENT_CONTEXT");
-      assert.equal(snap.objectiveTargetSelection, undefined);
+      assert.equal(snap.objectiveTargetSelection?.outcome, "NO_SELECTION");
     });
 
     it("B: missing stop → RR insufficient", () => {
@@ -446,7 +446,7 @@ describe("14D.11 TEST_ONLY realistic E2E fixture validation", () => {
       const eth = result.snapshots.find((s) => s.symbol === "ETHUSDT")!;
       assert.equal(btc.snapshot.evaluationState, "READY_FOR_FURTHER_EVALUATION");
       assert.equal(eth.snapshot.evaluationState, "INSUFFICIENT_CONTEXT");
-      assert.equal(eth.snapshot.objectiveTargetSelection, undefined);
+      assert.equal(eth.snapshot.objectiveTargetSelection?.outcome, "NO_SELECTION");
     });
 
     it("impulse + correction as separate symbols (context not shared)", () => {

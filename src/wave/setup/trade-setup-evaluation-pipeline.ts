@@ -11,6 +11,7 @@ import type {
 import { TRADE_SETUP_EVALUATION_PIPELINE_SCHEMA_VERSION } from "./trade-setup-evaluation-pipeline-types";
 import type { SetupDetectionReport } from "./setup-types";
 import type { ObjectiveTargetSourceContext } from "./objective-target-candidate-types";
+import { buildObjectiveTargetSourceContextForPlan } from "./objective-target-production-context";
 import type { TradeSetupEvaluationContext } from "./trade-setup-types";
 
 const PIPELINE_LIMITATIONS = [
@@ -40,6 +41,13 @@ export interface TradeSetupEvaluationPipelineInput {
    * Caller-provided only; pipeline does not fetch diagnostics or candles.
    */
   objectiveTargetSourceContextBySymbol?: Record<
+    string,
+    ObjectiveTargetSourceContext
+  >;
+  /**
+   * Per-setup objective context (preferred over symbol-wide map when both present).
+   */
+  objectiveTargetSourceContextBySetupId?: Record<
     string,
     ObjectiveTargetSourceContext
   >;
@@ -87,7 +95,11 @@ export function buildTradeSetupEvaluationPipeline(
     const candles = input.candlesBySymbol?.[plan.symbol];
     const priceContext = candles ? { candles } : undefined;
     const objectiveTargetSourceContext =
-      input.objectiveTargetSourceContextBySymbol?.[plan.symbol];
+      input.objectiveTargetSourceContextBySetupId?.[plan.setupRef.setupId] ??
+      input.objectiveTargetSourceContextBySymbol?.[plan.symbol] ??
+      (bundles?.[plan.symbol]
+        ? buildObjectiveTargetSourceContextForPlan(plan, bundles[plan.symbol])
+        : undefined);
     try {
       const snapshot = buildTradeSetupEvaluationSnapshot({
         plan,

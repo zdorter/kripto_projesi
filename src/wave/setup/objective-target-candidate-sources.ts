@@ -180,6 +180,18 @@ function evaluatePreviousSwing(
       []
     );
   }
+  const evalBarIndex = plan.evaluationBar.evaluationBarIndex;
+  if (originIndex > evalBarIndex) {
+    return baseCandidate(
+      plan,
+      "PREVIOUS_SWING",
+      def.label,
+      "INSUFFICIENT_CONTEXT",
+      "diagnostics.confirmedSwings",
+      `Segment origin index ${originIndex} is after evaluation bar ${evalBarIndex}.`,
+      []
+    );
+  }
   const swing = swings.find((s) => s.index === originIndex);
   if (!swing) {
     return baseCandidate(
@@ -189,6 +201,17 @@ function evaluatePreviousSwing(
       "INSUFFICIENT_CONTEXT",
       "diagnostics.confirmedSwings",
       `No confirmed swing at scenario segment start index ${originIndex}.`,
+      []
+    );
+  }
+  if (swing.index > evalBarIndex) {
+    return baseCandidate(
+      plan,
+      "PREVIOUS_SWING",
+      def.label,
+      "INSUFFICIENT_CONTEXT",
+      "diagnostics.confirmedSwings",
+      `Confirmed swing index ${swing.index} is after evaluation bar ${evalBarIndex}.`,
       []
     );
   }

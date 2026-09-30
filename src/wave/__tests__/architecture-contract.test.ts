@@ -625,6 +625,35 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("Z — production objective target contract (14K)", () => {
+    it("production context builder does not run engine or fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/objective-target-production-context.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("runWaveScan"));
+      assert.ok(!text.includes("analyzeWaveWithDiagnostics"));
+      assert.ok(!text.includes("binance"));
+      assert.ok(!text.includes("fibExtensionPrice"));
+    });
+
+    it("candidate sources still require attestation for fib and wave structure", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/objective-target-candidate-sources.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("attestedFibonacciProjection"));
+      assert.ok(text.includes("attestedWaveStructureTarget"));
+      assert.ok(!text.includes("nearestSwing"));
+    });
+  });
+
   describe("Y — scope-aware stop reference (14J)", () => {
     it("segment stop model geometry unchanged; track model requires TRACK_SCOPE and entry reference", async () => {
       const fs = await import("node:fs");

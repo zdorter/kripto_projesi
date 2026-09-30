@@ -145,6 +145,11 @@ export {
   evaluateObjectiveTargetSource,
   objectiveTargetCandidatesAvailable,
 } from "./objective-target-candidate-sources";
+export {
+  buildObjectiveTargetSourceContextForPlan,
+  buildObjectiveTargetSourceContextBySetupId,
+  buildObjectiveTargetSourceContextBySetupIdFromTradeContext,
+} from "./objective-target-production-context";
 export type {
   ObjectiveTargetCandidate,
   ObjectiveTargetCandidateEvaluateInput,
@@ -152,6 +157,7 @@ export type {
   ObjectiveTargetCandidateReport,
   ObjectiveTargetSourceContext,
   ObjectiveTargetSourceId,
+  ObjectiveTargetSourceProvenance,
 } from "./objective-target-candidate-types";
 export { OBJECTIVE_TARGET_CANDIDATE_SCHEMA_VERSION } from "./objective-target-candidate-types";
 export { DEFAULT_OBJECTIVE_TARGET_SELECTION_POLICY } from "./objective-target-selection-policy";
