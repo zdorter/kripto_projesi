@@ -1,7 +1,7 @@
 import type { ConditionOutcome, SetupLifecycleStatus } from "../wave/setup/setup-types";
 import type { TradeSetupEvaluationAggregateState } from "../wave/setup/trade-setup-evaluation-types";
 
-export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "1.5" as const;
+export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "1.6" as const;
 
 export type RealMarketStopFailureReason =
   | "STOP_REFERENCE_AVAILABLE"
@@ -274,6 +274,34 @@ export interface RealMarketValidationReport {
     { available: number; insufficient: number; notApplicable: number }
   >;
   selectedTargetSourceSummary: Record<string, number>;
+  fibonacciProjectionPolicyDiagnostics: RealMarketFibonacciProjectionPolicyDiagnostic[];
+  projectionPolicySummary: Record<string, number>;
+}
+
+export interface RealMarketFibonacciProjectionPolicyDiagnostic {
+  setupId: string;
+  waveLabel: string;
+  direction: string | null;
+  evaluationBarIndex: number;
+  anchorsAvailable: boolean;
+  w1RangeStart: number | null;
+  w1RangeEnd: number | null;
+  wave1StartIndex: number | null;
+  wave1EndIndex: number | null;
+  wave2EndIndex: number | null;
+  projectionFormulaAvailable: boolean;
+  ratioPolicyAvailable: boolean;
+  policyApplicableToWave: boolean;
+  policyId: string | null;
+  policyStatus: string;
+  allowedRatios: number[];
+  selectedRatio: number | null;
+  projectionPrice: number | null;
+  projectionCandidateOutcome: string;
+  projectionCandidateReason: string;
+  targetModelOutcome: string | null;
+  targetModelPrice: number | null;
+  rrOutcome: string | null;
 }
 
 export interface RealMarketObjectiveTargetSourceDiagnosticRow {

@@ -127,7 +127,11 @@ describe("objective target production context (14K)", () => {
       sourceContext: ctx,
     });
     assert.equal(c.outcome, "INSUFFICIENT_CONTEXT");
-    assert.ok(c.rationale.includes("attested") || c.rationale.includes("extension"));
+    assert.ok(
+      c.rationale.includes("TARGET_RATIO_POLICY_MISSING") ||
+        c.rationale.includes("attested") ||
+        c.rationale.includes("extension")
+    );
   });
 
   it("H: previous swing exact index contract", () => {

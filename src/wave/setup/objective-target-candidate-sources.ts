@@ -1,4 +1,5 @@
 import { fibExtensionPrice } from "../fibonacci";
+import { resolveFibonacciProjectionPolicy } from "./fibonacci-projection-policy";
 import {
   getObjectiveTargetSourceDefinition,
   isObjectiveTargetSourceApplicable,
@@ -31,7 +32,14 @@ function baseCandidate(
   referenceSource: string,
   rationale: string,
   limitations: string[],
-  targetPrice?: number
+  targetPrice?: number,
+  projectionMeta?: Pick<
+    ObjectiveTargetCandidate,
+    | "projectionPolicyId"
+    | "projectionRatio"
+    | "projectionRangeStartPrice"
+    | "projectionRangeEndPrice"
+  >
 ): ObjectiveTargetCandidate {
   return {
     schemaVersion: OBJECTIVE_TARGET_CANDIDATE_SCHEMA_VERSION,
@@ -49,6 +57,7 @@ function baseCandidate(
     rationale,
     limitations,
     targetPrice,
+    ...projectionMeta,
   };
 }
 
@@ -99,18 +108,80 @@ function evaluateFibonacciProjection(
   }
   const attested = input.sourceContext?.attestedFibonacciProjection;
   if (!attested) {
-    const fib = input.sourceContext?.diagnostics?.fibonacci;
-    const note = fib?.available
-      ? "Diagnostics expose W1–W2 retracement conformance only; extension projection anchors are not in the snapshot contract."
-      : "Fibonacci projection requires attested leg anchors or a future diagnostics projection contract.";
+    const resolution = resolveFibonacciProjectionPolicy(
+      plan,
+      input.sourceContext
+    );
+    if (resolution.status !== "POLICY_READY" || resolution.projectionPrice === null) {
+      const referenceSource =
+        resolution.status === "TARGET_RATIO_POLICY_MISSING"
+          ? "projectionPolicy"
+          : "diagnostics.fibonacci+projectionPolicy";
+      return baseCandidate(
+        plan,
+        "FIBONACCI_PROJECTION",
+        def.label,
+        "INSUFFICIENT_CONTEXT",
+        referenceSource,
+        resolution.detail,
+        [
+          "Fibonacci mathematics ≠ objective target policy; ratio must come from explicit policy.",
+        ],
+        undefined,
+        resolution.policyId
+          ? {
+              projectionPolicyId: resolution.policyId,
+              projectionRatio: resolution.selectedRatio ?? undefined,
+              projectionRangeStartPrice: resolution.rangeStartPrice ?? undefined,
+              projectionRangeEndPrice: resolution.rangeEndPrice ?? undefined,
+            }
+          : undefined
+      );
+    }
+    const targetPrice = resolution.projectionPrice;
+    if (plan.directionalBias) {
+      const geom = targetGeometryConsistent(
+        plan.directionalBias,
+        targetPrice,
+        plan.sourceScenario.startPrice,
+        plan.sourceScenario.endPrice
+      );
+      if (!geom.ok) {
+        return baseCandidate(
+          plan,
+          "FIBONACCI_PROJECTION",
+          def.label,
+          "INSUFFICIENT_CONTEXT",
+          "projectionPolicy",
+          geom.detail,
+          [],
+          undefined,
+          {
+            projectionPolicyId: resolution.policyId!,
+            projectionRatio: resolution.selectedRatio!,
+            projectionRangeStartPrice: resolution.rangeStartPrice!,
+            projectionRangeEndPrice: resolution.rangeEndPrice!,
+          }
+        );
+      }
+    }
     return baseCandidate(
       plan,
       "FIBONACCI_PROJECTION",
       def.label,
-      "INSUFFICIENT_CONTEXT",
-      "diagnostics.fibonacci",
-      note,
-      []
+      "AVAILABLE",
+      "ENGINE_DIAGNOSTICS+projectionPolicy",
+      resolution.detail,
+      [
+        "Computed with fibExtensionPrice from diagnostics W1 anchors and explicit projection policy.",
+      ],
+      targetPrice,
+      {
+        projectionPolicyId: resolution.policyId!,
+        projectionRatio: resolution.selectedRatio!,
+        projectionRangeStartPrice: resolution.rangeStartPrice!,
+        projectionRangeEndPrice: resolution.rangeEndPrice!,
+      }
     );
   }
   const targetPrice = fibExtensionPrice(

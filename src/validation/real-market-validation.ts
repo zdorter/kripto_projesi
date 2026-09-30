@@ -19,6 +19,10 @@ import {
   summarizeZeroConfirmedRootCause,
 } from "./real-market-setup-diagnostics";
 import {
+  buildFibonacciProjectionPolicyDiagnostic,
+  summarizeProjectionPolicyDiagnostics,
+} from "./real-market-fibonacci-projection-policy-diagnostics";
+import {
   buildObjectiveTargetProductionDiagnostic,
   summarizeObjectiveTargetSources,
   summarizeSelectedTargetSources,
@@ -243,6 +247,32 @@ export function buildRealMarketValidationReport(
     objectiveTargetProductionDiagnostics
   );
 
+  const fibonacciProjectionPolicyDiagnostics: ReturnType<
+    typeof buildFibonacciProjectionPolicyDiagnostic
+  >[] = [];
+  for (const item of pipelineReport.snapshots) {
+    const plan = pipelineReport.entryPlanReport.plans.find(
+      (p) => p.id === item.entryPlanId
+    );
+    const bundle = plan ? bundles[plan.symbol] : undefined;
+    if (!plan || !bundle) {
+      continue;
+    }
+    fibonacciProjectionPolicyDiagnostics.push(
+      buildFibonacciProjectionPolicyDiagnostic({
+        plan,
+        bundle,
+        snapshot: item.snapshot,
+      })
+    );
+  }
+  fibonacciProjectionPolicyDiagnostics.sort((a, b) =>
+    a.setupId.localeCompare(b.setupId)
+  );
+  const projectionPolicySummary = summarizeProjectionPolicyDiagnostics(
+    fibonacciProjectionPolicyDiagnostics
+  );
+
   for (const setup of setupDetection.candidates) {
     if (!setup.isTradeSetup) {
       continue;
@@ -450,6 +480,8 @@ export function buildRealMarketValidationReport(
     objectiveTargetProductionDiagnostics,
     objectiveTargetSourceSummary,
     selectedTargetSourceSummary,
+    fibonacciProjectionPolicyDiagnostics,
+    projectionPolicySummary,
   };
 }
 
@@ -565,6 +597,11 @@ export function formatRealMarketValidationReport(
     lines.push(
       `  ${src}: available=${stats.available} insufficient=${stats.insufficient} notApplicable=${stats.notApplicable}`
     );
+  }
+  lines.push("");
+  lines.push("Fibonacci projection policy (aggregate status, not quality):");
+  for (const [status, n] of Object.entries(report.projectionPolicySummary)) {
+    lines.push(`  ${status}: ${n}`);
   }
   lines.push("");
   lines.push(report.correctiveTrackInvalidationNote);

@@ -625,6 +625,28 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AA — Fibonacci projection policy (14L)", () => {
+    it("no implicit ratio or nearestMatch in production policy registry", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const policy = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/fibonacci-projection-policy.ts"),
+        "utf8"
+      );
+      const sources = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/setup/objective-target-candidate-sources.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(policy.includes("PRODUCTION_FIBONACCI_PROJECTION_POLICIES"));
+      assert.ok(!policy.includes("nearestFibMatch"));
+      assert.ok(!policy.includes("DEFAULT_FIB"));
+      assert.ok(sources.includes("TARGET_RATIO_POLICY_MISSING"));
+    });
+  });
+
   describe("Z — production objective target contract (14K)", () => {
     it("production context builder does not run engine or fetch", async () => {
       const fs = await import("node:fs");

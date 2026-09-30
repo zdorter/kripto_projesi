@@ -146,6 +146,16 @@ export {
   objectiveTargetCandidatesAvailable,
 } from "./objective-target-candidate-sources";
 export {
+  PRODUCTION_FIBONACCI_PROJECTION_POLICIES,
+  extractW1LegAnchorsFromFibonacciDiagnostic,
+  resolveFibonacciProjectionPolicy,
+} from "./fibonacci-projection-policy";
+export type {
+  FibonacciObjectiveTargetProjectionPolicy,
+  FibonacciProjectionPolicyResolution,
+  FibonacciProjectionPolicyStatus,
+} from "./fibonacci-projection-policy-types";
+export {
   buildObjectiveTargetSourceContextForPlan,
   buildObjectiveTargetSourceContextBySetupId,
   buildObjectiveTargetSourceContextBySetupIdFromTradeContext,

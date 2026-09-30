@@ -1,5 +1,6 @@
 import type { FibExtensionLevel } from "../fibonacci";
 import type { WaveDiagnostics } from "../wave-diagnostics";
+import type { FibonacciObjectiveTargetProjectionPolicy } from "./fibonacci-projection-policy-types";
 import type { EntryPlanCandidate } from "./entry-plan-types";
 import type { SetupDirectionalBias } from "./setup-types";
 
@@ -56,6 +57,10 @@ export interface ObjectiveTargetSourceContext {
     targetPrice: number;
     evidenceRef: string;
   };
+  /**
+   * Explicit projection policy (CALLER_POLICY / tests). Not inferred from wave labels.
+   */
+  fibonacciProjectionPolicy?: FibonacciObjectiveTargetProjectionPolicy;
 }
 
 export interface ObjectiveTargetCandidateEvaluateInput {
@@ -82,6 +87,10 @@ export interface ObjectiveTargetCandidate {
   referenceSource: string;
   rationale: string;
   limitations: string[];
+  projectionPolicyId?: string;
+  projectionRatio?: number;
+  projectionRangeStartPrice?: number;
+  projectionRangeEndPrice?: number;
 }
 
 export interface ObjectiveTargetCandidateReport {
