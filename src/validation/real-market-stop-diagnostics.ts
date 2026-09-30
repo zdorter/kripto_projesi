@@ -1,6 +1,14 @@
-import { evaluateStopLossModel } from "../wave/setup/stop-loss-model";
+import type { EntryPriceReference } from "../wave/setup/entry-model-types";
+import {
+  buildStopLossReport,
+  evaluateStopLossModel,
+  stopReferencesAvailable,
+} from "../wave/setup/stop-loss-model";
 import type { EntryPlanCandidate } from "../wave/setup/entry-plan-types";
-import type { StopLossModelId } from "../wave/setup/stop-loss-model-types";
+import type {
+  StopLossModelId,
+  StopLossReference,
+} from "../wave/setup/stop-loss-model-types";
 import type { SetupDirectionalBias } from "../wave/setup/setup-types";
 import type { WaveScanResult } from "../wave/wave-scanner";
 import type {
@@ -8,7 +16,34 @@ import type {
   RealMarketStopPlanDiagnostic,
 } from "./real-market-validation-types";
 
-const STOP_MODEL_ID: StopLossModelId = "SCENARIO_INVALIDATION_REFERENCE";
+const SEGMENT_STOP_MODEL_ID: StopLossModelId =
+  "SCENARIO_INVALIDATION_REFERENCE";
+
+export interface RealMarketStopModelOutcomeRow {
+  modelId: StopLossModelId;
+  scopeSemantics: string | null;
+  outcome: string;
+  stopPrice: number | null;
+  rationale: string;
+}
+
+function entryReferenceFromPrice(
+  plan: EntryPlanCandidate,
+  price: number
+): EntryPriceReference {
+  return {
+    schemaVersion: "1.0",
+    modelId: "EVALUATION_CLOSE",
+    modelLabel: "validation diagnostic",
+    outcome: "ENTRY_REFERENCE_AVAILABLE",
+    entryPlanId: plan.id,
+    setupTypeId: plan.setupTypeId,
+    directionalBias: plan.directionalBias,
+    referencePrice: price,
+    rationale: "From evaluation snapshot selected entry reference.",
+    limitations: [],
+  };
+}
 
 export function segmentEnvelope(startPrice: number, endPrice: number): {
   envelopeLow: number;
@@ -86,7 +121,29 @@ export function buildStopPlanDiagnostic(input: {
   entryReferencePrice?: number;
 }): RealMarketStopPlanDiagnostic {
   const { plan, setupId, scanRow, entryReferencePrice } = input;
-  const ref = evaluateStopLossModel(STOP_MODEL_ID, { plan });
+  const selectedEntryReference =
+    entryReferencePrice !== undefined && Number.isFinite(entryReferencePrice)
+      ? entryReferenceFromPrice(plan, entryReferencePrice)
+      : null;
+  const stopReport = buildStopLossReport({
+    plan,
+    selectedEntryReference,
+  }).report;
+  const ref =
+    stopReport.references.find(
+      (r) => r.modelId === SEGMENT_STOP_MODEL_ID
+    ) ??
+    evaluateStopLossModel(SEGMENT_STOP_MODEL_ID, { plan });
+  const stopModelOutcomes: RealMarketStopModelOutcomeRow[] =
+    stopReport.references.map((r) => ({
+      modelId: r.modelId,
+      scopeSemantics: r.scopeSemantics ?? null,
+      outcome: r.outcome,
+      stopPrice: r.stopPrice ?? null,
+      rationale: r.rationale,
+    }));
+  const selectedStopReference: StopLossReference | null =
+    stopReferencesAvailable(stopReport)[0] ?? null;
   const invLevel = plan.referenceLevels.find(
     (l) => l.kind === "SCENARIO_INVALIDATION"
   );
@@ -120,10 +177,11 @@ export function buildStopPlanDiagnostic(input: {
     }
   }
 
+  const outcomeRef = selectedStopReference ?? ref;
   const failureReason = classifyStopFailureReason(
     plan,
-    ref.rationale,
-    ref.outcome
+    outcomeRef.rationale,
+    outcomeRef.outcome
   );
 
   return {
@@ -147,16 +205,54 @@ export function buildStopPlanDiagnostic(input: {
     invalidationPrice: invPrice ?? null,
     usesScenarioInvalidation: plan.invalidation.usesScenarioInvalidation,
     scenarioInvalidationAvailable: scanRow?.invalidation.available ?? null,
-    stopModelId: STOP_MODEL_ID,
-    stopOutcome: ref.outcome,
-    stopRationale: ref.rationale,
-    stopPrice: ref.stopPrice ?? null,
+    stopModelId: outcomeRef.modelId,
+    stopOutcome: outcomeRef.outcome,
+    stopRationale: outcomeRef.rationale,
+    stopPrice: outcomeRef.stopPrice ?? null,
     failureReason,
     geometryValid,
     entryReferencePrice: entryReferencePrice ?? null,
     entryVsInvalidationNote: entryVsInvalidation,
     stopLimitations: ref.limitations,
+    stopModelOutcomes,
+    selectedStopModelId: selectedStopReference?.modelId ?? null,
+    selectedStopPrice: selectedStopReference?.stopPrice ?? null,
   };
+}
+
+export function buildStopModelSummary(
+  diagnostics: RealMarketStopPlanDiagnostic[]
+): Record<
+  string,
+  {
+    available: number;
+    insufficient: number;
+    notApplicable: number;
+  }
+> {
+  const summary: Record<
+    string,
+    { available: number; insufficient: number; notApplicable: number }
+  > = {};
+  for (const d of diagnostics) {
+    for (const row of d.stopModelOutcomes ?? []) {
+      if (!summary[row.modelId]) {
+        summary[row.modelId] = {
+          available: 0,
+          insufficient: 0,
+          notApplicable: 0,
+        };
+      }
+      if (row.outcome === "STOP_REFERENCE_AVAILABLE") {
+        summary[row.modelId].available++;
+      } else if (row.outcome === "NOT_APPLICABLE") {
+        summary[row.modelId].notApplicable++;
+      } else {
+        summary[row.modelId].insufficient++;
+      }
+    }
+  }
+  return summary;
 }
 
 export function buildStopDiagnosticsFromPipeline(input: {

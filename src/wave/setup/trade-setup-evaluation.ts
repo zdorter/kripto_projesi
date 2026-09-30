@@ -87,11 +87,14 @@ export function buildTradeSetupEvaluationSnapshot(
     plan,
     priceContext: input.priceContext,
   }).report;
-  const stopLossModel = buildStopLossReport({ plan }).report;
-  const targetModel = buildTargetModelReport({ plan: targetPlan }).report;
-
   const selectedEntryReference =
     entryReferencesAvailable(entryModel)[0] ?? null;
+  const stopLossModel = buildStopLossReport({
+    plan,
+    selectedEntryReference,
+  }).report;
+  const targetModel = buildTargetModelReport({ plan: targetPlan }).report;
+
   const selectedStopLossReference =
     stopReferencesAvailable(stopLossModel)[0] ?? null;
   const selectedTargetReference =

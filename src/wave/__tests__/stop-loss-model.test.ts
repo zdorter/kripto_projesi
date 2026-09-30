@@ -172,7 +172,7 @@ describe("stop-loss-model 14D.3 contract", () => {
     assert.equal(ref.outcome, "STOP_REFERENCE_AVAILABLE");
     assert.ok(
       ref.limitations.some((l) =>
-        l.includes("not structural invalidation redefinition")
+        l.includes("not an exchange stop order")
       )
     );
   });

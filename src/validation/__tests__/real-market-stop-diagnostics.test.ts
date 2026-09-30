@@ -57,6 +57,7 @@ function setup(overrides: Partial<SetupCandidate> = {}): SetupCandidate {
         label: "inv",
         price: 82_900,
         note: "TRACK_SCOPE",
+        invalidationSource: "TRACK_SCOPE",
       },
     ],
     sourceScenario: {

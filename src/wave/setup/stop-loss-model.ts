@@ -28,7 +28,13 @@ function baseReference(
   referenceSource: string,
   rationale: string,
   limitations: string[],
-  extra?: Pick<StopLossReference, "stopPrice" | "referenceKind">
+  extra?: Pick<
+    StopLossReference,
+    | "stopPrice"
+    | "referenceKind"
+    | "scopeSemantics"
+    | "requiredInvalidationSource"
+  >
 ): StopLossReference {
   return {
     schemaVersion: STOP_LOSS_MODEL_SCHEMA_VERSION,
@@ -115,14 +121,20 @@ function geometryConsistent(
   return { ok: false, detail: "Unknown directional bias." };
 }
 
+const SEGMENT_SCOPE_SEMANTICS =
+  "SEGMENT_ENVELOPE_SCENARIO_INVALIDATION_REFERENCE";
+const TRACK_SCOPE_SEMANTICS = "TRACK_SCOPE_STRUCTURAL_STOP_REFERENCE";
+
 function evaluateScenarioInvalidationReference(
   plan: EntryPlanCandidate
 ): StopLossReference {
   const def = getStopLossModelDefinition("SCENARIO_INVALIDATION_REFERENCE")!;
   const limitations = [
     "Stop price equals scenario invalidation price from snapshot; not adjusted for execution.",
-    "This is a stop-loss reference model output, not structural invalidation redefinition.",
+    "Segment-envelope geometry applies; track-scope risk-side geometry does not.",
+    "This is a stop-loss reference model output, not an exchange stop order.",
   ];
+  const scopeExtra = { scopeSemantics: SEGMENT_SCOPE_SEMANTICS };
   const ready = planReadyForStopModel(plan);
   if (!ready.ok) {
     return baseReference(
@@ -132,7 +144,8 @@ function evaluateScenarioInvalidationReference(
       "INSUFFICIENT_CONTEXT",
       "none",
       ready.detail,
-      limitations
+      limitations,
+      scopeExtra
     );
   }
   if (!plan.invalidation.usesScenarioInvalidation) {
@@ -143,7 +156,8 @@ function evaluateScenarioInvalidationReference(
       "INSUFFICIENT_CONTEXT",
       "none",
       "Scenario invalidation not marked available on Entry Plan.",
-      limitations
+      limitations,
+      scopeExtra
     );
   }
   const level = invalidationLevelFromPlan(plan);
@@ -155,7 +169,8 @@ function evaluateScenarioInvalidationReference(
       "INSUFFICIENT_CONTEXT",
       "none",
       "SCENARIO_INVALIDATION reference level missing from Entry Plan snapshot.",
-      limitations
+      limitations,
+      scopeExtra
     );
   }
   const stopPrice = level.price;
@@ -167,7 +182,8 @@ function evaluateScenarioInvalidationReference(
       "INSUFFICIENT_CONTEXT",
       level.note ?? "scenario-invalidation",
       "Invalidation price is not finite.",
-      limitations
+      limitations,
+      scopeExtra
     );
   }
   if (plan.directionalBias === null) {
@@ -178,7 +194,8 @@ function evaluateScenarioInvalidationReference(
       "INSUFFICIENT_CONTEXT",
       level.note ?? "scenario-invalidation",
       "Directional bias is null; stop side cannot be validated without guessing.",
-      limitations
+      limitations,
+      scopeExtra
     );
   }
   const geom = geometryConsistent(
@@ -195,7 +212,8 @@ function evaluateScenarioInvalidationReference(
       "INSUFFICIENT_CONTEXT",
       level.note ?? "scenario-invalidation",
       geom.detail,
-      limitations
+      limitations,
+      scopeExtra
     );
   }
   const referenceSource = level.note ?? plan.invalidation.summary;
@@ -205,11 +223,179 @@ function evaluateScenarioInvalidationReference(
     def.label,
     "STOP_REFERENCE_AVAILABLE",
     referenceSource,
-    `Structural scenario invalidation price ${stopPrice} mapped to stop reference (no buffer).`,
+    `Structural scenario invalidation price ${stopPrice} mapped to stop reference (segment envelope satisfied).`,
     limitations,
     {
       stopPrice,
       referenceKind: "SCENARIO_INVALIDATION",
+      ...scopeExtra,
+    }
+  );
+}
+
+function trackRiskSideConsistent(
+  bias: SetupDirectionalBias,
+  invalidationPrice: number,
+  entryReferencePrice: number
+): { ok: true } | { ok: false; detail: string } {
+  if (bias === "BULLISH") {
+    if (invalidationPrice >= entryReferencePrice) {
+      return {
+        ok: false,
+        detail: `BULLISH track geometry: invalidation ${invalidationPrice} is not below entry reference ${entryReferencePrice}.`,
+      };
+    }
+    return { ok: true };
+  }
+  if (bias === "BEARISH") {
+    if (invalidationPrice <= entryReferencePrice) {
+      return {
+        ok: false,
+        detail: `BEARISH track geometry: invalidation ${invalidationPrice} is not above entry reference ${entryReferencePrice}.`,
+      };
+    }
+    return { ok: true };
+  }
+  return { ok: false, detail: "Unknown directional bias." };
+}
+
+function evaluateTrackScopeInvalidationReference(
+  plan: EntryPlanCandidate,
+  selectedEntryReference: StopLossModelEvaluateInput["selectedEntryReference"]
+): StopLossReference {
+  const def = getStopLossModelDefinition("TRACK_SCOPE_INVALIDATION_REFERENCE")!;
+  const limitations = [
+    "Track-scope structural invalidation mapped to stop reference; not an exchange stop order.",
+    "Risk-side geometry uses selected entry reference only; segment envelope is not applied.",
+    "Not a recommended, optimal, or ranked stop — structural reference only.",
+  ];
+  const scopeExtra = {
+    scopeSemantics: TRACK_SCOPE_SEMANTICS,
+    requiredInvalidationSource: "TRACK_SCOPE" as const,
+  };
+
+  const ready = planReadyForStopModel(plan);
+  if (!ready.ok) {
+    return baseReference(
+      plan,
+      "TRACK_SCOPE_INVALIDATION_REFERENCE",
+      def.label,
+      "INSUFFICIENT_CONTEXT",
+      "none",
+      ready.detail,
+      limitations,
+      scopeExtra
+    );
+  }
+  const level = invalidationLevelFromPlan(plan);
+  if (!level || level.price === undefined) {
+    return baseReference(
+      plan,
+      "TRACK_SCOPE_INVALIDATION_REFERENCE",
+      def.label,
+      "INSUFFICIENT_CONTEXT",
+      "none",
+      "SCENARIO_INVALIDATION reference level missing from Entry Plan snapshot.",
+      limitations,
+      scopeExtra
+    );
+  }
+  if (level.invalidationSource !== "TRACK_SCOPE") {
+    return baseReference(
+      plan,
+      "TRACK_SCOPE_INVALIDATION_REFERENCE",
+      def.label,
+      "NOT_APPLICABLE",
+      level.invalidationSource ?? "unknown",
+      `Model requires invalidation source TRACK_SCOPE; snapshot has ${level.invalidationSource ?? "none"}.`,
+      limitations,
+      scopeExtra
+    );
+  }
+  if (!plan.invalidation.usesScenarioInvalidation) {
+    return baseReference(
+      plan,
+      "TRACK_SCOPE_INVALIDATION_REFERENCE",
+      def.label,
+      "INSUFFICIENT_CONTEXT",
+      "none",
+      "Scenario invalidation not marked available on Entry Plan.",
+      limitations,
+      scopeExtra
+    );
+  }
+  const stopPrice = level.price;
+  if (!Number.isFinite(stopPrice)) {
+    return baseReference(
+      plan,
+      "TRACK_SCOPE_INVALIDATION_REFERENCE",
+      def.label,
+      "INSUFFICIENT_CONTEXT",
+      "TRACK_SCOPE",
+      "Invalidation price is not finite.",
+      limitations,
+      scopeExtra
+    );
+  }
+  if (plan.directionalBias === null) {
+    return baseReference(
+      plan,
+      "TRACK_SCOPE_INVALIDATION_REFERENCE",
+      def.label,
+      "INSUFFICIENT_CONTEXT",
+      "TRACK_SCOPE",
+      "Directional bias is null; stop side cannot be validated without guessing.",
+      limitations,
+      scopeExtra
+    );
+  }
+  const entryRef = selectedEntryReference;
+  if (
+    !entryRef ||
+    entryRef.outcome !== "ENTRY_REFERENCE_AVAILABLE" ||
+    entryRef.referencePrice === undefined ||
+    !Number.isFinite(entryRef.referencePrice)
+  ) {
+    return baseReference(
+      plan,
+      "TRACK_SCOPE_INVALIDATION_REFERENCE",
+      def.label,
+      "INSUFFICIENT_CONTEXT",
+      "TRACK_SCOPE",
+      "Selected entry reference unavailable; track stop requires entry reference for risk-side geometry.",
+      limitations,
+      scopeExtra
+    );
+  }
+  const trackGeom = trackRiskSideConsistent(
+    plan.directionalBias,
+    stopPrice,
+    entryRef.referencePrice
+  );
+  if (!trackGeom.ok) {
+    return baseReference(
+      plan,
+      "TRACK_SCOPE_INVALIDATION_REFERENCE",
+      def.label,
+      "INSUFFICIENT_CONTEXT",
+      "TRACK_SCOPE",
+      trackGeom.detail,
+      limitations,
+      scopeExtra
+    );
+  }
+  return baseReference(
+    plan,
+    "TRACK_SCOPE_INVALIDATION_REFERENCE",
+    def.label,
+    "STOP_REFERENCE_AVAILABLE",
+    "TRACK_SCOPE",
+    `Track-scope structural invalidation ${stopPrice} on risk side of entry reference ${entryRef.referencePrice} (no buffer).`,
+    limitations,
+    {
+      stopPrice,
+      referenceKind: "SCENARIO_INVALIDATION",
+      ...scopeExtra,
     }
   );
 }
@@ -234,6 +420,12 @@ export function evaluateStopLossModel(
   if (modelId === "SCENARIO_INVALIDATION_REFERENCE") {
     return evaluateScenarioInvalidationReference(plan);
   }
+  if (modelId === "TRACK_SCOPE_INVALIDATION_REFERENCE") {
+    return evaluateTrackScopeInvalidationReference(
+      plan,
+      input.selectedEntryReference
+    );
+  }
   return baseReference(
     plan,
     modelId,
@@ -243,10 +435,6 @@ export function evaluateStopLossModel(
     "Model not implemented.",
     []
   );
-}
-
-function compareReferences(a: StopLossReference, b: StopLossReference): number {
-  return a.modelId.localeCompare(b.modelId);
 }
 
 export function buildStopLossReport(
@@ -287,7 +475,6 @@ export function buildStopLossReport(
     };
   }
   const references = modelIds.map((id) => evaluateStopLossModel(id, input));
-  references.sort(compareReferences);
   return {
     report: {
       schemaVersion: STOP_LOSS_MODEL_SCHEMA_VERSION,

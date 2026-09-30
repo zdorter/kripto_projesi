@@ -74,6 +74,13 @@ export interface ConditionEvaluation {
   detail: string;
 }
 
+/** Mirrors scenario-layer `InvalidationSource` for lossless setup/entry propagation. */
+export type ScenarioInvalidationSource =
+  | "TRACK_SCOPE"
+  | "FOCUS_LEG"
+  | "WAVE_CANDIDATE"
+  | "NONE";
+
 export type ReferenceLevelKind =
   | "SEGMENT_START"
   | "SEGMENT_END"
@@ -95,6 +102,8 @@ export interface ReferenceLevel {
   index?: number;
   timeframe?: string;
   note?: string;
+  /** Present when kind is SCENARIO_INVALIDATION — selected scenario invalidation scope. */
+  invalidationSource?: ScenarioInvalidationSource;
 }
 
 export interface SetupScenarioRef {

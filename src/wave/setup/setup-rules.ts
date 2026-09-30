@@ -397,6 +397,7 @@ export function buildReferenceLevels(
       label: "Scenario invalidation",
       price: row.invalidation.price,
       note: row.invalidation.rule,
+      invalidationSource: row.invalidation.source,
     });
   }
 

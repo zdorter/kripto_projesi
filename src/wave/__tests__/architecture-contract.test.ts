@@ -625,6 +625,29 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("Y — scope-aware stop reference (14J)", () => {
+    it("segment stop model geometry unchanged; track model requires TRACK_SCOPE and entry reference", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/stop-loss-model.ts");
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("evaluateTrackScopeInvalidationReference"));
+      assert.ok(text.includes("invalidationPrice >= envelopeLow"));
+      assert.ok(text.includes("selectedEntryReference"));
+      assert.ok(!text.includes("candles"));
+      assert.ok(!text.includes("ATR"));
+    });
+
+    it("catalog lists segment model before track model for impulse-continuation", async () => {
+      const { listStopLossModelsForSetupType } = await import(
+        "../setup/stop-loss-model-catalog"
+      );
+      const ids = listStopLossModelsForSetupType("impulse-continuation");
+      assert.deepEqual(ids[0], "SCENARIO_INVALIDATION_REFERENCE");
+      assert.ok(ids.includes("TRACK_SCOPE_INVALIDATION_REFERENCE"));
+    });
+  });
+
   describe("X — invalidation scope / stop contract (14I)", () => {
     it("stop-loss-model geometry unchanged; scope layer is reporting-only", async () => {
       const fs = await import("node:fs");
@@ -672,7 +695,9 @@ describe("architecture contract", () => {
         "utf8"
       );
       assert.ok(diag.includes("evaluateStopLossModel"));
-      assert.ok(diag.includes("ref.stopPrice"));
+      assert.ok(
+        diag.includes("outcomeRef.stopPrice") || diag.includes("ref.stopPrice")
+      );
       assert.ok(!diag.includes("ATR"));
       assert.ok(!model.includes("ATR"));
     });

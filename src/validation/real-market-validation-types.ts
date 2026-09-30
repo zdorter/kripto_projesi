@@ -1,7 +1,7 @@
 import type { ConditionOutcome, SetupLifecycleStatus } from "../wave/setup/setup-types";
 import type { TradeSetupEvaluationAggregateState } from "../wave/setup/trade-setup-evaluation-types";
 
-export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "1.3" as const;
+export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "1.4" as const;
 
 export type RealMarketStopFailureReason =
   | "STOP_REFERENCE_AVAILABLE"
@@ -45,6 +45,31 @@ export interface RealMarketStopPlanDiagnostic {
   entryReferencePrice: number | null;
   entryVsInvalidationNote: string | null;
   stopLimitations: string[];
+  stopModelOutcomes?: Array<{
+    modelId: string;
+    scopeSemantics: string | null;
+    outcome: string;
+    stopPrice: number | null;
+    rationale: string;
+  }>;
+  selectedStopModelId: string | null;
+  selectedStopPrice: number | null;
+}
+
+export interface RealMarketStopModelSummary {
+  byModelId: Record<
+    string,
+    {
+      available: number;
+      insufficient: number;
+      notApplicable: number;
+    }
+  >;
+}
+
+export interface RealMarketSelectedStopModelSummary {
+  byModelId: Record<string, number>;
+  planCount: number;
 }
 
 export type ConditionOutcomeCounts = Record<ConditionOutcome, number>;
@@ -241,4 +266,6 @@ export interface RealMarketValidationReport {
   scenarioInvalidationCandidates: RealMarketScenarioInvalidationCandidateReport[];
   invalidationPrecedenceFindings: string[];
   correctiveTrackInvalidationNote: string;
+  stopModelSummary: RealMarketStopModelSummary;
+  selectedStopModelSummary: RealMarketSelectedStopModelSummary;
 }

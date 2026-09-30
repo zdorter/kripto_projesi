@@ -19,7 +19,10 @@ import {
   buildInvalidationFlowSummary,
   summarizeZeroConfirmedRootCause,
 } from "./real-market-setup-diagnostics";
-import { buildStopDiagnosticsFromPipeline } from "./real-market-stop-diagnostics";
+import {
+  buildStopDiagnosticsFromPipeline,
+  buildStopModelSummary,
+} from "./real-market-stop-diagnostics";
 import {
   analyzeInvalidationPrecedenceFindings,
   buildInvalidationScopeSummary,
@@ -195,6 +198,22 @@ export function buildRealMarketValidationReport(
     scenarioInvalidationCandidates,
     stopDiagnostics
   );
+  const stopModelSummary = {
+    byModelId: buildStopModelSummary(stopDiagnostics),
+  };
+  const selectedStopModelSummary: {
+    byModelId: Record<string, number>;
+    planCount: number;
+  } = {
+    byModelId: {},
+    planCount: stopDiagnostics.length,
+  };
+  for (const d of stopDiagnostics) {
+    if (d.selectedStopModelId) {
+      selectedStopModelSummary.byModelId[d.selectedStopModelId] =
+        (selectedStopModelSummary.byModelId[d.selectedStopModelId] ?? 0) + 1;
+    }
+  }
 
   for (const setup of setupDetection.candidates) {
     if (!setup.isTradeSetup) {
@@ -398,6 +417,8 @@ export function buildRealMarketValidationReport(
     correctiveTrackInvalidationNote: correctiveTrackInvalidationNote(
       input.tradeContext
     ),
+    stopModelSummary,
+    selectedStopModelSummary,
   };
 }
 
@@ -488,6 +509,22 @@ export function formatRealMarketValidationReport(
     for (const f of report.invalidationPrecedenceFindings) {
       lines.push(`  - ${f}`);
     }
+  }
+  lines.push("");
+  lines.push("Stop model summary (per-model outcomes, not ranking):");
+  for (const [modelId, stats] of Object.entries(
+    report.stopModelSummary.byModelId
+  )) {
+    lines.push(
+      `  ${modelId}: available=${stats.available} insufficient=${stats.insufficient} notApplicable=${stats.notApplicable}`
+    );
+  }
+  lines.push("");
+  lines.push("Selected stop model (first AVAILABLE in catalog order):");
+  for (const [modelId, n] of Object.entries(
+    report.selectedStopModelSummary.byModelId
+  )) {
+    lines.push(`  ${modelId}: ${n}`);
   }
   lines.push("");
   lines.push(report.correctiveTrackInvalidationNote);
