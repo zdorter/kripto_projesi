@@ -211,6 +211,7 @@ export {
   evaluateProspectiveSetupProduction,
   PRODUCTION_STRUCTURAL_TRANSITION_RULE,
 } from "./prospective-setup-production";
+export { evaluateProspectiveReferenceBundle } from "./prospective-reference-evaluation";
 export { evaluateProspectiveSourcePolicy } from "./prospective-setup-source-policy";
 export {
   PROSPECTIVE_ENTRY_PLAN_COMPATIBILITY_VERDICT,

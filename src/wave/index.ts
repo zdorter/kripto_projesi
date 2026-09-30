@@ -181,6 +181,29 @@ export type {
   WaveScannerRunOptions,
 } from "./wave-scanner";
 export {
+  runProductionWaveScanner,
+  composeProductionWaveScannerForSymbol,
+  selectDisplayProspectiveCandidate,
+  PRODUCTION_WAVE_SCANNER_SCHEMA_VERSION,
+} from "./production-wave-scanner";
+export type {
+  ProductionWaveScannerRunInput,
+  ProductionWaveScannerSymbolInput,
+} from "./production-wave-scanner";
+export {
+  presentWaveScannerRow,
+  WAVE_SCANNER_UI_LABELS,
+  WAVE_SCANNER_FORBIDDEN_UI_TOKENS,
+} from "./wave-scanner-presentation";
+export type { ProductionWaveScannerComposedRow } from "./wave-scanner-presentation";
+export {
+  WAVE_SCANNER_PRESENTATION_SCHEMA_VERSION,
+} from "./wave-scanner-presentation-types";
+export type {
+  WaveScannerReportPresentation,
+  WaveScannerRowPresentation,
+} from "./wave-scanner-presentation-types";
+export {
   ENTRY_PLAN_ELIGIBILITY_RULE,
   SETUP_CATALOG,
   STRUCTURAL_SETUP_CATALOG,

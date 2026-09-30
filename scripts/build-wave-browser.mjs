@@ -9,6 +9,8 @@ await esbuild.build({
     "demo-ohlcv": "src/browser/demo-ohlcv.ts",
     "wave-analysis-page": "src/browser/wave-analysis-page.ts",
     "wave-analysis-app": "src/browser/wave-analysis-app.ts",
+    "wave-scanner-app": "src/browser/wave-scanner-app.ts",
+    "wave-scanner-page": "src/browser/wave-scanner-page.ts",
   },
   bundle: true,
   format: "esm",

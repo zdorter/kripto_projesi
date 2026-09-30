@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wave Scanner</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222d;
+      --border: #2a3544;
+      --text: #e8edf4;
+      --muted: #8b98a8;
+      --accent: #5b9cf5;
+      --ready: #3d8f6a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 1rem 1.25rem 2rem;
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 0.35rem; }
+    .subtitle { color: var(--muted); font-size: 0.92rem; max-width: 42rem; margin-bottom: 1rem; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .toolbar label { color: var(--muted); font-size: 0.9rem; }
+    .toolbar select, .toolbar button {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.4rem 0.65rem;
+      font-size: 0.9rem;
+    }
+    .toolbar button { cursor: pointer; }
+    .toolbar button:disabled { opacity: 0.6; cursor: wait; }
+    #scanner-status { color: var(--muted); font-size: 0.88rem; min-height: 1.2rem; margin-bottom: 0.5rem; }
+    #scanner-meta { color: var(--muted); font-size: 0.85rem; margin-bottom: 0.75rem; }
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    @media (min-width: 960px) {
+      .layout { grid-template-columns: 1.4fr 1fr; align-items: start; }
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      min-width: 52rem;
+    }
+    th, td {
+      padding: 0.5rem 0.55rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+    }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: rgba(91, 156, 245, 0.06); }
+    tbody tr.selected { background: rgba(91, 156, 245, 0.12); }
+    tbody tr.row-ready .status-cell { color: var(--ready); font-weight: 600; }
+    tbody tr.row-error { opacity: 0.85; }
+    .muted { color: var(--muted); font-size: 0.8rem; }
+    #scanner-details {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.88rem;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    #scanner-details h2 { font-size: 1rem; margin: 0 0 0.75rem; }
+    #scanner-details h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--muted); margin: 0.75rem 0 0.35rem; }
+    .detail-section p { margin: 0.2rem 0; }
+    .tech-pre {
+      font-size: 0.72rem;
+      overflow-x: auto;
+      background: var(--bg);
+      padding: 0.5rem;
+      border-radius: 6px;
+      max-height: 12rem;
+    }
+    .disclaimer {
+      font-size: 0.85rem;
+      color: var(--muted);
+      border-left: 3px solid var(--accent);
+      padding-left: 0.65rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Wave Scanner</h1>
+  <p class="subtitle">
+    Yapısal wave senaryolarını ve değerlendirme referanslarını gösterir.
+    Karar desteği amaçlıdır; işlem önerisi veya yönlendirme değildir.
+  </p>
+  <p class="disclaimer">
+    Entry Ref, SL Ref ve Target Ref yalnızca değerlendirme referanslarıdır.
+    READY FOR EVALUATION bir al/sat sinyali değildir.
+  </p>
+
+  <div class="toolbar">
+    <label for="data-source">Data</label>
+    <select id="data-source">
+      <option value="DEMO">Demo OHLCV</option>
+      <option value="BINANCE">Binance Futures (closed 1H)</option>
+    </select>
+    <span class="muted">TF: 1H · Symbols: BTC, ETH, BNB, SOL, XRP, ADA</span>
+    <button type="button" id="scanner-refresh">Refresh</button>
+  </div>
+  <div id="scanner-status"></div>
+  <div id="scanner-meta"></div>
+
+  <div class="layout">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>TF</th>
+            <th>Structure</th>
+            <th>Setup</th>
+            <th>Entry</th>
+            <th>SL Ref</th>
+            <th>Target</th>
+            <th>RR</th>
+            <th>Status</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody id="scanner-tbody"></tbody>
+      </table>
+    </div>
+    <div id="scanner-details">
+      <p class="muted">Select a row for structural trace and reference details.</p>
+    </div>
+  </div>
+
+  <script type="module" src="./dist/wave/wave-scanner-app.js"></script>
+</body>
+</html>

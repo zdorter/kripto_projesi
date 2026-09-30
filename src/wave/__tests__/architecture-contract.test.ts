@@ -656,6 +656,37 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AL — wave scanner presentation (15)", () => {
+    it("UI consumes domain composition; no trade signals; dashboard decoupled", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const composition = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/production-wave-scanner.ts"),
+        "utf8"
+      );
+      const presentation = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/wave-scanner-presentation.ts"),
+        "utf8"
+      );
+      const page = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/wave-scanner-page.ts"),
+        "utf8"
+      );
+      const dashboard = fs.readFileSync(
+        path.join(process.cwd(), "crypto-dashboard.html"),
+        "utf8"
+      );
+      assert.ok(composition.includes("evaluateProspectiveReferenceBundle"));
+      assert.ok(composition.includes("detectProspectiveSetupProduction"));
+      assert.ok(presentation.includes("presentWaveScannerRow"));
+      assert.ok(!page.includes("fibExtensionPrice"));
+      assert.ok(!page.includes("resolveOpenStructuralLeg"));
+      assert.ok(!dashboard.includes("wave-scanner-app"));
+      assert.ok(presentation.includes("READY FOR EVALUATION"));
+      assert.ok(!page.includes("BUY"));
+    });
+  });
+
   describe("AK — prospective completion and references (14N-J)", () => {
     it("candidate-scoped anchor; no global best-anchor; explicit target policy; READY != signal", async () => {
       const fs = await import("node:fs");
