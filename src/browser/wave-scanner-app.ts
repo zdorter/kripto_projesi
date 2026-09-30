@@ -85,7 +85,10 @@ export async function loadAndRenderWaveScanner(): Promise<void> {
       timeframeId: SCANNER_TIMEFRAME,
       engineOptions: source === "DEMO" ? DEMO_WAVE_ENGINE_OPTIONS : undefined,
     });
-    renderWaveScannerReport(report);
+    renderWaveScannerReport(
+      report,
+      source === "DEMO" ? { demoRepresentativeSymbol: "BTCUSDT" } : undefined
+    );
   } finally {
     setScannerLoading(false);
   }

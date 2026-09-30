@@ -212,6 +212,14 @@ export {
   PRODUCTION_STRUCTURAL_TRANSITION_RULE,
 } from "./prospective-setup-production";
 export { evaluateProspectiveReferenceBundle } from "./prospective-reference-evaluation";
+export {
+  PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY,
+  PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY_LEGACY,
+  describeProspectiveOpenLegDisplacementEqualityContract,
+  isProspectiveOpenLegDisplacementEqualityPolicyId,
+  normalizeProspectiveTargetPolicyId,
+  projectProspectiveOpenLegDisplacementEqualityTarget,
+} from "./prospective-open-leg-displacement-equality-policy";
 export { evaluateProspectiveSourcePolicy } from "./prospective-setup-source-policy";
 export {
   PROSPECTIVE_ENTRY_PLAN_COMPATIBILITY_VERDICT,

@@ -29,7 +29,7 @@ describe("production wave scanner composition (15)", () => {
     assert.equal(composed.references.entry.modelId, "PROSPECTIVE_EVALUATION_CLOSE_REFERENCE");
     assert.equal(
       composed.references.target.policyId,
-      "PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY"
+      "PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY"
     );
   });
 
@@ -73,13 +73,17 @@ describe("production wave scanner composition (15)", () => {
     assert.ok(page.includes("WAVE_SCANNER_UI_LABELS.stopColumn"));
     assert.ok(page.includes("not an executable stop order"));
     assert.ok(page.includes("not a take-profit order"));
+    assert.ok(page.includes("targetPolicyDescription"));
     const row = runProductionWaveScanner({
       symbols: ["BTCUSDT"],
       candlesBySymbol: { BTCUSDT: DEMO_OHLCV },
       timeframeId: "1H",
       engineOptions: DEMO_WAVE_ENGINE_OPTIONS,
     }).rows[0]!;
-    assert.equal(row.targetReference.source, "PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY");
+    assert.equal(
+      row.targetReference.source,
+      "PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY"
+    );
     assert.notEqual(row.targetReference.source, "FIBONACCI");
   });
 

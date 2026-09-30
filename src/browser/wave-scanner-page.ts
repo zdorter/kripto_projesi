@@ -41,13 +41,36 @@ function rowClass(row: WaveScannerRowPresentation): string {
 
 let selectedRowId: string | null = null;
 
+function funnelDetailLine(row: WaveScannerRowPresentation): string {
+  if (row.readyForFurtherEvaluation) {
+    return "Funnel: tamamlandı (READY FOR EVALUATION)";
+  }
+  if (row.blockerStage === "COMPLETE") {
+    return "Funnel: tamamlandı";
+  }
+  const parts = [row.blockerStage, row.blockerReason].filter(Boolean);
+  return parts.length ? `Engel: ${parts.join(" · ")}` : "Engel: —";
+}
+
+function structuralStopNote(row: WaveScannerRowPresentation): string {
+  const dir = row.details.structuralTrace.observedDirection;
+  if (dir === "BEARISH") {
+    return "Bearish gözlem: SL Ref genelde girişin üst tarafında (yapısal invalidation) konumlanır; emir değildir.";
+  }
+  if (dir === "BULLISH") {
+    return "Bullish gözlem: SL Ref genelde girişin alt tarafında (yapısal invalidation) konumlanır; emir değildir.";
+  }
+  return "SL Ref yapısal invalidation referansıdır; emir değildir.";
+}
+
 export function updateScannerSourceBanner(source: "DEMO" | "BINANCE"): void {
   const el = document.getElementById("scanner-source-banner");
   if (!el) {
     return;
   }
   if (source === "DEMO") {
-    el.textContent = "Kaynak: DEMO (sentetik OHLCV — canlı piyasa değildir)";
+    el.textContent =
+      "Kaynak: DEMO (sentetik OHLCV — canlı piyasa değildir). Tabloda yalnızca BTCUSDT örnek satırı gösterilir; tüm demo sembolleri aynı fixture'ı paylaşır.";
     el.className = "source-banner source-demo";
   } else {
     el.textContent = "Kaynak: LIVE — Binance Futures REST, kapalı 1H mumlar";
@@ -55,7 +78,10 @@ export function updateScannerSourceBanner(source: "DEMO" | "BINANCE"): void {
   }
 }
 
-export function renderWaveScannerReport(report: WaveScannerReportPresentation): void {
+export function renderWaveScannerReport(
+  report: WaveScannerReportPresentation,
+  options?: { demoRepresentativeSymbol?: string }
+): void {
   const statusEl = document.getElementById("scanner-status");
   const tbody = document.getElementById("scanner-tbody");
   const metaEl = document.getElementById("scanner-meta");
@@ -67,14 +93,22 @@ export function renderWaveScannerReport(report: WaveScannerReportPresentation): 
     metaEl.textContent = `Updated ${formatTime(Date.parse(report.generatedAt))} · TF ${report.timeframe}`;
   }
 
-  if (report.symbolErrors.length > 0) {
+  const rows =
+    options?.demoRepresentativeSymbol != null
+      ? report.rows.filter((r) => r.symbol === options.demoRepresentativeSymbol)
+      : report.rows;
+
+  if (options?.demoRepresentativeSymbol != null) {
+    statusEl.textContent =
+      "Demo: ETH/BNB/SOL/XRP/ADA aynı sentetik seriyi kullanır; yalnızca BTCUSDT örnek satırı listelenir. Sembol bazlı analiz için LIVE seçin.";
+  } else if (report.symbolErrors.length > 0) {
     statusEl.textContent = `${report.symbolErrors.length} symbol(s) reported load/analysis issues (see rows).`;
   } else {
     statusEl.textContent = "";
   }
 
   tbody.innerHTML = "";
-  for (const row of report.rows) {
+  for (const row of rows) {
     const tr = document.createElement("tr");
     tr.className = rowClass(row);
     tr.dataset.symbol = row.symbol;
@@ -108,14 +142,14 @@ export function renderWaveScannerReport(report: WaveScannerReportPresentation): 
     tbody.appendChild(tr);
   }
 
-  if (report.rows.length > 0 && !selectedRowId) {
-    const first = report.rows[0]!;
+  if (rows.length > 0 && !selectedRowId) {
+    const first = rows[0]!;
     selectedRowId = first.symbol;
     const firstTr = tbody.querySelector("tr");
     firstTr?.classList.add("selected");
     renderWaveScannerDetails(first);
   } else if (selectedRowId) {
-    const row = report.rows.find((r) => r.symbol === selectedRowId);
+    const row = rows.find((r) => r.symbol === selectedRowId);
     if (row) {
       renderWaveScannerDetails(row);
     }
@@ -145,7 +179,7 @@ export function renderWaveScannerDetails(row: WaveScannerRowPresentation): void 
       <h3>Prospective setup</h3>
       <p>Family: ${d.prospectiveSetup?.family ?? "—"}</p>
       <p>Status: ${d.prospectiveSetup?.status ?? "—"} · Phase: ${d.prospectiveSetup?.temporalState ?? "—"}</p>
-      <p>Blocker: ${row.blockerStage ?? "—"} ${row.blockerReason ? `· ${row.blockerReason}` : ""}</p>
+      <p>${funnelDetailLine(row)}</p>
     </section>
     <section class="detail-section">
       <h3>Anchor &amp; open leg</h3>
@@ -165,12 +199,18 @@ export function renderWaveScannerDetails(row: WaveScannerRowPresentation): void 
       <p class="muted">Structural invalidation reference — not an executable stop order.</p>
     </section>
     <section class="detail-section">
+      <h3>SL reference</h3>
+      <p>${formatPrice(d.stopReference.price)} · ${d.stopReference.source ?? "—"}</p>
+      <p class="muted">${structuralStopNote(row)}</p>
+    </section>
+    <section class="detail-section">
       <h3>Entry reference</h3>
       <p>${formatPrice(d.entryReference.price)} · ${d.entryReference.source ?? "—"}</p>
     </section>
     <section class="detail-section">
       <h3>Target reference</h3>
       <p>${formatPrice(d.targetReference.price)} · policy ${trace.targetPolicyId ?? "—"}</p>
+      <p class="muted">${WAVE_SCANNER_UI_LABELS.targetPolicyDescription}</p>
       <p class="muted">Objective reference only — not a take-profit order.</p>
     </section>
     <section class="detail-section">

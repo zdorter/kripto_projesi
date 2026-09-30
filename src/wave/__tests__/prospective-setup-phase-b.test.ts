@@ -8,6 +8,7 @@ import {
   evaluateProspectiveSetupProduction,
 } from "../setup/prospective-setup-production";
 import { evaluateProspectiveReferenceBundle } from "../setup/prospective-reference-evaluation";
+import { PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY } from "../setup/prospective-open-leg-displacement-equality-policy";
 import { PRODUCTION_FIBONACCI_PROJECTION_POLICIES } from "../setup/fibonacci-projection-policy";
 import { runWaveScan } from "../wave-scanner";
 
@@ -50,6 +51,8 @@ describe("prospective Phase B references (14N-J)", () => {
     assert.equal(refs.entry.outcome, "AVAILABLE");
     assert.equal(refs.stop.outcome, "AVAILABLE");
     assert.equal(refs.target.outcome, "AVAILABLE");
+    assert.equal(refs.target.referencePrice, 102);
+    assert.equal(refs.target.policyId, PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY);
     assert.equal(refs.rr.outcome, "AVAILABLE");
     assert.equal(refs.readyForFurtherEvaluation, true);
     assert.equal(PRODUCTION_FIBONACCI_PROJECTION_POLICIES.length, 0);

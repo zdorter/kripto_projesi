@@ -6,6 +6,7 @@ import { resolveTradeSetupEvaluationBoundary } from "./setup/trade-setup-evaluat
 import { detectProspectiveSetupProduction } from "./setup/prospective-setup-production";
 import type { ProspectiveSetupProductionCandidate } from "./setup/prospective-setup-production-types";
 import { evaluateProspectiveReferenceBundle } from "./setup/prospective-reference-evaluation";
+import { PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY } from "./setup/prospective-open-leg-displacement-equality-policy";
 import type { SetupCandidate } from "./setup/setup-types";
 import type { ProspectiveReferenceEvaluation } from "./setup/prospective-reference-evaluation";
 import {
@@ -49,7 +50,7 @@ function emptyReference(): ProspectiveReferenceEvaluation {
       outcome: "INSUFFICIENT_CONTEXT",
       referencePrice: null,
       modelId: "PROSPECTIVE_OPEN_LEG_STRUCTURAL_PROJECTION",
-      policyId: "PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY",
+      policyId: PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY,
     },
     rr: { outcome: "INSUFFICIENT_CONTEXT", ratio: null },
     readyForFurtherEvaluation: false,

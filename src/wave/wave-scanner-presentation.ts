@@ -1,5 +1,6 @@
 import type { ProspectiveSetupProductionCandidate } from "./setup/prospective-setup-production-types";
 import type { ProspectiveReferenceEvaluation } from "./setup/prospective-reference-evaluation";
+import { normalizeProspectiveTargetPolicyId } from "./setup/prospective-open-leg-displacement-equality-policy";
 import type { SetupCandidate } from "./setup/setup-types";
 import {
   WAVE_SCANNER_PRESENTATION_SCHEMA_VERSION,
@@ -116,7 +117,7 @@ export function presentWaveScannerRow(
       ? "SCENARIO_INVALIDATION"
       : "SETUP_INVALIDATION",
     invalidationAvailable: contract?.invalidationAvailable ?? false,
-    targetPolicyId: row.references.target.policyId,
+    targetPolicyId: normalizeProspectiveTargetPolicyId(row.references.target.policyId),
     transitionRuleId: contract?.transitionEvidence.transitionRuleId ?? null,
   };
 
@@ -203,6 +204,7 @@ export const WAVE_SCANNER_UI_LABELS = {
   stopColumn: "SL Ref",
   targetColumn: "Target Ref",
   readyDisplay: "READY FOR EVALUATION",
+  targetPolicyDescription: "Anchor → evaluation displacement equality",
 } as const;
 
 export const WAVE_SCANNER_FORBIDDEN_UI_TOKENS = [

@@ -131,7 +131,10 @@ describe("wave scanner alarm integration (16)", () => {
     const alert = store.alerts[0]!;
     assert.equal(alert.waveScanner!.snapshotPrice, alert.conditions[0]!.value);
     assert.equal(alert.waveScanner!.sourceMode, "LIVE");
-    assert.equal(alert.waveScanner!.targetPolicy, "PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY");
+    assert.equal(
+      alert.waveScanner!.targetPolicy,
+      "PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY"
+    );
   });
 
   it("L: demo provenance", () => {

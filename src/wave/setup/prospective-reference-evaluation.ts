@@ -1,5 +1,9 @@
 import type { Candle } from "../types";
 import type { ProspectiveSetupProductionCandidate } from "./prospective-setup-production-types";
+import {
+  PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY,
+  projectProspectiveOpenLegDisplacementEqualityTarget,
+} from "./prospective-open-leg-displacement-equality-policy";
 import { resolveProspectiveStructuralInvalidation } from "./prospective-structural-invalidation";
 import type { SymbolEvaluationBundle } from "./trade-setup-types";
 import type { SetupCandidate } from "./setup-types";
@@ -23,7 +27,7 @@ export interface ProspectiveReferenceEvaluation {
     outcome: ProspectiveReferenceOutcome;
     referencePrice: number | null;
     modelId: "PROSPECTIVE_OPEN_LEG_STRUCTURAL_PROJECTION";
-    policyId: "PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY";
+    policyId: typeof PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY;
   };
   rr: {
     outcome: ProspectiveReferenceOutcome;
@@ -46,7 +50,7 @@ export function evaluateProspectiveReferenceBundle(input: {
     "Prospective reference evaluation is not a trade signal or execution instruction.",
     "Entry reference is evaluation-bar close only (no enter-now semantics).",
     "Stop reference maps structural invalidation when on risk side of entry.",
-    "Target reference uses explicit open-leg range equality projection policy.",
+    "Target reference uses PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY: same signed displacement from anchor to evaluation close, projected beyond entry (not path envelope).",
   ];
 
   if (input.production.status !== "CONFIRMED") {
@@ -67,7 +71,7 @@ export function evaluateProspectiveReferenceBundle(input: {
         outcome: "INSUFFICIENT_CONTEXT",
         referencePrice: null,
         modelId: "PROSPECTIVE_OPEN_LEG_STRUCTURAL_PROJECTION",
-        policyId: "PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY",
+        policyId: PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY,
       },
       rr: { outcome: "INSUFFICIENT_CONTEXT", ratio: null },
       readyForFurtherEvaluation: false,
@@ -100,8 +104,10 @@ export function evaluateProspectiveReferenceBundle(input: {
   let targetOk = false;
   let targetPrice: number | null = null;
   if (entryOk && leg && leg.observedDirection !== "UNRESOLVED") {
-    const move = entryPrice! - leg.anchorPrice;
-    targetPrice = entryPrice! + move;
+    targetPrice = projectProspectiveOpenLegDisplacementEqualityTarget(
+      leg.anchorPrice,
+      entryPrice!
+    );
     targetOk = Number.isFinite(targetPrice);
   }
 
@@ -136,7 +142,7 @@ export function evaluateProspectiveReferenceBundle(input: {
       outcome: targetOk ? "AVAILABLE" : "INSUFFICIENT_CONTEXT",
       referencePrice: targetPrice,
       modelId: "PROSPECTIVE_OPEN_LEG_STRUCTURAL_PROJECTION",
-      policyId: "PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY",
+      policyId: PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY,
     },
     rr: {
       outcome: rrOk ? "AVAILABLE" : "INSUFFICIENT_CONTEXT",

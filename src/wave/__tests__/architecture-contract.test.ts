@@ -777,6 +777,37 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AL — prospective displacement equality target (14N-L)", () => {
+    it("anchor + evaluation close only; no path envelope / Fib / ATR in reference target", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const policy = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/setup/prospective-open-leg-displacement-equality-policy.ts"
+        ),
+        "utf8"
+      );
+      const refs = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/prospective-reference-evaluation.ts"),
+        "utf8"
+      );
+      const prod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/prospective-setup-production.ts"),
+        "utf8"
+      );
+      assert.ok(policy.includes("PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY"));
+      assert.ok(policy.includes("projectProspectiveOpenLegDisplacementEqualityTarget"));
+      assert.ok(policy.includes("Does not use observedHigh"));
+      assert.ok(refs.includes("projectProspectiveOpenLegDisplacementEqualityTarget"));
+      assert.ok(!refs.includes("observedHigh"));
+      assert.ok(!refs.includes("observedLow"));
+      assert.ok(!refs.includes("fibExtensionPrice"));
+      assert.ok(!refs.includes("ATR"));
+      assert.ok(!prod.includes("fibExtensionPrice"));
+    });
+  });
+
   describe("AI — production prospective setup (14N-H)", () => {
     it("scoped context; no legacy POTENTIAL as production evidence", async () => {
       const fs = await import("node:fs");

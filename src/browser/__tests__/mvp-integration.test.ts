@@ -84,7 +84,7 @@ describe("MVP application integration (17)", () => {
         setupFamily: null,
         prospectiveCandidateId: null,
         evaluationBarTime: null,
-        targetPolicy: "PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY",
+        targetPolicy: "PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY",
         snapshotPrice: 50,
         duplicateKey: "d",
       },
@@ -177,7 +177,10 @@ describe("MVP application integration (17)", () => {
       path.join(process.cwd(), "src/browser/wave-scanner-page.ts"),
       "utf8"
     );
-    assert.ok(page.includes("PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY") || page.includes("policy"));
+    assert.ok(
+      page.includes("PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY") ||
+        page.includes("targetPolicyDescription")
+    );
     assert.ok(!page.includes("Fibonacci target"));
   });
 
