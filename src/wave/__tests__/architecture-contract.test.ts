@@ -656,6 +656,33 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AM — wave scanner alarm integration (16)", () => {
+    it("adapter only; no engine→alarm; user confirmation; snapshot provenance", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const engine = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/production-wave-scanner.ts"),
+        "utf8"
+      );
+      const adapter = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/wave-scanner-alarm-adapter.ts"),
+        "utf8"
+      );
+      const html = fs.readFileSync(
+        path.join(process.cwd(), "wave-scanner.html"),
+        "utf8"
+      );
+      assert.ok(!engine.includes("crypto-dashboard-alarm"));
+      assert.ok(adapter.includes("createWaveScannerAlarms"));
+      assert.ok(adapter.includes("NO_REFERENCE_SELECTED"));
+      assert.ok(adapter.includes("snapshotPrice"));
+      assert.ok(html.includes("Seçili Alarmları Oluştur"));
+      assert.ok(html.includes("Alarm Oluştur"));
+      assert.ok(!adapter.includes("BUY"));
+      assert.ok(!adapter.includes("SELL"));
+    });
+  });
+
   describe("AL — wave scanner presentation (15)", () => {
     it("UI consumes domain composition; no trade signals; dashboard decoupled", async () => {
       const fs = await import("node:fs");

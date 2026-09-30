@@ -6,6 +6,13 @@ import {
   renderWaveScannerReport,
   setScannerLoading,
 } from "./wave-scanner-page";
+import {
+  initWaveScannerAlarmUi,
+  renderWaveScannerAlarmList,
+  setAlarmFeedback,
+} from "./wave-scanner-alarm-ui";
+import { WaveScannerAlarmMonitor } from "./wave-scanner-alarm-monitor";
+import type { WaveScannerAlarmSourceMode } from "./crypto-dashboard-alarm-types";
 
 const SCANNER_TIMEFRAME = "1H";
 const BINANCE_INTERVAL = "1h";
@@ -13,9 +20,17 @@ const BINANCE_LIMIT = 500;
 
 const provider = new BinanceFuturesOhlcvProvider();
 
+const alarmMonitor = new WaveScannerAlarmMonitor((alert, desc) => {
+  setAlarmFeedback(`Alarm: ${alert.name} — ${desc}`);
+});
+
 function getDataSource(): "DEMO" | "BINANCE" {
   const select = document.getElementById("data-source") as HTMLSelectElement | null;
   return select?.value === "BINANCE" ? "BINANCE" : "DEMO";
+}
+
+function getSourceMode(): WaveScannerAlarmSourceMode {
+  return getDataSource() === "DEMO" ? "DEMO" : "LIVE";
 }
 
 async function fetchClosedCandles(symbol: string) {
@@ -57,6 +72,12 @@ export async function loadAndRenderWaveScanner(): Promise<void> {
 }
 
 function bindUi(): void {
+  initWaveScannerAlarmUi({
+    getSourceMode,
+    getMonitor: () => alarmMonitor,
+    onStoreChanged: () => renderWaveScannerAlarmList(alarmMonitor),
+  });
+
   const refresh = document.getElementById("scanner-refresh");
   refresh?.addEventListener("click", () => {
     void loadAndRenderWaveScanner();
@@ -68,4 +89,8 @@ function bindUi(): void {
 }
 
 bindUi();
+void alarmMonitor.reloadStore().then(() => {
+  renderWaveScannerAlarmList(alarmMonitor);
+  alarmMonitor.start(4000);
+});
 void loadAndRenderWaveScanner();

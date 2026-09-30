@@ -111,6 +111,65 @@
       padding-left: 0.65rem;
       margin-bottom: 1rem;
     }
+    #alarm-feedback { min-height: 1.25rem; color: var(--ready); font-size: 0.9rem; margin-bottom: 0.75rem; }
+    .alarm-panel {
+      margin-top: 1.25rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+    }
+    .alarm-list-item {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .alarm-list-item.disabled { opacity: 0.55; }
+    .alarm-list-info { flex: 1; min-width: 0; }
+    .alarm-list-name { font-weight: 600; }
+    .alarm-list-desc { color: var(--muted); font-size: 0.78rem; }
+    .alarm-mini-btn, .scanner-alarm-btn {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.35rem 0.55rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .alarm-mini-btn.danger { border-color: #8b3a3a; color: #e8a0a0; }
+    .scanner-alarm-btn { margin-top: 0.35rem; }
+    #alarm-editor-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 1rem;
+    }
+    #alarm-editor-backdrop.visible { display: flex; }
+    #alarm-editor-modal {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      max-width: 28rem;
+      width: 100%;
+      padding: 1rem 1.1rem;
+    }
+    #alarm-editor-modal h2 { margin: 0 0 0.75rem; font-size: 1rem; }
+    .alarm-ref-option { display: flex; gap: 0.5rem; margin: 0.35rem 0; font-size: 0.88rem; }
+    #alarm-editor-preview {
+      margin: 0.75rem 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+      min-height: 2.5rem;
+    }
+    #alarm-editor-confirm { margin-top: 0.5rem; }
   </style>
 </head>
 <body>
@@ -135,6 +194,7 @@
   </div>
   <div id="scanner-status"></div>
   <div id="scanner-meta"></div>
+  <div id="alarm-feedback"></div>
 
   <div class="layout">
     <div class="table-wrap">
@@ -158,6 +218,24 @@
     </div>
     <div id="scanner-details">
       <p class="muted">Select a row for structural trace and reference details.</p>
+    </div>
+  </div>
+
+  <section class="alarm-panel">
+    <h2 style="font-size:1rem;margin:0 0 0.5rem;">Wave Scanner alarmları</h2>
+    <p class="muted" style="margin:0 0 0.5rem;font-size:0.85rem;">
+      crypto-dashboard ile aynı depoda saklanır; fiyat referansına ulaşınca bildirim (işlem değil).
+    </p>
+    <div id="wave-scanner-alarm-list"></div>
+  </section>
+
+  <div id="alarm-editor-backdrop" role="dialog" aria-modal="true" aria-labelledby="alarm-editor-title">
+    <div id="alarm-editor-modal">
+      <h2 id="alarm-editor-title">Alarm Oluştur</h2>
+      <div id="alarm-editor-body"></div>
+      <div id="alarm-editor-preview"></div>
+      <button type="button" id="alarm-editor-confirm" class="scanner-alarm-btn">Seçili Alarmları Oluştur</button>
+      <button type="button" id="alarm-editor-close" class="alarm-mini-btn" style="margin-left:0.5rem;">İptal</button>
     </div>
   </div>
 

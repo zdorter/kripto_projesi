@@ -3,6 +3,7 @@ import type {
   WaveScannerRowPresentation,
 } from "../wave/wave-scanner-presentation-types";
 import { WAVE_SCANNER_UI_LABELS } from "../wave/wave-scanner-presentation";
+import { attachAlarmButtonToDetails } from "./wave-scanner-alarm-ui";
 
 function formatPrice(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
@@ -167,11 +168,13 @@ export function renderWaveScannerDetails(row: WaveScannerRowPresentation): void 
       <p>Completed endpoint idx ${trace.completedEndpointIndex ?? "—"} · price ${formatPrice(trace.completedEndpointPrice)}</p>
       <p>Direction: ${trace.observedDirection ?? "—"} · future-safe: ${row.futureSafe}</p>
     </section>
+    <section class="detail-section" id="scanner-alarm-action"></section>
     <details class="detail-section">
       <summary>Technical diagnostics</summary>
       <pre class="tech-pre">${d.technicalDiagnosticsJson ?? ""}</pre>
     </details>
   `;
+  attachAlarmButtonToDetails(row);
 }
 
 export function setScannerLoading(loading: boolean): void {
