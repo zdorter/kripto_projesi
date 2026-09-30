@@ -433,6 +433,57 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("M — risk/reward model layer contract (14D.5)", () => {
+    it("risk-reward-model module does not import wave engine, scanner, or producer models", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/risk-reward-model.ts");
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("analyzeWave"));
+      assert.ok(!text.includes("runWaveScan"));
+      assert.ok(!text.includes("binance"));
+      assert.ok(!text.includes("evaluateEntryModel"));
+      assert.ok(!text.includes("evaluateStopLossModel"));
+      assert.ok(!text.includes("evaluateTargetModel"));
+      assert.ok(!text.includes("buildEntryModelReport"));
+    });
+
+    it("risk-reward types exclude quality and probability vocabulary", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/risk-reward-model-types.ts");
+      const text = fs.readFileSync(file, "utf8");
+      for (const token of ["probability", "GOOD_RR", "positionSize", "leverage"]) {
+        assert.ok(!text.includes(token), token);
+      }
+    });
+  });
+
+  describe("L — target model layer contract (14D.4)", () => {
+    it("target-model module does not import wave engine, scanner, diagnostics, or providers", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/target-model.ts");
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("analyzeWave"));
+      assert.ok(!text.includes("runWaveScan"));
+      assert.ok(!text.includes("binance"));
+      assert.ok(!text.includes("riskReward"));
+      assert.ok(!text.includes("entry-model"));
+      assert.ok(!text.includes("stop-loss-model"));
+    });
+
+    it("target-model types exclude order execution vocabulary", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/target-model-types.ts");
+      const text = fs.readFileSync(file, "utf8");
+      for (const token of ["takeProfitOrder", "MARKET", "LIMIT", "positionSize", "leverage"]) {
+        assert.ok(!text.includes(token), token);
+      }
+    });
+  });
+
   describe("K — stop-loss model layer contract (14D.3)", () => {
     it("stop-loss-model module does not import wave engine, scanner, diagnostics, or providers", async () => {
       const fs = await import("node:fs");
@@ -571,6 +622,227 @@ describe("architecture contract", () => {
         }).eligibility.reason,
         "ENTRY_PLAN_ELIGIBLE"
       );
+    });
+  });
+
+  describe("S — MVP E2E fixture validation (14D.11)", () => {
+    it("fixture validation tests are TEST_ONLY and do not import Binance", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/__tests__/mvp-e2e-fixture-validation.test.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("TEST_ONLY"));
+      assert.ok(!text.includes("fetch("));
+      assert.ok(!/from\s+["'].*binance/i.test(text));
+      assert.ok(!text.includes("candles.length - 1"));
+    });
+
+    it("fixture helpers use pipeline API without hidden target generation", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/__tests__/fixtures/mvp-e2e-fixtures.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("buildTradeSetupEvaluationPipeline"));
+      assert.ok(!text.includes("fibExtensionPrice"));
+      assert.ok(!text.includes("analyzeWave"));
+    });
+  });
+
+  describe("R — objective target evaluation wiring (14D.10)", () => {
+    it("evaluation composition wires candidates → selection → target without RR math", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/trade-setup-evaluation.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("buildObjectiveTargetCandidateReport"));
+      assert.ok(text.includes("applyObjectiveTargetSelectionPolicy"));
+      assert.ok(text.includes("entryPlanWithSelectedObjectiveTarget"));
+      assert.ok(text.includes("buildTargetModelReport"));
+      assert.ok(!text.includes("fibExtensionPrice"));
+      assert.ok(!text.includes("analyzeWave"));
+      assert.ok(!text.includes("runWaveScan"));
+    });
+
+    it("pipeline passes objective context by symbol only", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/trade-setup-evaluation-pipeline.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("objectiveTargetSourceContextBySymbol"));
+      assert.ok(text.includes("buildTradeSetupEvaluationSnapshot"));
+      assert.ok(!text.includes("buildObjectiveTargetCandidateReport"));
+    });
+  });
+
+  describe("Q — objective target selection policy (14D.9)", () => {
+    it("selection layer does not run wave engine or compute targets", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/objective-target-selection.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("analyzeWave"));
+      assert.ok(!text.includes("runWaveScan"));
+      assert.ok(!text.includes("fibExtensionPrice"));
+      assert.ok(!text.includes("buildObjectiveTargetCandidateReport"));
+      assert.ok(!text.includes("binance"));
+    });
+
+    it("selection types exclude quality ranking vocabulary", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const files = [
+        "objective-target-selection-types.ts",
+        "objective-target-selection-policy.ts",
+      ];
+      for (const name of files) {
+        const text = fs.readFileSync(
+          path.join(process.cwd(), "src/wave/setup", name),
+          "utf8"
+        );
+        assert.ok(!text.includes("bestTarget"));
+        assert.ok(!text.includes("probability"));
+        assert.ok(!text.includes("optimalTarget"));
+      }
+    });
+  });
+
+  describe("P — objective target candidate sources (14D.8)", () => {
+    it("candidate source layer does not run wave engine, scanner, or swing detection", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/objective-target-candidate-sources.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("analyzeWave"));
+      assert.ok(!text.includes("runWaveScan"));
+      assert.ok(!text.includes("detectSwings"));
+      assert.ok(!text.includes("detectWaves"));
+      assert.ok(!text.includes("binance"));
+      assert.ok(!text.includes("buildWaveScenarios"));
+    });
+
+    it("candidate layer has no selection or ranking API", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const dir = path.join(process.cwd(), "src/wave/setup");
+      const files = [
+        "objective-target-candidate-sources.ts",
+        "objective-target-candidate-types.ts",
+      ];
+      for (const name of files) {
+        const text = fs.readFileSync(path.join(dir, name), "utf8");
+        assert.ok(!text.includes("selectBestTarget"));
+        assert.ok(!text.includes("rankTargets"));
+        assert.ok(!text.includes("chooseTarget"));
+      }
+    });
+
+    it("target-model.ts unchanged in selection responsibility", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/setup/target-model.ts");
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("objective-target-candidate"));
+      assert.ok(!text.includes("selectBest"));
+    });
+  });
+
+  describe("O — trade setup evaluation pipeline wiring (14D.7)", () => {
+    it("pipeline wires scanner → setup → entry plan → snapshot without new engine imports", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/trade-setup-evaluation-pipeline.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("detectSetups"));
+      assert.ok(text.includes("buildEntryPlansFromSetupReport"));
+      assert.ok(text.includes("buildTradeSetupEvaluationSnapshot"));
+      assert.ok(!text.includes("analyzeWave"));
+      assert.ok(!text.includes("runWaveScan"));
+      assert.ok(!text.includes("binance"));
+      assert.ok(!text.includes("buildEntryModelReport"));
+      assert.ok(!text.includes("buildRiskRewardReport"));
+      assert.ok(!text.includes("candles.length - 1"));
+    });
+
+    it("pipeline types exclude trade execution vocabulary", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/trade-setup-evaluation-pipeline-types.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      for (const token of ["BUY", "SELL", "LONG", "SHORT", "positionSize"]) {
+        assert.ok(!text.includes(token), token);
+      }
+    });
+  });
+
+  describe("N — trade setup evaluation composition (14D.6)", () => {
+    it("composition module does not import wave engine, scanner, Binance, or diagnostics", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/trade-setup-evaluation.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(!text.includes("analyzeWave"));
+      assert.ok(!text.includes("runWaveScan"));
+      assert.ok(!text.includes("binance"));
+      assert.ok(!text.includes("wave-diagnostics"));
+      assert.ok(!text.includes("multi-timeframe"));
+    });
+
+    it("composition delegates to model builders without inline RR or fallback prices", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/trade-setup-evaluation.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("buildEntryModelReport"));
+      assert.ok(text.includes("buildStopLossReport"));
+      assert.ok(text.includes("buildTargetModelReport"));
+      assert.ok(text.includes("buildRiskRewardReport"));
+      assert.ok(!text.includes("riskAmount"));
+      assert.ok(!text.includes("rewardAmount"));
+      assert.ok(!text.includes("EXPLICIT_OBJECTIVE_TARGET"));
+      assert.ok(!text.includes("candles.length - 1"));
+    });
+
+    it("evaluation snapshot types exclude trade signal vocabulary", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(
+        process.cwd(),
+        "src/wave/setup/trade-setup-evaluation-types.ts"
+      );
+      const text = fs.readFileSync(file, "utf8");
+      for (const token of ["BUY", "SELL", "LONG", "SHORT", "ENTER", "DO_NOT_ENTER"]) {
+        assert.ok(!text.includes(token), token);
+      }
     });
   });
 });

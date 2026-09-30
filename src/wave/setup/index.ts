@@ -74,6 +74,99 @@ export type {
   StopLossReferenceOutcome,
 } from "./stop-loss-model-types";
 export { STOP_LOSS_MODEL_SCHEMA_VERSION } from "./stop-loss-model-types";
+export {
+  OBJECTIVE_TARGET_REFERENCE_KINDS,
+  TARGET_MODEL_DEFINITIONS,
+  TARGET_MODELS_BY_SETUP_TYPE,
+  getTargetModelDefinition,
+  isObjectiveTargetReferenceKind,
+  listTargetModelsForSetupType,
+} from "./target-model-catalog";
+export {
+  buildTargetModelReport,
+  evaluateTargetModel,
+  targetReferencesAvailable,
+} from "./target-model";
+export type {
+  TargetModelBuildResult,
+  TargetModelEvaluateInput,
+  TargetModelId,
+  TargetModelReport,
+  TargetReference,
+  TargetReferenceOutcome,
+} from "./target-model-types";
+export { TARGET_MODEL_SCHEMA_VERSION } from "./target-model-types";
+export {
+  RISK_REWARD_MODEL_DEFINITIONS,
+  getRiskRewardModelDefinition,
+} from "./risk-reward-model-catalog";
+export {
+  buildRiskRewardReport,
+  evaluateRiskRewardModel,
+  riskRewardReferencesAvailable,
+} from "./risk-reward-model";
+export type {
+  RiskRewardModelBuildResult,
+  RiskRewardModelEvaluateInput,
+  RiskRewardModelId,
+  RiskRewardModelReport,
+  RiskRewardReference,
+  RiskRewardReferenceOutcome,
+} from "./risk-reward-model-types";
+export { RISK_REWARD_MODEL_SCHEMA_VERSION } from "./risk-reward-model-types";
+export {
+  buildTradeSetupEvaluationSnapshot,
+  resolveTradeSetupEvaluationState,
+} from "./trade-setup-evaluation";
+export { buildTradeSetupEvaluationPipeline } from "./trade-setup-evaluation-pipeline";
+export type { TradeSetupEvaluationPipelineInput } from "./trade-setup-evaluation-pipeline";
+export type {
+  TradeSetupEvaluationPipelineError,
+  TradeSetupEvaluationPipelineErrorPhase,
+  TradeSetupEvaluationPipelineItem,
+  TradeSetupEvaluationPipelineReport,
+} from "./trade-setup-evaluation-pipeline-types";
+export { TRADE_SETUP_EVALUATION_PIPELINE_SCHEMA_VERSION } from "./trade-setup-evaluation-pipeline-types";
+export type {
+  TradeSetupEvaluationAggregateState,
+  TradeSetupEvaluationComposeInput,
+  TradeSetupEvaluationSnapshot,
+} from "./trade-setup-evaluation-types";
+export { TRADE_SETUP_EVALUATION_SCHEMA_VERSION } from "./trade-setup-evaluation-types";
+export {
+  OBJECTIVE_TARGET_SOURCE_DEFINITIONS,
+  OBJECTIVE_TARGET_SOURCES_BY_SETUP_TYPE,
+  getObjectiveTargetSourceDefinition,
+  isObjectiveTargetSourceApplicable,
+  listObjectiveTargetSourcesForSetupType,
+} from "./objective-target-source-catalog";
+export {
+  buildObjectiveTargetCandidateReport,
+  evaluateObjectiveTargetSource,
+  objectiveTargetCandidatesAvailable,
+} from "./objective-target-candidate-sources";
+export type {
+  ObjectiveTargetCandidate,
+  ObjectiveTargetCandidateEvaluateInput,
+  ObjectiveTargetCandidateOutcome,
+  ObjectiveTargetCandidateReport,
+  ObjectiveTargetSourceContext,
+  ObjectiveTargetSourceId,
+} from "./objective-target-candidate-types";
+export { OBJECTIVE_TARGET_CANDIDATE_SCHEMA_VERSION } from "./objective-target-candidate-types";
+export { DEFAULT_OBJECTIVE_TARGET_SELECTION_POLICY } from "./objective-target-selection-policy";
+export { applyObjectiveTargetSelectionPolicy } from "./objective-target-selection";
+export {
+  entryPlanWithSelectedObjectiveTarget,
+  objectiveTargetReferenceLevelFromCandidate,
+} from "./objective-target-selection-bridge";
+export type {
+  ObjectiveTargetSelectionInput,
+  ObjectiveTargetSelectionOutcome,
+  ObjectiveTargetSelectionPolicy,
+  ObjectiveTargetSelectionResult,
+} from "./objective-target-selection-types";
+export { OBJECTIVE_TARGET_SELECTION_SCHEMA_VERSION } from "./objective-target-selection-types";
 export { detectTradeSetups } from "./trade-setup-detector";
 export {
   evaluateTradeCondition,

@@ -81,7 +81,12 @@ export type ReferenceLevelKind =
   | "MTF_LOWER_SEGMENT_START"
   | "MTF_LOWER_SEGMENT_END"
   | "HIERARCHY_HIGHER_SEGMENT"
-  | "HIERARCHY_LOWER_SEGMENT";
+  | "HIERARCHY_LOWER_SEGMENT"
+  /**
+   * Reserved for an explicit scenario/scanner objective target price.
+   * Not produced by setup detection or scanner in CP14D.4; target model maps it when present on snapshot.
+   */
+  | "EXPLICIT_OBJECTIVE_TARGET";
 
 export interface ReferenceLevel {
   kind: ReferenceLevelKind;
