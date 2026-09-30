@@ -656,6 +656,33 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AN — MVP application integration (17)", () => {
+    it("dashboard navigation only; shared alarms; dual-fire guard; no domain in dashboard", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const dash = fs.readFileSync(
+        path.join(process.cwd(), "crypto-dashboard.html"),
+        "utf8"
+      );
+      const scan = fs.readFileSync(
+        path.join(process.cwd(), "wave-scanner.html"),
+        "utf8"
+      );
+      const prod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/production-wave-scanner.ts"),
+        "utf8"
+      );
+      assert.ok(dash.includes("./wave-scanner.html"));
+      assert.ok(scan.includes("./crypto-dashboard.html"));
+      assert.ok(dash.includes("crypto-dashboard-alarm-fire-v1"));
+      assert.ok(dash.includes("alert.waveScanner"));
+      assert.ok(!dash.includes("runProductionWaveScanner"));
+      assert.ok(!prod.includes("crypto-dashboard"));
+      assert.ok(scan.includes("scanner-source-banner"));
+      assert.ok(!scan.includes('href="/wave-scanner'));
+    });
+  });
+
   describe("AM — wave scanner alarm integration (16)", () => {
     it("adapter only; no engine→alarm; user confirmation; snapshot provenance", async () => {
       const fs = await import("node:fs");

@@ -5,6 +5,7 @@ import { DEMO_OHLCV, DEMO_WAVE_ENGINE_OPTIONS } from "./demo-ohlcv";
 import {
   renderWaveScannerReport,
   setScannerLoading,
+  updateScannerSourceBanner,
 } from "./wave-scanner-page";
 import {
   initWaveScannerAlarmUi,
@@ -39,9 +40,11 @@ async function fetchClosedCandles(symbol: string) {
 
 export async function loadAndRenderWaveScanner(): Promise<void> {
   setScannerLoading(true);
+  const source = getDataSource();
+  updateScannerSourceBanner(source);
   try {
-    const source = getDataSource();
     const candlesBySymbol: Record<string, typeof DEMO_OHLCV> = {};
+    const liveErrors: string[] = [];
 
     if (source === "DEMO") {
       for (const symbol of DEFAULT_WATCHLIST_SYMBOLS) {
@@ -53,8 +56,25 @@ export async function loadAndRenderWaveScanner(): Promise<void> {
           candlesBySymbol[symbol] = await fetchClosedCandles(symbol);
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
+          liveErrors.push(`${symbol}: ${message}`);
           candlesBySymbol[symbol] = [];
-          console.warn(`Wave scanner: ${symbol} failed`, message);
+        }
+      }
+      const loaded = DEFAULT_WATCHLIST_SYMBOLS.filter(
+        (s) => (candlesBySymbol[s]?.length ?? 0) > 0
+      );
+      if (loaded.length === 0) {
+        const statusEl = document.getElementById("scanner-status");
+        if (statusEl) {
+          statusEl.textContent =
+            "LIVE veri alınamadı (Binance REST / CORS / ağ). Demo moduna otomatik geçilmedi.";
+        }
+        return;
+      }
+      if (liveErrors.length > 0) {
+        const statusEl = document.getElementById("scanner-status");
+        if (statusEl) {
+          statusEl.textContent = `LIVE kısmi hata: ${liveErrors.join("; ")}`;
         }
       }
     }
@@ -71,20 +91,27 @@ export async function loadAndRenderWaveScanner(): Promise<void> {
   }
 }
 
+let uiBound = false;
+
 function bindUi(): void {
+  if (uiBound) {
+    return;
+  }
+  uiBound = true;
   initWaveScannerAlarmUi({
     getSourceMode,
     getMonitor: () => alarmMonitor,
     onStoreChanged: () => renderWaveScannerAlarmList(alarmMonitor),
   });
 
-  const refresh = document.getElementById("scanner-refresh");
-  refresh?.addEventListener("click", () => {
+  document.getElementById("scanner-refresh")?.addEventListener("click", () => {
     void loadAndRenderWaveScanner();
   });
-  const source = document.getElementById("data-source");
-  source?.addEventListener("change", () => {
+  document.getElementById("data-source")?.addEventListener("change", () => {
     void loadAndRenderWaveScanner();
+  });
+  window.addEventListener("beforeunload", () => {
+    alarmMonitor.stop();
   });
 }
 

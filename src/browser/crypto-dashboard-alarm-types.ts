@@ -46,6 +46,8 @@ export interface DashboardAlert {
   logic: "AND" | "OR";
   conditions: DashboardAlertCondition[];
   _wasTrue?: boolean;
+  /** Cross-tab / dual-monitor dedupe for a single crossing event. */
+  lastFiredEventKey?: string;
   waveScanner?: WaveScannerAlarmProvenance;
 }
 

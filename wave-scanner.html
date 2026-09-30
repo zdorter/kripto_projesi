@@ -170,10 +170,29 @@
       min-height: 2.5rem;
     }
     #alarm-editor-confirm { margin-top: 0.5rem; }
+    .source-banner {
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.45rem 0.65rem;
+      border-radius: 6px;
+      margin-bottom: 0.65rem;
+    }
+    .source-demo { background: rgba(232, 184, 74, 0.12); border: 1px solid rgba(232, 184, 74, 0.35); color: #e8c86a; }
+    .source-live { background: rgba(61, 143, 106, 0.12); border: 1px solid rgba(61, 143, 106, 0.35); color: #7dcea0; }
+    .nav-back {
+      display: inline-block;
+      margin-bottom: 0.75rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .nav-back:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
+  <a class="nav-back" href="./crypto-dashboard.html">← Dashboard'a Dön</a>
   <h1>Wave Scanner</h1>
+  <div id="scanner-source-banner" class="source-banner source-demo">Kaynak: DEMO</div>
   <p class="subtitle">
     Yapısal wave senaryolarını ve değerlendirme referanslarını gösterir.
     Karar desteği amaçlıdır; işlem önerisi veya yönlendirme değildir.

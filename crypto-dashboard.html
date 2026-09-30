@@ -562,6 +562,40 @@
   .bot-disclaimer { font-size: 9px; color: var(--text-secondary); text-align: center; line-height: 1.4; }
 
   /* ---------- Alarm Yoneticisi butonu ---------- */
+  #wave-scanner-nav, .wave-scanner-open-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 11px;
+    font-size: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: rgba(91, 156, 245, 0.08);
+    color: var(--accent);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  #wave-scanner-nav:hover, .wave-scanner-open-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+  }
+  .wave-scanner-promo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 8px 12px 0;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(91, 156, 245, 0.05);
+    font-size: 12px;
+  }
+  .wave-scanner-promo .sub {
+    color: var(--text-secondary);
+    font-size: 11px;
+    margin-top: 2px;
+  }
   #alert-manager-btn {
     background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
     border-radius: 6px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
@@ -743,12 +777,21 @@
     </div>
     <div id="toolbar-right">
       <button id="sticky-show-btn">Bilgi çubuğunu göster</button>
+      <a id="wave-scanner-nav" href="./wave-scanner.html">🌊 Wave Scanner</a>
       <button id="alert-manager-btn">🔔 Alarmlar</button>
       <div id="add-panel-wrap">
         <button id="add-panel-btn">+ Panel Ekle</button>
         <div id="panel-type-menu"></div>
       </div>
     </div>
+  </div>
+
+  <div class="wave-scanner-promo" id="wave-scanner-promo">
+    <div>
+      <strong>🌊 Wave Scanner</strong>
+      <div class="sub">Price Action + yapısal wave değerlendirme referansları (karar desteği, işlem sinyali değil)</div>
+    </div>
+    <a class="wave-scanner-open-btn" href="./wave-scanner.html">Wave Scanner'ı Aç</a>
   </div>
 
   <div id="scene-bar">
@@ -4164,6 +4207,24 @@
   const ALERTS_KEY = "crypto-dashboard-alerts-v1";
   let alertsStore = { alerts: [], history: [] };
   let audioCtx = null;
+  const __alarmFireBC = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("crypto-dashboard-alarm-fire-v1") : null;
+  const __alarmFireRemote = new Set();
+  if (__alarmFireBC) {
+    __alarmFireBC.addEventListener("message", (e) => {
+      if (e.data && e.data.eventKey) __alarmFireRemote.add(e.data.eventKey);
+    });
+  }
+  function __alarmFireEventKey(alert, cond) {
+    return `${alert.id}|${cond.type}|${cond.operator}|${cond.value}`;
+  }
+  function __claimAlarmFire(alert, eventKey) {
+    if (__alarmFireRemote.has(eventKey)) return false;
+    if (alert.lastFiredEventKey === eventKey) return false;
+    alert.lastFiredEventKey = eventKey;
+    if (__alarmFireBC) __alarmFireBC.postMessage({ eventKey, alertId: alert.id });
+    persistAlertsStore();
+    return true;
+  }
 
   async function loadAlertsStore() {
     const migrated = await loadWithMigration(ALERTS_KEY, (v) => v && Array.isArray(v.alerts));
@@ -5504,6 +5565,10 @@
   }
 
   function describeAlert(alert) {
+    if (alert.waveScanner && alert.waveScanner.source === "WAVE_SCANNER") {
+      const mode = alert.waveScanner.sourceMode === "DEMO" ? " · DEMO" : "";
+      return `${alert.symbol} · Wave Scanner${mode} · ${alert.waveScanner.referenceType} @ ${alert.waveScanner.snapshotPrice}`;
+    }
     return `${alert.symbol}: ` + alert.conditions.map(describeCondition).join(` ${alert.logic} `);
   }
 
@@ -5514,7 +5579,11 @@
       const results = alert.conditions.map((c) => evaluateCondition(entry, c));
       const combined = alert.logic === "AND" ? results.every(Boolean) : results.some(Boolean);
       if (combined && !alert._wasTrue) {
-        fireAlert(alert, describeAlert(alert));
+        const primary = alert.conditions[0];
+        const eventKey = primary ? __alarmFireEventKey(alert, primary) : alert.id;
+        if (__claimAlarmFire(alert, eventKey)) {
+          fireAlert(alert, describeAlert(alert));
+        }
       }
       alert._wasTrue = combined;
     });

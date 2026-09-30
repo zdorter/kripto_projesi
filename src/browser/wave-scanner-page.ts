@@ -41,6 +41,20 @@ function rowClass(row: WaveScannerRowPresentation): string {
 
 let selectedRowId: string | null = null;
 
+export function updateScannerSourceBanner(source: "DEMO" | "BINANCE"): void {
+  const el = document.getElementById("scanner-source-banner");
+  if (!el) {
+    return;
+  }
+  if (source === "DEMO") {
+    el.textContent = "Kaynak: DEMO (sentetik OHLCV — canlı piyasa değildir)";
+    el.className = "source-banner source-demo";
+  } else {
+    el.textContent = "Kaynak: LIVE — Binance Futures REST, kapalı 1H mumlar";
+    el.className = "source-banner source-live";
+  }
+}
+
 export function renderWaveScannerReport(report: WaveScannerReportPresentation): void {
   const statusEl = document.getElementById("scanner-status");
   const tbody = document.getElementById("scanner-tbody");
