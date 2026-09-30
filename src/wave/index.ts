@@ -132,9 +132,11 @@ export {
   buildWaveScenarios,
   mapEngineStatusToScenarioStatus,
   resolveScenarioInvalidation,
+  enumerateScenarioInvalidationCandidates,
 } from "./wave-scenarios";
 export type {
   InvalidationSource,
+  ScenarioInvalidationCandidate,
   ScenarioInvalidationView,
   ScenarioLifecycleStatus,
   ScenarioRole,

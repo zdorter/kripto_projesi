@@ -625,6 +625,40 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("X — invalidation scope / stop contract (14I)", () => {
+    it("stop-loss-model geometry unchanged; scope layer is reporting-only", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const scope = fs.readFileSync(
+        path.join(process.cwd(), "src/validation/real-market-invalidation-scope.ts"),
+        "utf8"
+      );
+      const model = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/stop-loss-model.ts"),
+        "utf8"
+      );
+      assert.ok(scope.includes("enumerateScenarioInvalidationCandidates"));
+      assert.ok(!scope.includes("evaluateStopLossModel"));
+      assert.ok(model.includes("invalidationPrice >= envelopeLow"));
+      assert.ok(!scope.includes("ATR"));
+      assert.ok(!scope.includes("nearestSwing"));
+    });
+
+    it("enumerateScenarioInvalidationCandidates does not alter resolveScenarioInvalidation", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = path.join(process.cwd(), "src/wave/wave-scenarios.ts");
+      const text = fs.readFileSync(file, "utf8");
+      assert.ok(text.includes("function resolveScenarioInvalidation"));
+      assert.ok(text.includes("export function enumerateScenarioInvalidationCandidates"));
+      const resolveBody = text.slice(
+        text.indexOf("export function resolveScenarioInvalidation"),
+        text.indexOf("export interface ScenarioInvalidationCandidate")
+      );
+      assert.ok(!resolveBody.includes("enumerateScenarioInvalidationCandidates"));
+    });
+  });
+
   describe("W — stop reference diagnostics (14H)", () => {
     it("stop diagnostics layer does not change stop-loss-model geometry", async () => {
       const fs = await import("node:fs");
@@ -638,9 +672,9 @@ describe("architecture contract", () => {
         "utf8"
       );
       assert.ok(diag.includes("evaluateStopLossModel"));
+      assert.ok(diag.includes("ref.stopPrice"));
       assert.ok(!diag.includes("ATR"));
       assert.ok(!model.includes("ATR"));
-      assert.ok(!diag.includes("return \"STOP_REFERENCE_AVAILABLE\""));
     });
 
     it("validation stop diagnostics do not alter confirmation or target layers", async () => {

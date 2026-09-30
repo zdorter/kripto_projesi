@@ -20,6 +20,14 @@ import {
   summarizeZeroConfirmedRootCause,
 } from "./real-market-setup-diagnostics";
 import { buildStopDiagnosticsFromPipeline } from "./real-market-stop-diagnostics";
+import {
+  analyzeInvalidationPrecedenceFindings,
+  buildInvalidationScopeSummary,
+  buildScenarioInvalidationCandidateReports,
+  buildStopScopeCompatibilitySummary,
+  correctiveTrackInvalidationNote,
+  scopeCompatibilityMatrix,
+} from "./real-market-invalidation-scope";
 import type {
   LayerAvailability,
   RealMarketTradeSetupDetail,
@@ -175,6 +183,18 @@ export function buildRealMarketValidationReport(
       scanRowBySetupId,
       entryPriceByPlanId,
     });
+
+  const invalidationScopeSummary = buildInvalidationScopeSummary(scanReport);
+  const stopScopeCompatibilitySummary =
+    buildStopScopeCompatibilitySummary(stopDiagnostics);
+  const scenarioInvalidationCandidates = buildScenarioInvalidationCandidateReports(
+    scanReport,
+    input.tradeContext
+  );
+  const invalidationPrecedenceFindings = analyzeInvalidationPrecedenceFindings(
+    scenarioInvalidationCandidates,
+    stopDiagnostics
+  );
 
   for (const setup of setupDetection.candidates) {
     if (!setup.isTradeSetup) {
@@ -370,6 +390,14 @@ export function buildRealMarketValidationReport(
     zeroConfirmedRootCauseNotes,
     stopDiagnostics,
     stopFailureSummary,
+    invalidationScopeSummary,
+    stopScopeCompatibilitySummary,
+    scopeCompatibilityMatrix: scopeCompatibilityMatrix(),
+    scenarioInvalidationCandidates,
+    invalidationPrecedenceFindings,
+    correctiveTrackInvalidationNote: correctiveTrackInvalidationNote(
+      input.tradeContext
+    ),
   };
 }
 
@@ -438,6 +466,31 @@ export function formatRealMarketValidationReport(
   )) {
     lines.push(`  ${k}: ${v}`);
   }
+  lines.push("");
+  lines.push("Invalidation scope (scanner scenarios):");
+  for (const [src, n] of Object.entries(
+    report.invalidationScopeSummary.bySource
+  )) {
+    lines.push(`  ${src}: ${n}`);
+  }
+  lines.push("");
+  lines.push("Stop scope compatibility (entry plans with stop diagnostics):");
+  for (const [src, stats] of Object.entries(
+    report.stopScopeCompatibilitySummary.bySource
+  )) {
+    lines.push(
+      `  ${src}: considered=${stats.considered} geometryAccepted=${stats.geometryAccepted} geometryRejected=${stats.geometryRejected}`
+    );
+  }
+  if (report.invalidationPrecedenceFindings.length > 0) {
+    lines.push("");
+    lines.push("Invalidation precedence findings:");
+    for (const f of report.invalidationPrecedenceFindings) {
+      lines.push(`  - ${f}`);
+    }
+  }
+  lines.push("");
+  lines.push(report.correctiveTrackInvalidationNote);
   return lines.join("\n");
 }
 

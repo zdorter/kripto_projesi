@@ -146,6 +146,71 @@ export function resolveScenarioInvalidation(
   };
 }
 
+export interface ScenarioInvalidationCandidate {
+  source: InvalidationSource;
+  price: number;
+  wave?: WaveLabel;
+  rule: string;
+  /** True when this candidate is the one `resolveScenarioInvalidation` would select. */
+  selectedByPolicy: boolean;
+}
+
+/**
+ * Lists structural invalidation candidates before policy collapse (diagnostics / contract).
+ * Does not change `resolveScenarioInvalidation` precedence.
+ */
+export function enumerateScenarioInvalidationCandidates(
+  presentation: WavePresentationState,
+  focus: FocusView | null,
+  wave: WaveCandidate | null
+): ScenarioInvalidationCandidate[] {
+  const selected = resolveScenarioInvalidation(presentation, focus, wave);
+  const candidates: ScenarioInvalidationCandidate[] = [];
+
+  if (focus) {
+    const track = trackForFocus(presentation, focus);
+    const scoped = track?.invalidation;
+    if (scoped) {
+      candidates.push({
+        source: "TRACK_SCOPE",
+        price: scoped.price,
+        wave: scoped.wave,
+        rule: invalidationRuleFromScoped(scoped),
+        selectedByPolicy:
+          selected.available &&
+          selected.source === "TRACK_SCOPE" &&
+          selected.price === scoped.price,
+      });
+    }
+    if (focus.invalidationPrice !== undefined) {
+      candidates.push({
+        source: "FOCUS_LEG",
+        price: focus.invalidationPrice,
+        wave: focus.wave,
+        rule: `Focus-leg invalidation price from presentation mapping (Wave ${focus.wave}).`,
+        selectedByPolicy:
+          selected.available &&
+          selected.source === "FOCUS_LEG" &&
+          selected.price === focus.invalidationPrice,
+      });
+    }
+  }
+  if (wave?.invalidationPrice !== undefined) {
+    candidates.push({
+      source: "WAVE_CANDIDATE",
+      price: wave.invalidationPrice,
+      wave: wave.label,
+      rule: `Wave candidate invalidation price on engine leg Wave ${wave.label}.`,
+      selectedByPolicy:
+        selected.available &&
+        selected.source === "WAVE_CANDIDATE" &&
+        selected.price === wave.invalidationPrice,
+    });
+  }
+
+  return candidates;
+}
+
 export function mapEngineStatusToScenarioStatus(
   engineStatus: WaveStatus | undefined,
   hasSegment: boolean

@@ -1,7 +1,7 @@
 import type { ConditionOutcome, SetupLifecycleStatus } from "../wave/setup/setup-types";
 import type { TradeSetupEvaluationAggregateState } from "../wave/setup/trade-setup-evaluation-types";
 
-export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "1.2" as const;
+export const REAL_MARKET_VALIDATION_SCHEMA_VERSION = "1.3" as const;
 
 export type RealMarketStopFailureReason =
   | "STOP_REFERENCE_AVAILABLE"
@@ -62,6 +62,61 @@ export interface RealMarketSetupTypeConditionSummary {
 
 export interface RealMarketConditionSummary {
   bySetupType: Record<string, RealMarketSetupTypeConditionSummary>;
+}
+
+export interface RealMarketStopScopeCompatibilitySummary {
+  bySource: Record<
+    string,
+    {
+      considered: number;
+      geometryAccepted: number;
+      geometryRejected: number;
+    }
+  >;
+}
+
+export interface RealMarketInvalidationScopeDetailRow {
+  symbol: string;
+  scenarioId: string;
+  waveLabel: string;
+  structure: string;
+  role: string;
+  price: number | null;
+}
+
+export interface RealMarketInvalidationScopeSummary {
+  bySource: Record<string, number>;
+  scanResultCount: number;
+  availableCount: number;
+  bySourceDetails: Record<string, RealMarketInvalidationScopeDetailRow[]>;
+}
+
+export interface RealMarketScopeCompatibilityRow {
+  source: string;
+  structuralMeaning: string;
+  segmentEnvelopeRequired: boolean;
+  currentStopModelVerdict:
+    | "COMPATIBLE"
+    | "CONTRACT_REJECTED"
+    | "UNKNOWN"
+    | "UNSUPPORTED";
+}
+
+export interface RealMarketScenarioInvalidationCandidateReport {
+  symbol: string;
+  scenarioId: string;
+  waveLabel: string;
+  role: string;
+  selectedSource: string;
+  selectedPrice: number | null;
+  candidates: Array<{
+    source: string;
+    price: number;
+    wave?: string;
+    rule: string;
+    selectedByPolicy: boolean;
+  }>;
+  shadowedCandidateCount: number;
 }
 
 export interface RealMarketInvalidationFlowSummary {
@@ -180,4 +235,10 @@ export interface RealMarketValidationReport {
   zeroConfirmedRootCauseNotes: Record<string, string[]>;
   stopDiagnostics: RealMarketStopPlanDiagnostic[];
   stopFailureSummary: Record<string, number>;
+  invalidationScopeSummary: RealMarketInvalidationScopeSummary;
+  stopScopeCompatibilitySummary: RealMarketStopScopeCompatibilitySummary;
+  scopeCompatibilityMatrix: RealMarketScopeCompatibilityRow[];
+  scenarioInvalidationCandidates: RealMarketScenarioInvalidationCandidateReport[];
+  invalidationPrecedenceFindings: string[];
+  correctiveTrackInvalidationNote: string;
 }
