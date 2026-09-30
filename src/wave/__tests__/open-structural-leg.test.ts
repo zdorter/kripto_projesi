@@ -157,6 +157,55 @@ describe("open structural leg (14N-G)", () => {
     assert.notEqual(r.leg?.observationEndIndex, r.leg?.anchorIndex);
   });
 
+  it("E1: merges provenance at same structural index and price", () => {
+    const N = 35;
+    const candles = candlesThrough(N + 1, (i) =>
+      i <= 30 ? 100 + i * 0.1 : 110 + (i - 30) * 0.5
+    );
+    const bundle = scopedBundle(candles, N);
+    const withFocus = {
+      ...bundle,
+      diagnostics: {
+        ...bundle.diagnostics,
+        confirmedSwings: [
+          {
+            index: 30,
+            type: "LOW" as const,
+            price: 110,
+            time: 0,
+            strength: 1,
+          },
+        ],
+        confirmedSwingCount: 1,
+        focus: {
+          primary: {
+            role: "PRIMARY" as const,
+            structure: "IMPULSE" as const,
+            wave: "3" as const,
+            status: "CONFIRMED" as const,
+            confidence: 1,
+            startIndex: 15,
+            endIndex: 30,
+            startPrice: 100,
+            endPrice: 110,
+            startTime: 0,
+            endTime: 0,
+            selectionReason: "t",
+          },
+          alternative: null,
+        },
+      },
+    };
+    const r = resolveOpenStructuralLeg({
+      bundle: withFocus,
+      candles: candles.slice(0, N + 1),
+      historicalSetup: setupAtEnd(30, 110),
+    });
+    assert.equal(r.anchorSelection, "SELECTED");
+    assert.equal(r.anchorCandidates.length, 1);
+    assert.ok(r.anchorCandidates[0]!.sources.length >= 2);
+  });
+
   it("E: ambiguous anchors when swing differs from setup endpoint", () => {
     const N = 40;
     const candles = candlesThrough(N + 1, (i) => 100 + i * 0.2);

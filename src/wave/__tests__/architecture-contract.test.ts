@@ -625,6 +625,37 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AJ — prospective setup completion (14N-I)", () => {
+    it("structural anchor identity; transition levels; no count weakening", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const anchor = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/structural-anchor-identity.ts"),
+        "utf8"
+      );
+      const transition = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/setup/structural-transition-semantics.ts"
+        ),
+        "utf8"
+      );
+      const replay = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/setup/prospective-natural-pipeline-replay.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(anchor.includes("mergeAnchorCandidatesByStructuralIdentity"));
+      assert.ok(anchor.includes("structuralAnchorIdentityKey"));
+      assert.ok(transition.includes("subsequentConfirmedSwingAfterIndex"));
+      assert.ok(transition.includes("OPEN_MOVEMENT_ONLY"));
+      assert.ok(replay.includes("discoverNaturalReplayMilestones"));
+      assert.ok(!transition.includes("fibExtensionPrice"));
+    });
+  });
+
   describe("AI — production prospective setup (14N-H)", () => {
     it("scoped context; no legacy POTENTIAL as production evidence", async () => {
       const fs = await import("node:fs");
@@ -638,7 +669,10 @@ describe("architecture contract", () => {
         "utf8"
       );
       assert.ok(prod.includes("usesLegacyPotentialAsProductionEvidence: false"));
-      assert.ok(prod.includes("CONFIRMED_SWING_AFTER_COMPLETED_ENDPOINT"));
+      assert.ok(
+        prod.includes("CONFIRMED_SWING_AFTER_COMPLETED_ENDPOINT") ||
+          prod.includes("PRODUCTION_TRANSITION_RULE_ID")
+      );
       assert.ok(ctx.includes("buildTradeSetupEvaluationContextWithScopedAnalysis"));
       assert.ok(!prod.includes("fibExtensionPrice"));
     });

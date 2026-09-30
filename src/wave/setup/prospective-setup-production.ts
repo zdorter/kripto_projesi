@@ -16,13 +16,11 @@ import {
   PROSPECTIVE_PRODUCTION_FAMILY_STRUCTURAL_RESUMPTION_CONTEXT,
 } from "./prospective-setup-production-types";
 
-/**
- * Production structural transition rule (14N-H):
- * confirmed swing strictly after completed structural endpoint index, swing index <= evaluationBarIndex.
- * No Elliott textbook inference.
- */
+import { PRODUCTION_TRANSITION_RULE_ID } from "./structural-transition-semantics";
+
+/** @deprecated Use PRODUCTION_TRANSITION_RULE_ID */
 export const PRODUCTION_STRUCTURAL_TRANSITION_RULE =
-  "CONFIRMED_SWING_AFTER_COMPLETED_ENDPOINT" as const;
+  PRODUCTION_TRANSITION_RULE_ID;
 
 function scopedCandles(
   candles: Candle[],

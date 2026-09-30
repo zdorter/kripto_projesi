@@ -34,6 +34,9 @@ import {
   summarizeOpenStructuralLegDiagnostics,
 } from "./real-market-open-structural-leg-diagnostics";
 import { buildProspectiveProductionDiagnostics } from "./real-market-prospective-production-diagnostics";
+import { buildAnchorIdentityDiagnostics } from "./real-market-anchor-identity-diagnostics";
+import { buildTransitionSemanticsDiagnostics } from "./real-market-transition-semantics-diagnostics";
+import { buildProspectiveReplayDiagnostics } from "./real-market-prospective-replay-diagnostics";
 import { buildSymbolEvaluationBundleAtEvaluationBar } from "../wave/setup/trade-setup-context";
 import {
   buildTradeSetupTemporalDiagnostic,
@@ -631,6 +634,13 @@ export function buildRealMarketValidationReport(
     prospectiveProductionReport.candidates;
   const prospectiveProductionSummary = prospectiveProductionReport.summary;
   const prospectiveFunnel = prospectiveProductionSummary;
+  const anchorIdentityDiagnostics = buildAnchorIdentityDiagnostics(
+    prospectiveProductionDiagnostics
+  );
+  const transitionSemanticsDiagnostics = buildTransitionSemanticsDiagnostics(
+    prospectiveProductionDiagnostics
+  );
+  const prospectiveReplayDiagnostics = buildProspectiveReplayDiagnostics();
 
   const aggregateStatus = emptyStatusCounts();
   for (const s of tradeSetups) {
@@ -722,6 +732,9 @@ export function buildRealMarketValidationReport(
     prospectiveProductionDiagnostics,
     prospectiveProductionSummary,
     prospectiveFunnel,
+    anchorIdentityDiagnostics,
+    transitionSemanticsDiagnostics,
+    prospectiveReplayDiagnostics,
   };
 }
 

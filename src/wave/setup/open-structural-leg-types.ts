@@ -26,6 +26,7 @@ export type OpenStructuralLegAnchorSelection =
 export interface OpenStructuralLegAnchorCandidate {
   anchorIndex: number;
   anchorPrice: number;
+  /** Primary structural characterization; provenance is in sources[]. */
   anchorKind: OpenStructuralLegAnchorKind;
   sources: OpenStructuralLegAnchorSource[];
   futureSafe: boolean;

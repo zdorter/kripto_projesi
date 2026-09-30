@@ -50,6 +50,9 @@ export type {
   StructuralTransitionVerdict,
 } from "./open-structural-leg-types";
 
+export type StructuralTransitionEvidenceLevel =
+  import("./structural-transition-semantics").StructuralTransitionEvidenceLevel;
+
 export interface ProspectiveTransitionEvidence {
   sourceSetupId: string;
   sourceSetupType: string;
@@ -57,6 +60,9 @@ export interface ProspectiveTransitionEvidence {
   completedAtIndex: number | null;
   subsequentSwingIndex: number | null;
   subsequentSwingDirection: "HIGH" | "LOW" | null;
+  swingConfirmationLagBars: number | null;
+  transitionEvidenceLevel: StructuralTransitionEvidenceLevel;
+  transitionRuleId: typeof import("./structural-transition-semantics").PRODUCTION_TRANSITION_RULE_ID;
   candidateLegLabel: WaveLabel | null;
   candidateLegStartIndex: number | null;
   candidateLegEndIndex: number | null;

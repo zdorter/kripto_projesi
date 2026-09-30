@@ -2,11 +2,14 @@ import type { Candle } from "../types";
 import { characterizeImpulseLegAtBar } from "./objective-wave-resolution";
 import type { SetupCandidate } from "./setup-types";
 import type { SymbolEvaluationBundle } from "./trade-setup-types";
+import {
+  mergeAnchorCandidatesByStructuralIdentity,
+  structuralAnchorIdentityKey,
+} from "./structural-anchor-identity";
 import type {
   ObservedDirection,
   OpenStructuralLeg,
   OpenStructuralLegAnchorCandidate,
-  OpenStructuralLegAnchorKind,
   OpenStructuralLegAnchorSelection,
   OpenStructuralLegAnchorSource,
   OpenStructuralLegResolution,
@@ -49,32 +52,8 @@ function pricePathRange(
   return { high, low };
 }
 
-function candidateKey(c: OpenStructuralLegAnchorCandidate): string {
-  return `${c.anchorIndex}:${c.anchorPrice.toFixed(8)}:${c.anchorKind}`;
-}
-
-function mergeCandidates(
-  raw: OpenStructuralLegAnchorCandidate[]
-): OpenStructuralLegAnchorCandidate[] {
-  const byKey = new Map<string, OpenStructuralLegAnchorCandidate>();
-  for (const c of raw) {
-    const key = candidateKey(c);
-    const existing = byKey.get(key);
-    if (!existing) {
-      byKey.set(key, {
-        ...c,
-        sources: [...c.sources],
-      });
-      continue;
-    }
-    const sources = new Set([
-      ...existing.sources,
-      ...c.sources,
-    ]) as Set<OpenStructuralLegAnchorSource>;
-    existing.sources = [...sources];
-    existing.futureSafe = existing.futureSafe && c.futureSafe;
-  }
-  return [...byKey.values()].sort((a, b) => a.anchorIndex - b.anchorIndex);
+function identityKey(c: OpenStructuralLegAnchorCandidate): string {
+  return structuralAnchorIdentityKey(c.anchorIndex, c.anchorPrice);
 }
 
 function buildLeg(
@@ -166,7 +145,7 @@ export function resolveOpenStructuralLeg(input: {
 
   const rawCandidates: OpenStructuralLegAnchorCandidate[] = [];
 
-  if (historicalSetup?.status === "CONFIRMED") {
+  if (historicalSetup) {
     const endIndex = historicalSetup.sourceScenario.endIndex;
     const endPrice = historicalSetup.sourceScenario.endPrice;
     const focus = historicalSetup.scenarioRef.waveLabel;
@@ -222,7 +201,9 @@ export function resolveOpenStructuralLeg(input: {
     });
   }
 
-  const anchorCandidates = mergeCandidates(rawCandidates);
+  const anchorCandidates = mergeAnchorCandidatesByStructuralIdentity(
+    rawCandidates
+  );
 
   if (anchorCandidates.length === 0) {
     return {
@@ -245,7 +226,7 @@ export function resolveOpenStructuralLeg(input: {
   } else {
     anchorSelection = "AMBIGUOUS";
     reasons.push(
-      `Multiple distinct anchor identities: ${anchorCandidates.map(candidateKey).join(", ")}.`
+      `Multiple distinct structural anchor identities: ${anchorCandidates.map(identityKey).join(", ")}.`
     );
   }
 

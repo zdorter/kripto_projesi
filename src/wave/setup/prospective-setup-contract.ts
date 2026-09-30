@@ -22,6 +22,12 @@ import {
 } from "./prospective-setup-contract-types";
 import { resolveTradeSetupTemporalContext } from "./trade-setup-temporal-semantics";
 import type { SymbolEvaluationBundle } from "./trade-setup-types";
+import {
+  PRODUCTION_TRANSITION_RULE_ID,
+  characterizeSwingTransitionRelation,
+  resolveStructuralTransitionEvidenceLevel,
+  subsequentConfirmedSwingAfterIndex,
+} from "./structural-transition-semantics";
 
 function flatWave(
   bundle: SymbolEvaluationBundle,
@@ -61,18 +67,6 @@ function findInProgressImpulseLegAfter(
     }
   }
   return null;
-}
-
-function subsequentSwingAfter(
-  bundle: SymbolEvaluationBundle,
-  afterIndex: number,
-  evaluationBarIndex: number
-): { index: number; type: "HIGH" | "LOW" } | null {
-  const swings = bundle.diagnostics.confirmedSwings ?? [];
-  const next = swings
-    .filter((s) => s.index > afterIndex && s.index <= evaluationBarIndex)
-    .sort((a, b) => a.index - b.index)[0];
-  return next ? { index: next.index, type: next.type } : null;
 }
 
 function scopedCandles(
@@ -168,7 +162,7 @@ function buildLegacyPotentialOpenLeg(
 function resolveLegacyPhase(
   completedAtIndex: number | null,
   candidate: ReturnType<typeof findInProgressImpulseLegAfter>,
-  subsequent: ReturnType<typeof subsequentSwingAfter>,
+  subsequent: { index: number; type: "HIGH" | "LOW" } | null,
   bundle: SymbolEvaluationBundle,
   focus: WaveLabel,
   evaluationBarIndex: number
@@ -227,9 +221,10 @@ export function resolveProspectiveSetupContract(input: {
     ]);
   }
 
-  if (historicalSetup.status !== "CONFIRMED") {
+  if (temporal.focusWaveState !== "ENDPOINT_CONFIRMED") {
     return unsupportedResult(historicalSetup, evaluationBarIndex, [
-      "Source setup must be CONFIRMED historical snapshot.",
+      "Prospective contract requires completed structural endpoint at evaluation bar.",
+      `focusWaveState: ${temporal.focusWaveState}.`,
     ]);
   }
 
@@ -241,8 +236,16 @@ export function resolveProspectiveSetupContract(input: {
   );
   const completedAtIndex = focusState.endIndex;
 
-  const subsequent = completedAtIndex !== null
-    ? subsequentSwingAfter(bundle, completedAtIndex, evaluationBarIndex)
+  const subsequentDetailed =
+    completedAtIndex !== null
+      ? subsequentConfirmedSwingAfterIndex(
+          bundle,
+          completedAtIndex,
+          evaluationBarIndex
+        )
+      : null;
+  const subsequent = subsequentDetailed
+    ? { index: subsequentDetailed.index, type: subsequentDetailed.type }
     : null;
 
   const candidate =
@@ -261,6 +264,9 @@ export function resolveProspectiveSetupContract(input: {
     completedAtIndex,
     subsequentSwingIndex: subsequent?.index ?? null,
     subsequentSwingDirection: subsequent?.type ?? null,
+    swingConfirmationLagBars: subsequentDetailed?.swingConfirmationLagBars ?? null,
+    transitionEvidenceLevel: "NO_TRANSITION",
+    transitionRuleId: PRODUCTION_TRANSITION_RULE_ID,
     candidateLegLabel: candidate?.label ?? null,
     candidateLegStartIndex: candidate?.startIndex ?? null,
     candidateLegEndIndex: candidate?.endIndex ?? null,
@@ -282,9 +288,14 @@ export function resolveProspectiveSetupContract(input: {
     transition.notes.push(
       "LEGACY: Candidate impulse leg has end after bar (POTENTIAL open span)."
     );
-  } else if (subsequent) {
+  } else if (subsequent && completedAtIndex !== null) {
+    const relation = characterizeSwingTransitionRelation({
+      completedAtIndex,
+      subsequentSwing: subsequent,
+    });
+    transition.notes.push(...relation.notes);
     transition.notes.push(
-      "Subsequent confirmed swing after completed structure."
+      "Subsequent confirmed swing after completed structure (index strictly greater than endpoint)."
     );
   }
 
@@ -327,6 +338,15 @@ export function resolveProspectiveSetupContract(input: {
         ? "OPEN_MOVEMENT_OBSERVED"
         : "NO_OPEN_MOVEMENT";
 
+  transition.transitionEvidenceLevel = resolveStructuralTransitionEvidenceLevel(
+    {
+      subsequentSwingObserved: subsequent !== null,
+      openMovementObserved:
+        openMovementVerdict === "OPEN_MOVEMENT_OBSERVED",
+      phaseInProgress: false,
+    }
+  );
+
   let phaseStatus: ProspectiveSetupContractResult["phaseStatus"] =
     "NOT_ESTABLISHED";
   if (completedAtIndex === null) {
@@ -338,13 +358,16 @@ export function resolveProspectiveSetupContract(input: {
     openLegResolution.leg?.anchorIndex === completedAtIndex
   ) {
     phaseStatus = "PHASE_IN_PROGRESS";
+    transition.transitionEvidenceLevel = "STRUCTURAL_TRANSITION_CONFIRMED";
   } else if (openMovementVerdict === "OPEN_MOVEMENT_OBSERVED") {
     phaseStatus = "OPEN_MOVEMENT_OBSERVED";
+    transition.transitionEvidenceLevel = "OPEN_MOVEMENT_ONLY";
     objectiveEligibilityReasons.push(
       "OPEN_LEG_AVAILABLE_BUT_TRANSITION_UNRESOLVED"
     );
   } else if (structuralTransitionVerdict === "STRUCTURAL_TRANSITION_OBSERVED") {
     phaseStatus = "TRANSITION_OBSERVED";
+    transition.transitionEvidenceLevel = "SWING_TRANSITION_OBSERVED";
   } else {
     const nextLabel = focus === "3" ? "4" : focus === "4" ? "5" : null;
     if (nextLabel) {
@@ -483,6 +506,9 @@ function unsupportedResult(
       completedAtIndex: null,
       subsequentSwingIndex: null,
       subsequentSwingDirection: null,
+      swingConfirmationLagBars: null,
+      transitionEvidenceLevel: "NO_TRANSITION",
+      transitionRuleId: PRODUCTION_TRANSITION_RULE_ID,
       candidateLegLabel: null,
       candidateLegStartIndex: null,
       candidateLegEndIndex: null,
