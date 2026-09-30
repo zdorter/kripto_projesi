@@ -186,6 +186,21 @@ export type {
   ObjectiveWaveTemporalCompatibility,
   RelationshipTemplateKeyingVerdict,
 } from "./objective-wave-resolution-types";
+export {
+  buildObjectivePhaseContext,
+  prospectiveSetupSupportVerdict,
+  resolveTradeSetupTemporalContext,
+} from "./trade-setup-temporal-semantics";
+export {
+  TARGET_OBJECTIVE_ELIGIBILITY_GATE_VERDICT,
+} from "./trade-setup-temporal-types";
+export type {
+  ObjectiveEligibility,
+  ObjectivePhaseContext,
+  TradeSetupSemanticKind,
+  TradeSetupTemporalClass,
+  TradeSetupTemporalContext,
+} from "./trade-setup-temporal-types";
 export type {
   WaveProjectionContext,
   WaveProjectionContextStatus,

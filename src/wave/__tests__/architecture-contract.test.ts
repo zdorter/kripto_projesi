@@ -625,6 +625,22 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AE — trade setup temporal semantics (14N-D)", () => {
+    it("setup confirmed != prospective; objective eligibility separate", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const file = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/trade-setup-temporal-semantics.ts"),
+        "utf8"
+      );
+      assert.ok(file.includes("resolveTradeSetupTemporalContext"));
+      assert.ok(file.includes("OBJECTIVE_ALREADY_COMPLETED"));
+      assert.ok(file.includes("EntryPlan eligibility"));
+      assert.ok(!file.includes("fibExtensionPrice"));
+      assert.ok(!file.includes("BUY"));
+    });
+  });
+
   describe("AD — objective wave resolution (14N-C)", () => {
     it("no current+1 objective, no target price, setup confirmed != objective resolved", async () => {
       const fs = await import("node:fs");

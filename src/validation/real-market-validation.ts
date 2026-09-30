@@ -24,6 +24,10 @@ import {
   summarizeObjectiveWaveResolutionDiagnostics,
 } from "./real-market-objective-wave-resolution-diagnostics";
 import {
+  buildTradeSetupTemporalDiagnostic,
+  summarizeTradeSetupTemporalDiagnostics,
+} from "./real-market-trade-setup-temporal-diagnostics";
+import {
   buildWaveProjectionContextDiagnostic,
   summarizeWaveProjectionContextDiagnostics,
 } from "./real-market-wave-projection-context-diagnostics";
@@ -484,6 +488,34 @@ export function buildRealMarketValidationReport(
   );
 
   const tradeSetups = setupDetection.candidates.filter((c) => c.isTradeSetup);
+  const detailBySetupId = new Map(
+    tradeSetupDetails.map((d) => [d.setupId, d])
+  );
+  const tradeSetupTemporalDiagnostics: ReturnType<
+    typeof buildTradeSetupTemporalDiagnostic
+  >[] = [];
+  for (const setup of tradeSetups) {
+    const bundle = bundles[setup.symbol];
+    if (!bundle) {
+      continue;
+    }
+    const detail = detailBySetupId.get(setup.id);
+    tradeSetupTemporalDiagnostics.push(
+      buildTradeSetupTemporalDiagnostic({
+        setup,
+        bundle,
+        entryAvailability: detail?.entryAvailability,
+        stopAvailability: detail?.stopAvailability,
+      })
+    );
+  }
+  tradeSetupTemporalDiagnostics.sort((a, b) =>
+    a.setupId.localeCompare(b.setupId)
+  );
+  const temporalSetupSummary = summarizeTradeSetupTemporalDiagnostics(
+    tradeSetupTemporalDiagnostics
+  );
+
   const aggregateStatus = emptyStatusCounts();
   for (const s of tradeSetups) {
     aggregateStatus[s.status]++;
@@ -564,6 +596,8 @@ export function buildRealMarketValidationReport(
     waveProjectionContextSummary,
     objectiveWaveResolutionDiagnostics,
     objectiveWaveResolutionSummary,
+    tradeSetupTemporalDiagnostics,
+    temporalSetupSummary,
   };
 }
 
@@ -701,6 +735,18 @@ export function formatRealMarketValidationReport(
   lines.push("Objective wave resolution (14N-C):");
   for (const [status, n] of Object.entries(report.objectiveWaveResolutionSummary)) {
     lines.push(`  ${status}: ${n}`);
+  }
+  lines.push("");
+  lines.push("Trade setup temporal semantics (14N-D):");
+  for (const [k, n] of Object.entries(report.temporalSetupSummary)) {
+    lines.push(`  ${k}: ${n}`);
+  }
+  for (const row of report.tradeSetupTemporalDiagnostics.filter(
+    (r) => r.lifecycleStatus === "CONFIRMED"
+  )) {
+    lines.push(
+      `  ${row.setupId}: objective=${row.objectiveEligibility} entry=${row.entryAvailability} stop=${row.stopAvailability}`
+    );
   }
   lines.push("");
   lines.push(report.correctiveTrackInvalidationNote);
