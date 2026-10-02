@@ -9,6 +9,7 @@ import {
   formatTradeEvaluationDetailsSection,
   formatTradeEvaluationStatusColumn,
 } from "../wave/setup/trade-evaluation-presentation";
+import { formatOutcomeReplayDetailsSection } from "../wave/setup/prospective-setup-outcome-replay-presentation";
 import { attachAlarmButtonToDetails } from "./wave-scanner-alarm-ui";
 
 function formatPrice(value: number | null): string {
@@ -224,6 +225,7 @@ export function renderWaveScannerDetails(row: WaveScannerRowPresentation): void 
       <p>${d.rr.status === "AVAILABLE" && d.rr.value !== null ? d.rr.value.toFixed(2) : "—"}</p>
     </section>
     ${formatTradeEvaluationDetailsSection(d.tradeEvaluation)}
+    ${formatOutcomeReplayDetailsSection(row.outcomeReplay)}
     <section class="detail-section">
       <h3>Structural trace</h3>
       <p>Completed endpoint idx ${trace.completedEndpointIndex ?? "—"} · price ${formatPrice(trace.completedEndpointPrice)}</p>

@@ -9,6 +9,7 @@ import { evaluateProspectiveReferenceBundle } from "./setup/prospective-referenc
 import { PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY } from "./setup/prospective-open-leg-displacement-equality-policy";
 import type { SetupCandidate } from "./setup/setup-types";
 import type { ProspectiveReferenceEvaluation } from "./setup/prospective-reference-evaluation";
+import { enrichProspectiveSetupOutcomeReplay } from "./setup/prospective-setup-outcome-replay-enrichment";
 import {
   presentWaveScannerRow,
   type ProductionWaveScannerComposedRow,
@@ -25,6 +26,9 @@ export interface ProductionWaveScannerRunInput {
   generatedAt?: string;
   /** Per-symbol live ticker for trade evaluation entry freshness only. */
   liveMarketPriceBySymbol?: Record<string, number | null>;
+  /** Opt-in post-evaluation outcome replay (default off). */
+  includeOutcomeReplay?: boolean;
+  outcomeReplayHorizonBars?: number;
 }
 
 export interface ProductionWaveScannerSymbolInput {
@@ -284,6 +288,7 @@ export function runProductionWaveScanner(
 
   const liveMap = input.liveMarketPriceBySymbol;
   const liveMapProvided = liveMap !== undefined;
+  const includeOutcomeReplay = input.includeOutcomeReplay === true;
 
   return {
     schemaVersion: "1.0",
@@ -294,7 +299,23 @@ export function runProductionWaveScanner(
       const liveMarketPrice = liveMapProvided
         ? (liveMap[composed.symbol] ?? null)
         : entryRef;
-      return presentWaveScannerRow(composed, { liveMarketPrice });
+      const row = presentWaveScannerRow(composed, { liveMarketPrice });
+      if (!includeOutcomeReplay) {
+        return row;
+      }
+      const candles = input.candlesBySymbol[composed.symbol];
+      if (!candles?.length) {
+        return row;
+      }
+      const outcomeReplay = enrichProspectiveSetupOutcomeReplay(
+        composed,
+        candles,
+        { horizonBars: input.outcomeReplayHorizonBars }
+      );
+      if (!outcomeReplay) {
+        return row;
+      }
+      return { ...row, outcomeReplay };
     }),
     symbolErrors,
   };

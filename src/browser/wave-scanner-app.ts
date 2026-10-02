@@ -34,6 +34,14 @@ function getSourceMode(): WaveScannerAlarmSourceMode {
   return getDataSource() === "DEMO" ? "DEMO" : "LIVE";
 }
 
+/** Opt-in outcome replay (default off). */
+export function isOutcomeReplayEnabled(): boolean {
+  const el = document.getElementById(
+    "outcome-replay-enabled"
+  ) as HTMLInputElement | null;
+  return el?.checked === true;
+}
+
 async function fetchClosedCandles(symbol: string) {
   return provider.getCandles(symbol, BINANCE_INTERVAL, BINANCE_LIMIT);
 }
@@ -104,6 +112,7 @@ export async function loadAndRenderWaveScanner(): Promise<void> {
       timeframeId: SCANNER_TIMEFRAME,
       engineOptions: source === "DEMO" ? DEMO_WAVE_ENGINE_OPTIONS : undefined,
       liveMarketPriceBySymbol,
+      includeOutcomeReplay: isOutcomeReplayEnabled(),
     });
     renderWaveScannerReport(
       report,
@@ -131,6 +140,9 @@ function bindUi(): void {
     void loadAndRenderWaveScanner();
   });
   document.getElementById("data-source")?.addEventListener("change", () => {
+    void loadAndRenderWaveScanner();
+  });
+  document.getElementById("outcome-replay-enabled")?.addEventListener("change", () => {
     void loadAndRenderWaveScanner();
   });
   window.addEventListener("beforeunload", () => {

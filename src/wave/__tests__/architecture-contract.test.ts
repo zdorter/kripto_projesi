@@ -777,6 +777,97 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AU — outcome replay browser integration (Phase B-7c)", () => {
+    it("toggle default off; page render-only; no alarm/outcome coupling", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const app = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/wave-scanner-app.ts"),
+        "utf8"
+      );
+      const page = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/wave-scanner-page.ts"),
+        "utf8"
+      );
+      const html = fs.readFileSync(
+        path.join(process.cwd(), "wave-scanner.html"),
+        "utf8"
+      );
+      const alarm = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/wave-scanner-alarm-monitor.ts"),
+        "utf8"
+      );
+      assert.ok(app.includes("isOutcomeReplayEnabled"));
+      assert.ok(app.includes("includeOutcomeReplay: isOutcomeReplayEnabled()"));
+      assert.ok(page.includes("formatOutcomeReplayDetailsSection"));
+      assert.ok(!page.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!page.includes("evaluateTradeEvaluation"));
+      assert.ok(html.includes("outcome-replay-enabled"));
+      assert.ok(!alarm.includes("outcomeReplay"));
+      assert.ok(!alarm.includes("OutcomeReplay"));
+    });
+  });
+
+  describe("AT — outcome replay enrichment opt-in (Phase B-7b)", () => {
+    it("default off; enrichment not in presentation; independent of trade eval", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const prod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/production-wave-scanner.ts"),
+        "utf8"
+      );
+      const presentation = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/wave-scanner-presentation.ts"),
+        "utf8"
+      );
+      const enrich = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/setup/prospective-setup-outcome-replay-enrichment.ts"
+        ),
+        "utf8"
+      );
+      const page = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/wave-scanner-page.ts"),
+        "utf8"
+      );
+      assert.ok(prod.includes("includeOutcomeReplay === true"));
+      assert.ok(prod.includes("enrichProspectiveSetupOutcomeReplay"));
+      assert.ok(!presentation.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!presentation.includes("enrichProspectiveSetupOutcomeReplay"));
+      assert.ok(enrich.includes("buildProspectiveSetupOutcomeReplayInput"));
+      assert.ok(enrich.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!enrich.includes("evaluateTradeEvaluation"));
+      assert.ok(page.includes("formatOutcomeReplayDetailsSection"));
+      assert.ok(!page.includes("enrichProspectiveSetupOutcomeReplay"));
+      assert.ok(!page.includes("replayProspectiveSetupOutcome"));
+    });
+  });
+
+  describe("AS — outcome replay input mapper (Phase B-7a)", () => {
+    it("mapper maps only; no trade eval, replay, fetch, or ref math", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mapper = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/setup/prospective-setup-outcome-replay-input.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mapper.includes("buildProspectiveSetupOutcomeReplayInput"));
+      assert.ok(mapper.includes("resolveProspectiveStructuralInvalidation"));
+      assert.ok(!mapper.includes("evaluateTradeEvaluation"));
+      assert.ok(!mapper.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mapper.includes("fetch("));
+      assert.ok(!mapper.includes("evaluateProspectiveReferenceBundle"));
+      assert.ok(!mapper.includes("projectProspectiveOpenLeg"));
+      assert.ok(!mapper.includes("alarm"));
+      assert.ok(!mapper.includes("window"));
+      assert.ok(!mapper.includes("document"));
+    });
+  });
+
   describe("AR — prospective setup outcome replay (Phase B-6)", () => {
     it("post-eval candles only; no lookahead; no network; isolated from trade eval", async () => {
       const fs = await import("node:fs");

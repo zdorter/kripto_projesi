@@ -237,6 +237,16 @@ export {
   candleTouchesTarget,
   replayProspectiveSetupOutcome,
 } from "./prospective-setup-outcome-replay";
+export {
+  buildProspectiveSetupOutcomeReplayInput,
+  type BuildProspectiveSetupOutcomeReplayInputOptions,
+} from "./prospective-setup-outcome-replay-input";
+export { enrichProspectiveSetupOutcomeReplay } from "./prospective-setup-outcome-replay-enrichment";
+export {
+  formatOutcomeReplayDetailsSection,
+  futureBarsAvailableAfterEvaluation,
+  mapProspectiveSetupOutcomeReplayPresentation,
+} from "./prospective-setup-outcome-replay-presentation";
 export type {
   ProspectiveSetupOutcomeReplayInput,
   ProspectiveSetupOutcomeReplayResult,

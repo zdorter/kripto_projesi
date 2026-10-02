@@ -4,6 +4,7 @@ import type {
   TradeEvaluationResult,
   TradeEvaluationStatus,
 } from "./setup/trade-evaluation-types";
+import type { ProspectiveSetupOutcomeReplayStatus } from "./setup/prospective-setup-outcome-replay-types";
 
 export const WAVE_SCANNER_PRESENTATION_SCHEMA_VERSION = "1.0" as const;
 
@@ -94,6 +95,18 @@ export interface WaveScannerTradeEvaluationPresentation {
   rr: TradeEvaluationCheckOutcome;
 }
 
+/** Post-evaluation price path (Phase B-6/B-7); not trade evaluation. */
+export interface WaveScannerOutcomeReplayPresentation {
+  outcome: ProspectiveSetupOutcomeReplayStatus;
+  horizonBars: number;
+  futureBarsAvailable: number;
+  resolutionBarIndex: number | null;
+  barsAfterEvaluation: number | null;
+  targetTouched: boolean;
+  invalidationTouched: boolean;
+  prospectiveSetupId: string | null;
+}
+
 export interface WaveScannerRowPresentation {
   schemaVersion: typeof WAVE_SCANNER_PRESENTATION_SCHEMA_VERSION;
   symbol: string;
@@ -107,6 +120,7 @@ export interface WaveScannerRowPresentation {
   targetReference: WaveScannerReferencePresentation;
   rr: { status: WaveScannerLayerStatus; value: number | null };
   tradeEvaluation: WaveScannerTradeEvaluationPresentation;
+  outcomeReplay?: WaveScannerOutcomeReplayPresentation;
   readyForFurtherEvaluation: boolean;
   displayStatus: string;
   blockerStage: string | null;

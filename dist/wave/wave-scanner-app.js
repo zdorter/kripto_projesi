@@ -5555,13 +5555,241 @@ function evaluateProspectiveReferenceBundle(input) {
   };
 }
 
+// src/wave/setup/prospective-setup-outcome-replay-contract.ts
+var PROSPECTIVE_SETUP_OUTCOME_REPLAY_SCHEMA_VERSION = "1.0";
+var PROSPECTIVE_SETUP_OUTCOME_REPLAY_DEFAULT_HORIZON_BARS = 24;
+
+// src/wave/setup/prospective-setup-outcome-replay-input.ts
+function buildProspectiveSetupOutcomeReplayInput(composed, candles, options) {
+  if (!candles.length) {
+    return null;
+  }
+  if (composed.loadError) {
+    return null;
+  }
+  if (!composed.production || !composed.historicalSetup) {
+    return null;
+  }
+  if (composed.evaluationBarIndex === null || composed.evaluationBarIndex < 0) {
+    return null;
+  }
+  const structuralInv = resolveProspectiveStructuralInvalidation(
+    composed.historicalSetup
+  );
+  const observed = composed.production.observedDirection;
+  return {
+    direction: observed === "BULLISH" || observed === "BEARISH" || observed === "UNRESOLVED" ? observed : null,
+    entryReferencePrice: composed.references.entry.referencePrice,
+    targetReferencePrice: composed.references.target.referencePrice,
+    invalidationReferencePrice: structuralInv.invalidationPrice,
+    evaluationBarIndex: composed.evaluationBarIndex,
+    candles,
+    horizonBars: options?.horizonBars ?? PROSPECTIVE_SETUP_OUTCOME_REPLAY_DEFAULT_HORIZON_BARS,
+    prospectiveSetupId: composed.production.id
+  };
+}
+
+// src/wave/setup/prospective-setup-outcome-replay.ts
+function finite(n) {
+  return n !== null && n !== void 0 && Number.isFinite(n);
+}
+function candleTouchesTarget(direction, candle, targetPrice) {
+  if (direction === "BULLISH") {
+    return candle.high >= targetPrice;
+  }
+  return candle.low <= targetPrice;
+}
+function candleTouchesInvalidation(direction, candle, invalidationPrice) {
+  if (direction === "BULLISH") {
+    return candle.low <= invalidationPrice;
+  }
+  return candle.high >= invalidationPrice;
+}
+function emptyResult(outcome, input, horizonBars) {
+  return {
+    schemaVersion: PROSPECTIVE_SETUP_OUTCOME_REPLAY_SCHEMA_VERSION,
+    outcome,
+    evaluationBarIndex: input.evaluationBarIndex,
+    resolutionBarIndex: null,
+    barsAfterEvaluation: null,
+    targetPrice: finite(input.targetReferencePrice) ? input.targetReferencePrice : null,
+    invalidationPrice: finite(input.invalidationReferencePrice) ? input.invalidationReferencePrice : null,
+    direction: input.direction === "BULLISH" || input.direction === "BEARISH" ? input.direction : null,
+    horizonBars,
+    targetTouched: false,
+    invalidationTouched: false,
+    prospectiveSetupId: input.prospectiveSetupId ?? null
+  };
+}
+function replayProspectiveSetupOutcome(input) {
+  const horizonBars = input.horizonBars ?? PROSPECTIVE_SETUP_OUTCOME_REPLAY_DEFAULT_HORIZON_BARS;
+  if (!finite(input.evaluationBarIndex)) {
+    return emptyResult("INSUFFICIENT_CONTEXT", input, horizonBars);
+  }
+  if (input.direction !== "BULLISH" && input.direction !== "BEARISH") {
+    return emptyResult("INSUFFICIENT_CONTEXT", input, horizonBars);
+  }
+  if (!finite(input.targetReferencePrice)) {
+    return emptyResult("INSUFFICIENT_CONTEXT", input, horizonBars);
+  }
+  if (!finite(input.invalidationReferencePrice)) {
+    return emptyResult("INSUFFICIENT_CONTEXT", input, horizonBars);
+  }
+  const evalIdx = Math.floor(input.evaluationBarIndex);
+  const start = evalIdx + 1;
+  const lastIndex = input.candles.length - 1;
+  const end = Math.min(evalIdx + horizonBars, lastIndex);
+  if (start > lastIndex) {
+    return emptyResult("NO_FUTURE_DATA", input, horizonBars);
+  }
+  const targetPrice = input.targetReferencePrice;
+  const invalidationPrice = input.invalidationReferencePrice;
+  const direction = input.direction;
+  for (let i = start; i <= end; i++) {
+    const candle = input.candles[i];
+    if (!candle) {
+      continue;
+    }
+    const targetHit = candleTouchesTarget(direction, candle, targetPrice);
+    const invHit = candleTouchesInvalidation(
+      direction,
+      candle,
+      invalidationPrice
+    );
+    if (targetHit && invHit) {
+      return {
+        schemaVersion: PROSPECTIVE_SETUP_OUTCOME_REPLAY_SCHEMA_VERSION,
+        outcome: "AMBIGUOUS",
+        evaluationBarIndex: evalIdx,
+        resolutionBarIndex: i,
+        barsAfterEvaluation: i - evalIdx,
+        targetPrice,
+        invalidationPrice,
+        direction,
+        horizonBars,
+        targetTouched: true,
+        invalidationTouched: true,
+        prospectiveSetupId: input.prospectiveSetupId ?? null
+      };
+    }
+    if (targetHit) {
+      return {
+        schemaVersion: PROSPECTIVE_SETUP_OUTCOME_REPLAY_SCHEMA_VERSION,
+        outcome: "TARGET_TOUCHED",
+        evaluationBarIndex: evalIdx,
+        resolutionBarIndex: i,
+        barsAfterEvaluation: i - evalIdx,
+        targetPrice,
+        invalidationPrice,
+        direction,
+        horizonBars,
+        targetTouched: true,
+        invalidationTouched: false,
+        prospectiveSetupId: input.prospectiveSetupId ?? null
+      };
+    }
+    if (invHit) {
+      return {
+        schemaVersion: PROSPECTIVE_SETUP_OUTCOME_REPLAY_SCHEMA_VERSION,
+        outcome: "INVALIDATION_TOUCHED",
+        evaluationBarIndex: evalIdx,
+        resolutionBarIndex: i,
+        barsAfterEvaluation: i - evalIdx,
+        targetPrice,
+        invalidationPrice,
+        direction,
+        horizonBars,
+        targetTouched: false,
+        invalidationTouched: true,
+        prospectiveSetupId: input.prospectiveSetupId ?? null
+      };
+    }
+  }
+  return {
+    schemaVersion: PROSPECTIVE_SETUP_OUTCOME_REPLAY_SCHEMA_VERSION,
+    outcome: "NO_TOUCH",
+    evaluationBarIndex: evalIdx,
+    resolutionBarIndex: null,
+    barsAfterEvaluation: end - evalIdx,
+    targetPrice,
+    invalidationPrice,
+    direction,
+    horizonBars,
+    targetTouched: false,
+    invalidationTouched: false,
+    prospectiveSetupId: input.prospectiveSetupId ?? null
+  };
+}
+
+// src/wave/setup/prospective-setup-outcome-replay-presentation.ts
+function futureBarsAvailableAfterEvaluation(evaluationBarIndex, candleCount) {
+  if (candleCount <= 0 || evaluationBarIndex < 0) {
+    return 0;
+  }
+  return Math.max(0, candleCount - 1 - evaluationBarIndex);
+}
+function mapProspectiveSetupOutcomeReplayPresentation(result, futureBarsAvailable) {
+  return {
+    outcome: result.outcome,
+    horizonBars: result.horizonBars,
+    futureBarsAvailable,
+    resolutionBarIndex: result.resolutionBarIndex,
+    barsAfterEvaluation: result.barsAfterEvaluation,
+    targetTouched: result.targetTouched,
+    invalidationTouched: result.invalidationTouched,
+    prospectiveSetupId: result.prospectiveSetupId
+  };
+}
+function dash(n) {
+  return n !== null && n !== void 0 && Number.isFinite(n) ? String(n) : "\u2014";
+}
+function formatOutcomeReplayDetailsSection(outcome) {
+  if (!outcome) {
+    return "";
+  }
+  return `
+    <section class="detail-section">
+      <h3>Outcome Replay</h3>
+      <p>Outcome Replay: ${outcome.outcome}</p>
+      <p>Horizon: ${outcome.horizonBars} bars</p>
+      <p>Future Bars Available: ${outcome.futureBarsAvailable}</p>
+      <p>Resolution Bar: ${dash(outcome.resolutionBarIndex)}</p>
+      <p>Bars After Evaluation: ${dash(outcome.barsAfterEvaluation)}</p>
+      <p>Target Touched: ${outcome.targetTouched}</p>
+      <p>Invalidation Touched: ${outcome.invalidationTouched}</p>
+      <p class="muted">Outcome replay is historical price-path evaluation, not a trade signal.</p>
+    </section>`;
+}
+
+// src/wave/setup/prospective-setup-outcome-replay-enrichment.ts
+function enrichProspectiveSetupOutcomeReplay(composed, candles, options) {
+  const replayInput = buildProspectiveSetupOutcomeReplayInput(
+    composed,
+    candles,
+    { horizonBars: options?.horizonBars }
+  );
+  if (!replayInput) {
+    return null;
+  }
+  const evalIdx = composed.evaluationBarIndex;
+  const futureBarsAvailable = futureBarsAvailableAfterEvaluation(
+    evalIdx,
+    candles.length
+  );
+  const result = replayProspectiveSetupOutcome(replayInput);
+  return mapProspectiveSetupOutcomeReplayPresentation(
+    result,
+    futureBarsAvailable
+  );
+}
+
 // src/wave/setup/trade-evaluation-contract.ts
 var TRADE_EVALUATION_SCHEMA_VERSION = "1.0";
 var TRADE_EVALUATION_ENTRY_FRESHNESS_TOLERANCE = 0.01;
 var TRADE_EVALUATION_MIN_RR = 1.5;
 
 // src/wave/setup/trade-evaluation.ts
-function finite(n) {
+function finite2(n) {
   return n !== null && n !== void 0 && Number.isFinite(n);
 }
 function tradeEvaluationCanonicalRr(entryPrice, stopPrice, targetPrice) {
@@ -5574,7 +5802,7 @@ function tradeEvaluationCanonicalRr(entryPrice, stopPrice, targetPrice) {
   return Number.isFinite(ratio) ? ratio : null;
 }
 function evaluateEntryFreshness(entryReference, liveMarketPrice) {
-  if (!finite(entryReference) || !finite(liveMarketPrice) || entryReference === 0) {
+  if (!finite2(entryReference) || !finite2(liveMarketPrice) || entryReference === 0) {
     return { outcome: "INSUFFICIENT_CONTEXT", deviationRatio: null };
   }
   const deviationRatio = Math.abs(liveMarketPrice - entryReference) / Math.abs(entryReference);
@@ -5584,7 +5812,7 @@ function evaluateEntryFreshness(entryReference, liveMarketPrice) {
   return { outcome: "STALE", deviationRatio };
 }
 function evaluateStopGeometry(direction, entryPrice, stopPrice) {
-  if (!finite(entryPrice) || !finite(stopPrice)) {
+  if (!finite2(entryPrice) || !finite2(stopPrice)) {
     return { outcome: "INSUFFICIENT_CONTEXT", risk: null };
   }
   if (direction !== "BULLISH" && direction !== "BEARISH") {
@@ -5606,7 +5834,7 @@ function evaluateStopGeometry(direction, entryPrice, stopPrice) {
   };
 }
 function evaluateTargetGeometry(direction, entryPrice, targetPrice) {
-  if (!finite(entryPrice) || !finite(targetPrice)) {
+  if (!finite2(entryPrice) || !finite2(targetPrice)) {
     return { outcome: "INSUFFICIENT_CONTEXT", reward: null };
   }
   if (direction !== "BULLISH" && direction !== "BEARISH") {
@@ -5628,7 +5856,7 @@ function evaluateTargetGeometry(direction, entryPrice, targetPrice) {
   };
 }
 function evaluateRrCheck(entryPrice, stopPrice, targetPrice) {
-  if (!finite(entryPrice) || !finite(stopPrice) || !finite(targetPrice)) {
+  if (!finite2(entryPrice) || !finite2(stopPrice) || !finite2(targetPrice)) {
     return { outcome: "INSUFFICIENT_CONTEXT", rrRatio: null };
   }
   const rrRatio = tradeEvaluationCanonicalRr(
@@ -5663,10 +5891,10 @@ function evaluateSetupValidity(input) {
   if (input.direction !== "BULLISH" && input.direction !== "BEARISH") {
     return "INSUFFICIENT_CONTEXT";
   }
-  if (!finite(input.liveMarketPrice)) {
+  if (!finite2(input.liveMarketPrice)) {
     return "INSUFFICIENT_CONTEXT";
   }
-  if (!finite(input.structuralInvalidationReferencePrice) || input.structuralInvalidationReferencePrice === 0) {
+  if (!finite2(input.structuralInvalidationReferencePrice) || input.structuralInvalidationReferencePrice === 0) {
     return "INSUFFICIENT_CONTEXT";
   }
   const breached = isStructuralInvalidationBreached(
@@ -5733,14 +5961,14 @@ function resolveStatus(checks) {
 }
 function resolveStatusWithLiveTicker(checks, entryRef, liveMarketPrice) {
   const status = resolveStatus(checks);
-  if (finite(entryRef) && !finite(liveMarketPrice) && checks.entry === "INSUFFICIENT_CONTEXT") {
+  if (finite2(entryRef) && !finite2(liveMarketPrice) && checks.entry === "INSUFFICIENT_CONTEXT") {
     return "INSUFFICIENT_CONTEXT";
   }
   return status;
 }
 function evaluateTradeEvaluation(input) {
   const entryRef = input.entryReferencePrice;
-  const entryForGeometry = finite(entryRef) ? entryRef : input.evaluationPrice;
+  const entryForGeometry = finite2(entryRef) ? entryRef : input.evaluationPrice;
   const entryFresh = evaluateEntryFreshness(entryRef, input.liveMarketPrice);
   const stop = evaluateStopGeometry(
     input.direction,
@@ -6298,6 +6526,7 @@ function runProductionWaveScanner(input) {
   }
   const liveMap = input.liveMarketPriceBySymbol;
   const liveMapProvided = liveMap !== void 0;
+  const includeOutcomeReplay = input.includeOutcomeReplay === true;
   return {
     schemaVersion: "1.0",
     timeframe: input.timeframeId,
@@ -6305,7 +6534,23 @@ function runProductionWaveScanner(input) {
     rows: rows.map((composed) => {
       const entryRef = composed.references.entry.referencePrice;
       const liveMarketPrice = liveMapProvided ? liveMap[composed.symbol] ?? null : entryRef;
-      return presentWaveScannerRow(composed, { liveMarketPrice });
+      const row = presentWaveScannerRow(composed, { liveMarketPrice });
+      if (!includeOutcomeReplay) {
+        return row;
+      }
+      const candles = input.candlesBySymbol[composed.symbol];
+      if (!candles?.length) {
+        return row;
+      }
+      const outcomeReplay = enrichProspectiveSetupOutcomeReplay(
+        composed,
+        candles,
+        { horizonBars: input.outcomeReplayHorizonBars }
+      );
+      if (!outcomeReplay) {
+        return row;
+      }
+      return { ...row, outcomeReplay };
     }),
     symbolErrors
   };
@@ -7110,6 +7355,7 @@ function renderWaveScannerDetails(row) {
       <p>${d.rr.status === "AVAILABLE" && d.rr.value !== null ? d.rr.value.toFixed(2) : "\u2014"}</p>
     </section>
     ${formatTradeEvaluationDetailsSection(d.tradeEvaluation)}
+    ${formatOutcomeReplayDetailsSection(row.outcomeReplay)}
     <section class="detail-section">
       <h3>Structural trace</h3>
       <p>Completed endpoint idx ${trace.completedEndpointIndex ?? "\u2014"} \xB7 price ${formatPrice(trace.completedEndpointPrice)}</p>
@@ -7321,6 +7567,12 @@ function getDataSource() {
 function getSourceMode() {
   return getDataSource() === "DEMO" ? "DEMO" : "LIVE";
 }
+function isOutcomeReplayEnabled() {
+  const el = document.getElementById(
+    "outcome-replay-enabled"
+  );
+  return el?.checked === true;
+}
 async function fetchClosedCandles(symbol) {
   return provider.getCandles(symbol, BINANCE_INTERVAL, BINANCE_LIMIT);
 }
@@ -7384,7 +7636,8 @@ async function loadAndRenderWaveScanner() {
       candlesBySymbol,
       timeframeId: SCANNER_TIMEFRAME,
       engineOptions: source === "DEMO" ? DEMO_WAVE_ENGINE_OPTIONS : void 0,
-      liveMarketPriceBySymbol
+      liveMarketPriceBySymbol,
+      includeOutcomeReplay: isOutcomeReplayEnabled()
     });
     renderWaveScannerReport(
       report,
@@ -7411,6 +7664,9 @@ function bindUi() {
   document.getElementById("data-source")?.addEventListener("change", () => {
     void loadAndRenderWaveScanner();
   });
+  document.getElementById("outcome-replay-enabled")?.addEventListener("change", () => {
+    void loadAndRenderWaveScanner();
+  });
   window.addEventListener("beforeunload", () => {
     alarmMonitor.stop();
   });
@@ -7422,5 +7678,6 @@ void alarmMonitor.reloadStore().then(() => {
 });
 void loadAndRenderWaveScanner();
 export {
+  isOutcomeReplayEnabled,
   loadAndRenderWaveScanner
 };
