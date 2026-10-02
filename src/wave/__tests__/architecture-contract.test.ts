@@ -777,6 +777,43 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AR — prospective setup outcome replay (Phase B-6)", () => {
+    it("post-eval candles only; no lookahead; no network; isolated from trade eval", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const replay = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/setup/prospective-setup-outcome-replay.ts"
+        ),
+        "utf8"
+      );
+      const contract = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/setup/prospective-setup-outcome-replay-contract.ts"
+        ),
+        "utf8"
+      );
+      const presentation = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/wave-scanner-presentation.ts"),
+        "utf8"
+      );
+      const evalTs = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/trade-evaluation.ts"),
+        "utf8"
+      );
+      assert.ok(replay.includes("evalIdx + 1"));
+      assert.ok(replay.includes("AMBIGUOUS"));
+      assert.ok(!replay.includes("fetch("));
+      assert.ok(!replay.includes("Date.now"));
+      assert.ok(!replay.includes("Math.random"));
+      assert.ok(contract.includes("PROSPECTIVE_SETUP_OUTCOME_REPLAY_DEFAULT_HORIZON_BARS"));
+      assert.ok(!presentation.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!evalTs.includes("replayProspectiveSetupOutcome"));
+    });
+  });
+
   describe("AQ — setup validity / structural invalidation (Phase B-5)", () => {
     it("live breach contract; structural inv != stop order; no fetch in domain", async () => {
       const fs = await import("node:fs");

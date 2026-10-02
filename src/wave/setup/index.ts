@@ -229,6 +229,20 @@ export type {
   TradeEvaluationFirstFailureCode,
 } from "./trade-evaluation-types";
 export {
+  PROSPECTIVE_SETUP_OUTCOME_REPLAY_DEFAULT_HORIZON_BARS,
+  PROSPECTIVE_SETUP_OUTCOME_REPLAY_SCHEMA_VERSION,
+} from "./prospective-setup-outcome-replay-contract";
+export {
+  candleTouchesInvalidation,
+  candleTouchesTarget,
+  replayProspectiveSetupOutcome,
+} from "./prospective-setup-outcome-replay";
+export type {
+  ProspectiveSetupOutcomeReplayInput,
+  ProspectiveSetupOutcomeReplayResult,
+  ProspectiveSetupOutcomeReplayStatus,
+} from "./prospective-setup-outcome-replay-types";
+export {
   PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY,
   PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY_LEGACY,
   describeProspectiveOpenLegDisplacementEqualityContract,
