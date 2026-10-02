@@ -74,6 +74,7 @@ describe("production wave scanner composition (15)", () => {
     assert.ok(page.includes("not an executable stop order"));
     assert.ok(page.includes("not a take-profit order"));
     assert.ok(page.includes("targetPolicyDescription"));
+    assert.ok(page.includes("formatTradeEvaluationDetailsSection"));
     const row = runProductionWaveScanner({
       symbols: ["BTCUSDT"],
       candlesBySymbol: { BTCUSDT: DEMO_OHLCV },

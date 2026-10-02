@@ -81,7 +81,11 @@
     tbody tr { cursor: pointer; }
     tbody tr:hover { background: rgba(91, 156, 245, 0.06); }
     tbody tr.selected { background: rgba(91, 156, 245, 0.12); }
-    tbody tr.row-ready .status-cell { color: var(--ready); font-weight: 600; }
+    tbody tr.row-ready .status-cell .status-ready-line { color: var(--ready); font-weight: 600; }
+    .trade-eval-line { font-size: 0.78rem; font-weight: 500; margin-top: 0.25rem; line-height: 1.35; }
+    .trade-eval-passed { color: #5cb88a; }
+    .trade-eval-failed { color: #e8a87c; }
+    .trade-eval-insufficient { color: var(--muted); }
     tbody tr.row-error { opacity: 0.85; }
     .muted { color: var(--muted); font-size: 0.8rem; }
     #scanner-details {

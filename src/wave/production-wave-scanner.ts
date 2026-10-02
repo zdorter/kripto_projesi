@@ -23,6 +23,8 @@ export interface ProductionWaveScannerRunInput {
   timeframeId: string;
   engineOptions?: WaveEngineOptions;
   generatedAt?: string;
+  /** Per-symbol live ticker for trade evaluation entry freshness only. */
+  liveMarketPriceBySymbol?: Record<string, number | null>;
 }
 
 export interface ProductionWaveScannerSymbolInput {
@@ -280,11 +282,20 @@ export function runProductionWaveScanner(
     rows.push(composed);
   }
 
+  const liveMap = input.liveMarketPriceBySymbol;
+  const liveMapProvided = liveMap !== undefined;
+
   return {
     schemaVersion: "1.0",
     timeframe: input.timeframeId,
     generatedAt,
-    rows: rows.map(presentWaveScannerRow),
+    rows: rows.map((composed) => {
+      const entryRef = composed.references.entry.referencePrice;
+      const liveMarketPrice = liveMapProvided
+        ? (liveMap[composed.symbol] ?? null)
+        : entryRef;
+      return presentWaveScannerRow(composed, { liveMarketPrice });
+    }),
     symbolErrors,
   };
 }

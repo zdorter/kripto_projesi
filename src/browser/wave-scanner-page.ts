@@ -2,7 +2,13 @@ import type {
   WaveScannerReportPresentation,
   WaveScannerRowPresentation,
 } from "../wave/wave-scanner-presentation-types";
-import { WAVE_SCANNER_UI_LABELS } from "../wave/wave-scanner-presentation";
+import {
+  WAVE_SCANNER_UI_LABELS,
+} from "../wave/wave-scanner-presentation";
+import {
+  formatTradeEvaluationDetailsSection,
+  formatTradeEvaluationStatusColumn,
+} from "../wave/setup/trade-evaluation-presentation";
 import { attachAlarmButtonToDetails } from "./wave-scanner-alarm-ui";
 
 function formatPrice(value: number | null): string {
@@ -128,7 +134,7 @@ export function renderWaveScannerReport(
       <td title="${row.stopReference.source ?? ""}">${WAVE_SCANNER_UI_LABELS.stopColumn}<br>${refCell(row.stopReference)}</td>
       <td title="${row.targetReference.source ?? ""}">${WAVE_SCANNER_UI_LABELS.targetColumn}<br>${refCell(row.targetReference)}</td>
       <td>${row.rr.status === "AVAILABLE" && row.rr.value !== null ? row.rr.value.toFixed(2) : "—"}</td>
-      <td class="status-cell">${row.displayStatus}</td>
+      <td class="status-cell">${formatTradeEvaluationStatusColumn(row.displayStatus, row.tradeEvaluation)}</td>
       <td class="muted">${formatTime(row.evaluationBarTime)}</td>
     `;
     tr.addEventListener("click", () => {
@@ -217,6 +223,7 @@ export function renderWaveScannerDetails(row: WaveScannerRowPresentation): void 
       <h3>RR</h3>
       <p>${d.rr.status === "AVAILABLE" && d.rr.value !== null ? d.rr.value.toFixed(2) : "—"}</p>
     </section>
+    ${formatTradeEvaluationDetailsSection(d.tradeEvaluation)}
     <section class="detail-section">
       <h3>Structural trace</h3>
       <p>Completed endpoint idx ${trace.completedEndpointIndex ?? "—"} · price ${formatPrice(trace.completedEndpointPrice)}</p>

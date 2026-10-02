@@ -777,6 +777,125 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("AQ — setup validity / structural invalidation (Phase B-5)", () => {
+    it("live breach contract; structural inv != stop order; no fetch in domain", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const contract = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/trade-evaluation-contract.ts"),
+        "utf8"
+      );
+      const evalTs = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/trade-evaluation.ts"),
+        "utf8"
+      );
+      const presentation = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/wave-scanner-presentation.ts"),
+        "utf8"
+      );
+      const page = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/wave-scanner-page.ts"),
+        "utf8"
+      );
+      const inv = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/setup/prospective-structural-invalidation.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(contract.includes("TRADE_EVALUATION_STRUCTURAL_INVALIDATION_BREACH"));
+      assert.ok(evalTs.includes("isStructuralInvalidationBreached"));
+      assert.ok(evalTs.includes("liveMarketPrice"));
+      assert.ok(evalTs.includes("structuralInvalidationReferencePrice"));
+      assert.ok(!evalTs.includes("fetch("));
+      assert.ok(presentation.includes("resolveProspectiveStructuralInvalidation"));
+      assert.ok(presentation.includes("structuralInvalidationReferencePrice"));
+      assert.ok(!page.includes("isStructuralInvalidationBreached"));
+      assert.ok(inv.includes("not a stop"));
+      assert.ok(evalTs.includes("SETUP_INVALIDATED"));
+    });
+  });
+
+  describe("AP — live entry freshness (Phase B-4)", () => {
+    it("live price only for freshness; domain has no fetch; refs unchanged", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const evalTs = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/trade-evaluation.ts"),
+        "utf8"
+      );
+      const presentation = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/wave-scanner-presentation.ts"),
+        "utf8"
+      );
+      const page = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/wave-scanner-page.ts"),
+        "utf8"
+      );
+      const app = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/wave-scanner-app.ts"),
+        "utf8"
+      );
+      const refs = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/prospective-reference-evaluation.ts"),
+        "utf8"
+      );
+      assert.ok(evalTs.includes("liveMarketPrice"));
+      assert.ok(!evalTs.includes("fetch("));
+      assert.ok(!evalTs.includes("Binance"));
+      assert.ok(presentation.includes("liveMarketPrice"));
+      assert.ok(presentation.includes("evaluationPrice"));
+      assert.ok(!page.includes("evaluateEntryFreshness"));
+      assert.ok(!page.includes("tradeEvaluationCanonicalRr"));
+      assert.ok(app.includes("liveMarketPriceBySymbol"));
+      assert.ok(app.includes("getTickerPrice"));
+      assert.ok(!app.includes("setInterval") || !app.match(/setInterval[\s\S]*tradeEvaluation/));
+      assert.ok(refs.includes("readyForFurtherEvaluation"));
+      assert.ok(!refs.includes("liveMarketPrice"));
+    });
+  });
+
+  describe("AO — trade evaluation layer (Phase B)", () => {
+    it("min RR 1.5, entry tolerance 1%, no Fib/BUY/sell; domain not in browser", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const contract = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/trade-evaluation-contract.ts"),
+        "utf8"
+      );
+      const evalTs = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/trade-evaluation.ts"),
+        "utf8"
+      );
+      const refs = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/setup/prospective-reference-evaluation.ts"),
+        "utf8"
+      );
+      const page = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/wave-scanner-page.ts"),
+        "utf8"
+      );
+      const presentation = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/wave-scanner-presentation.ts"),
+        "utf8"
+      );
+      assert.ok(contract.includes("TRADE_EVALUATION_MIN_RR = 1.5"));
+      assert.ok(contract.includes("TRADE_EVALUATION_ENTRY_FRESHNESS_TOLERANCE = 0.01"));
+      assert.ok(evalTs.includes("resolveFirstFailure"));
+      assert.ok(evalTs.includes("tradeEvaluationCanonicalRr"));
+      assert.ok(!evalTs.includes("fibExtensionPrice"));
+      assert.ok(presentation.includes("evaluateTradeEvaluation"));
+      assert.ok(page.includes("formatTradeEvaluationDetailsSection"));
+      assert.ok(page.includes("formatTradeEvaluationStatusColumn"));
+      assert.ok(!page.includes("evaluateTradeEvaluation"));
+      assert.ok(presentation.includes("mapTradeEvaluationPresentation"));
+      assert.ok(!page.includes("TRADE_EVALUATION_MIN_RR"));
+      assert.ok(refs.includes("readyForFurtherEvaluation"));
+      assert.ok(!refs.includes("TRADE_EVALUATION"));
+    });
+  });
+
   describe("AL — prospective displacement equality target (14N-L)", () => {
     it("anchor + evaluation close only; no path envelope / Fib / ATR in reference target", async () => {
       const fs = await import("node:fs");

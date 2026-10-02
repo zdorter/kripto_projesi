@@ -1,5 +1,6 @@
 // src/providers/binance-ohlcv.ts
 var BINANCE_FUTURES_KLINES_URL = "https://fapi.binance.com/fapi/v1/klines";
+var BINANCE_FUTURES_TICKER_PRICE_URL = "https://fapi.binance.com/fapi/v1/ticker/price";
 var BINANCE_FUTURES_INTERVALS = /* @__PURE__ */ new Set([
   "1m",
   "3m",
@@ -96,6 +97,42 @@ function normalizeCandleOrder(candles) {
   }
   return sorted;
 }
+function parseBinanceTickerPriceResponse(data) {
+  if (!data || typeof data !== "object" || !("price" in data)) {
+    throw new Error("expected ticker price response");
+  }
+  const price = parseNumber(data.price, "price");
+  if (price <= 0) {
+    throw new Error("invalid ticker price");
+  }
+  return price;
+}
+function buildBinanceFuturesTickerPriceUrl(symbol) {
+  const v = validateOhlcvRequest(symbol, "1h", 1);
+  const params = new URLSearchParams({ symbol: v.symbol });
+  return `${BINANCE_FUTURES_TICKER_PRICE_URL}?${params.toString()}`;
+}
+async function fetchBinanceFuturesTickerPrice(symbol, options) {
+  const fetchFn = options?.fetchFn ?? globalThis.fetch;
+  if (!fetchFn) {
+    throw new Error("fetch is not available");
+  }
+  const url = buildBinanceFuturesTickerPriceUrl(symbol);
+  const res = await fetchFn(url);
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      if (body && typeof body === "object" && "msg" in body) {
+        detail = String(body.msg);
+      }
+    } catch {
+    }
+    throw new Error(`HTTP ${res.status}: ${detail}`);
+  }
+  const json = await res.json();
+  return parseBinanceTickerPriceResponse(json);
+}
 function buildBinanceFuturesKlinesUrl(symbol, interval, limit) {
   const v = validateOhlcvRequest(symbol, interval, limit);
   const params = new URLSearchParams({
@@ -136,6 +173,9 @@ var BinanceFuturesOhlcvProvider = class {
     return fetchBinanceFuturesKlines(symbol, interval, limit, {
       fetchFn: this.fetchFn
     });
+  }
+  getTickerPrice(symbol) {
+    return fetchBinanceFuturesTickerPrice(symbol, { fetchFn: this.fetchFn });
   }
 };
 
@@ -5515,6 +5555,352 @@ function evaluateProspectiveReferenceBundle(input) {
   };
 }
 
+// src/wave/setup/trade-evaluation-contract.ts
+var TRADE_EVALUATION_SCHEMA_VERSION = "1.0";
+var TRADE_EVALUATION_ENTRY_FRESHNESS_TOLERANCE = 0.01;
+var TRADE_EVALUATION_MIN_RR = 1.5;
+
+// src/wave/setup/trade-evaluation.ts
+function finite(n) {
+  return n !== null && n !== void 0 && Number.isFinite(n);
+}
+function tradeEvaluationCanonicalRr(entryPrice, stopPrice, targetPrice) {
+  const risk = Math.abs(entryPrice - stopPrice);
+  const reward = Math.abs(targetPrice - entryPrice);
+  if (risk <= 0 || !Number.isFinite(risk) || !Number.isFinite(reward)) {
+    return null;
+  }
+  const ratio = reward / risk;
+  return Number.isFinite(ratio) ? ratio : null;
+}
+function evaluateEntryFreshness(entryReference, liveMarketPrice) {
+  if (!finite(entryReference) || !finite(liveMarketPrice) || entryReference === 0) {
+    return { outcome: "INSUFFICIENT_CONTEXT", deviationRatio: null };
+  }
+  const deviationRatio = Math.abs(liveMarketPrice - entryReference) / Math.abs(entryReference);
+  if (deviationRatio <= TRADE_EVALUATION_ENTRY_FRESHNESS_TOLERANCE) {
+    return { outcome: "VALID", deviationRatio };
+  }
+  return { outcome: "STALE", deviationRatio };
+}
+function evaluateStopGeometry(direction, entryPrice, stopPrice) {
+  if (!finite(entryPrice) || !finite(stopPrice)) {
+    return { outcome: "INSUFFICIENT_CONTEXT", risk: null };
+  }
+  if (direction !== "BULLISH" && direction !== "BEARISH") {
+    return { outcome: "INSUFFICIENT_CONTEXT", risk: null };
+  }
+  const risk = Math.abs(entryPrice - stopPrice);
+  if (risk <= 0) {
+    return { outcome: "INVALID", risk };
+  }
+  if (direction === "BULLISH") {
+    return {
+      outcome: stopPrice < entryPrice ? "VALID" : "INVALID",
+      risk
+    };
+  }
+  return {
+    outcome: stopPrice > entryPrice ? "VALID" : "INVALID",
+    risk
+  };
+}
+function evaluateTargetGeometry(direction, entryPrice, targetPrice) {
+  if (!finite(entryPrice) || !finite(targetPrice)) {
+    return { outcome: "INSUFFICIENT_CONTEXT", reward: null };
+  }
+  if (direction !== "BULLISH" && direction !== "BEARISH") {
+    return { outcome: "INSUFFICIENT_CONTEXT", reward: null };
+  }
+  const reward = Math.abs(targetPrice - entryPrice);
+  if (reward <= 0) {
+    return { outcome: "INVALID", reward };
+  }
+  if (direction === "BULLISH") {
+    return {
+      outcome: targetPrice > entryPrice ? "VALID" : "INVALID",
+      reward
+    };
+  }
+  return {
+    outcome: targetPrice < entryPrice ? "VALID" : "INVALID",
+    reward
+  };
+}
+function evaluateRrCheck(entryPrice, stopPrice, targetPrice) {
+  if (!finite(entryPrice) || !finite(stopPrice) || !finite(targetPrice)) {
+    return { outcome: "INSUFFICIENT_CONTEXT", rrRatio: null };
+  }
+  const rrRatio = tradeEvaluationCanonicalRr(
+    entryPrice,
+    stopPrice,
+    targetPrice
+  );
+  if (rrRatio === null) {
+    return { outcome: "INSUFFICIENT_CONTEXT", rrRatio: null };
+  }
+  if (rrRatio >= TRADE_EVALUATION_MIN_RR) {
+    return { outcome: "VALID", rrRatio };
+  }
+  return { outcome: "INVALID", rrRatio };
+}
+function isStructuralInvalidationBreached(direction, invalidationPrice, liveMarketPrice) {
+  if (direction === "BULLISH") {
+    return liveMarketPrice < invalidationPrice;
+  }
+  return liveMarketPrice > invalidationPrice;
+}
+function evaluateSetupValidity(input) {
+  if (input.setupLifecycleStatus === null) {
+    return "INSUFFICIENT_CONTEXT";
+  }
+  if (input.setupLifecycleStatus === "INSUFFICIENT_CONTEXT") {
+    return "INSUFFICIENT_CONTEXT";
+  }
+  if (input.setupLifecycleStatus === "INVALID" || input.structuralInvalidationTriggered) {
+    return "INVALID";
+  }
+  if (input.direction !== "BULLISH" && input.direction !== "BEARISH") {
+    return "INSUFFICIENT_CONTEXT";
+  }
+  if (!finite(input.liveMarketPrice)) {
+    return "INSUFFICIENT_CONTEXT";
+  }
+  if (!finite(input.structuralInvalidationReferencePrice) || input.structuralInvalidationReferencePrice === 0) {
+    return "INSUFFICIENT_CONTEXT";
+  }
+  const breached = isStructuralInvalidationBreached(
+    input.direction,
+    input.structuralInvalidationReferencePrice,
+    input.liveMarketPrice
+  );
+  return breached ? "INVALID" : "VALID";
+}
+function failureForCheck(check, outcome) {
+  if (outcome === "VALID") {
+    return null;
+  }
+  if (check === "entry") {
+    if (outcome === "STALE") {
+      return "ENTRY_STALE";
+    }
+    return "ENTRY_INSUFFICIENT_CONTEXT";
+  }
+  if (check === "stop") {
+    return outcome === "INVALID" ? "STOP_INVALID" : "STOP_INSUFFICIENT_CONTEXT";
+  }
+  if (check === "target") {
+    return outcome === "INVALID" ? "TARGET_INVALID" : "TARGET_INSUFFICIENT_CONTEXT";
+  }
+  if (check === "rr") {
+    return outcome === "INVALID" ? "RR_BELOW_MINIMUM" : "RR_INSUFFICIENT_CONTEXT";
+  }
+  if (check === "setupValidity") {
+    return outcome === "INVALID" ? "SETUP_INVALIDATED" : "SETUP_INSUFFICIENT_CONTEXT";
+  }
+  return null;
+}
+function resolveFirstFailure(checks) {
+  const order = [
+    "entry",
+    "stop",
+    "target",
+    "rr",
+    "setupValidity"
+  ];
+  for (const key of order) {
+    const outcome = checks[key];
+    const code = failureForCheck(key, outcome);
+    if (code) {
+      return code;
+    }
+  }
+  return null;
+}
+function resolveStatus(checks) {
+  const passed = checks.entry === "VALID" && checks.stop === "VALID" && checks.target === "VALID" && checks.rr === "VALID" && checks.setupValidity === "VALID";
+  if (passed) {
+    return "PASSED";
+  }
+  const geometryInsufficient = checks.entry === "INSUFFICIENT_CONTEXT" && checks.stop === "INSUFFICIENT_CONTEXT" && checks.target === "INSUFFICIENT_CONTEXT" && checks.rr === "INSUFFICIENT_CONTEXT";
+  if (geometryInsufficient && checks.setupValidity === "INSUFFICIENT_CONTEXT") {
+    return "INSUFFICIENT_CONTEXT";
+  }
+  if (geometryInsufficient && checks.setupValidity === "VALID") {
+    return "INSUFFICIENT_CONTEXT";
+  }
+  return "FAILED";
+}
+function resolveStatusWithLiveTicker(checks, entryRef, liveMarketPrice) {
+  const status = resolveStatus(checks);
+  if (finite(entryRef) && !finite(liveMarketPrice) && checks.entry === "INSUFFICIENT_CONTEXT") {
+    return "INSUFFICIENT_CONTEXT";
+  }
+  return status;
+}
+function evaluateTradeEvaluation(input) {
+  const entryRef = input.entryReferencePrice;
+  const entryForGeometry = finite(entryRef) ? entryRef : input.evaluationPrice;
+  const entryFresh = evaluateEntryFreshness(entryRef, input.liveMarketPrice);
+  const stop = evaluateStopGeometry(
+    input.direction,
+    entryForGeometry,
+    input.stopReferencePrice
+  );
+  const target = evaluateTargetGeometry(
+    input.direction,
+    entryForGeometry,
+    input.targetReferencePrice
+  );
+  const rr = evaluateRrCheck(
+    entryForGeometry,
+    input.stopReferencePrice,
+    input.targetReferencePrice
+  );
+  const setupValidity = evaluateSetupValidity({
+    direction: input.direction,
+    liveMarketPrice: input.liveMarketPrice,
+    structuralInvalidationReferencePrice: input.structuralInvalidationReferencePrice,
+    setupLifecycleStatus: input.setupLifecycleStatus,
+    structuralInvalidationTriggered: input.structuralInvalidationTriggered
+  });
+  const checks = {
+    entry: entryFresh.outcome,
+    stop: stop.outcome,
+    target: target.outcome,
+    rr: rr.outcome,
+    setupValidity
+  };
+  const firstFailure = resolveFirstFailure(checks);
+  const status = resolveStatusWithLiveTicker(
+    checks,
+    entryRef,
+    input.liveMarketPrice
+  );
+  const passed = status === "PASSED";
+  return {
+    schemaVersion: TRADE_EVALUATION_SCHEMA_VERSION,
+    status,
+    passed,
+    checks,
+    firstFailure,
+    diagnostics: {
+      entryReferencePrice: entryRef,
+      liveMarketPrice: input.liveMarketPrice,
+      entryDeviationRatio: entryFresh.deviationRatio,
+      entryDeviationPercent: entryFresh.deviationRatio !== null ? entryFresh.deviationRatio * 100 : null,
+      risk: stop.risk,
+      reward: target.reward,
+      rrRatio: rr.rrRatio,
+      minimumRr: TRADE_EVALUATION_MIN_RR,
+      entryFreshnessTolerance: TRADE_EVALUATION_ENTRY_FRESHNESS_TOLERANCE,
+      direction: input.direction,
+      structuralInvalidationReferencePrice: input.structuralInvalidationReferencePrice
+    },
+    evaluationBarIndex: input.evaluationBarIndex,
+    evaluationPrice: input.evaluationPrice,
+    futureSafe: input.futureSafe
+  };
+}
+
+// src/wave/setup/trade-evaluation-presentation.ts
+function mapTradeEvaluationPresentation(result) {
+  return {
+    status: result.status,
+    passed: result.passed,
+    firstFailure: result.firstFailure,
+    entry: result.checks.entry,
+    stop: result.checks.stop,
+    target: result.checks.target,
+    rr: result.checks.rr
+  };
+}
+function tradeEvaluationStatusLine(te) {
+  if (te.status === "PASSED") {
+    return "Trade Evaluation: PASSED";
+  }
+  if (te.status === "FAILED") {
+    const blocker = te.firstFailure ? ` \xB7 ${te.firstFailure}` : "";
+    return `Trade Evaluation: FAILED${blocker}`;
+  }
+  const reason = te.firstFailure ?? "INSUFFICIENT_CONTEXT";
+  return `Trade Evaluation: INSUFFICIENT_CONTEXT \xB7 ${reason}`;
+}
+function tradeEvaluationStatusClass(status) {
+  if (status === "PASSED") {
+    return "trade-eval-passed";
+  }
+  if (status === "FAILED") {
+    return "trade-eval-failed";
+  }
+  return "trade-eval-insufficient";
+}
+function formatTradeEvaluationStatusColumn(displayStatus, tradeEvaluation) {
+  const evalClass = tradeEvaluationStatusClass(tradeEvaluation.status);
+  const evalLine = tradeEvaluationStatusLine(tradeEvaluation);
+  return `<div class="status-ready-line">${displayStatus}</div><div class="trade-eval-line ${evalClass}">${evalLine}</div>`;
+}
+function labelCheck(outcome) {
+  if (outcome === "VALID") {
+    return "VALID";
+  }
+  if (outcome === "STALE") {
+    return "STALE";
+  }
+  if (outcome === "INVALID") {
+    return "INVALID";
+  }
+  return "INSUFFICIENT_CONTEXT";
+}
+function setupValidityLabel(outcome) {
+  if (outcome === "VALID") {
+    return "VALID";
+  }
+  if (outcome === "INVALID") {
+    return "INVALIDATED";
+  }
+  return "INSUFFICIENT_CONTEXT";
+}
+function formatTradeEvaluationDetailsSection(result) {
+  if (!result) {
+    return `
+    <section class="detail-section">
+      <h3>Trade Evaluation</h3>
+      <p class="muted">INSUFFICIENT_CONTEXT</p>
+    </section>`;
+  }
+  const d = result.diagnostics;
+  const fmt = (n) => n !== null && Number.isFinite(n) ? n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8
+  }) : "\u2014";
+  const dev = d.entryDeviationPercent !== null ? `${d.entryDeviationPercent.toFixed(2)}%` : "\u2014";
+  const entryFreshnessLabel = labelCheck(result.checks.entry);
+  const setupResultLabel = setupValidityLabel(result.checks.setupValidity);
+  const rrLine = result.checks.rr === "VALID" && d.rrRatio !== null ? `PASS \xB7 ${d.rrRatio.toFixed(2)} &gt;= ${d.minimumRr.toFixed(2)}` : result.checks.rr === "INVALID" && d.rrRatio !== null ? `FAIL \xB7 ${d.rrRatio.toFixed(2)} &lt; ${d.minimumRr.toFixed(2)}` : labelCheck(result.checks.rr);
+  const overall = result.status === "PASSED" ? "EVALUATION PASSED" : result.status === "FAILED" ? "EVALUATION FAILED" : "INSUFFICIENT_CONTEXT";
+  const blocker = result.firstFailure !== null ? `<p>Blocker: ${result.firstFailure}</p>` : "";
+  return `
+    <section class="detail-section">
+      <h3>Trade Evaluation</h3>
+      <p>Entry Reference: ${fmt(d.entryReferencePrice)}</p>
+      <p>Evaluation Close: ${fmt(result.evaluationPrice)}</p>
+      <p>Live Market Price: ${fmt(d.liveMarketPrice)}</p>
+      <p>Entry Deviation: ${dev}</p>
+      <p>Entry Freshness: ${entryFreshnessLabel}</p>
+      <p>Stop geometry: ${labelCheck(result.checks.stop)}</p>
+      <p>Target geometry: ${labelCheck(result.checks.target)}</p>
+      <p>RR: ${rrLine}</p>
+      <p>Minimum RR: ${d.minimumRr.toFixed(2)}</p>
+      <p>Structural Invalidation: ${fmt(d.structuralInvalidationReferencePrice)}</p>
+      <p>Setup Validity: ${setupResultLabel}</p>
+      <p>Result: ${setupResultLabel}</p>
+      <p><strong>Result: ${overall}</strong></p>
+      ${blocker}
+      <p class="muted">Trade evaluation is not a trade signal. READY FOR EVALUATION is unchanged.</p>
+    </section>`;
+}
+
 // src/wave/wave-scanner-presentation-types.ts
 var WAVE_SCANNER_PRESENTATION_SCHEMA_VERSION = "1.0";
 
@@ -5541,7 +5927,7 @@ function displayStatusForRow(row) {
   }
   return "INSUFFICIENT_CONTEXT";
 }
-function presentWaveScannerRow(row) {
+function presentWaveScannerRow(row, options) {
   const production = row.production;
   const contract = production?.contract;
   const setup = row.historicalSetup;
@@ -5599,6 +5985,23 @@ function presentWaveScannerRow(row) {
     contractPhase: contract?.phaseStatus,
     targetGate: production.targetGateOutcome
   } : { loadError: row.loadError };
+  const evaluationPrice = row.references.entry.referencePrice;
+  const liveMarketPrice = options?.liveMarketPrice ?? null;
+  const structuralInv = setup ? resolveProspectiveStructuralInvalidation(setup) : { triggered: false, invalidationPrice: null };
+  const observedDir = production?.observedDirection;
+  const tradeEvaluation = evaluateTradeEvaluation({
+    direction: observedDir === "BULLISH" || observedDir === "BEARISH" || observedDir === "UNRESOLVED" ? observedDir : null,
+    entryReferencePrice: row.references.entry.referencePrice,
+    liveMarketPrice,
+    stopReferencePrice: row.references.stop.referencePrice,
+    targetReferencePrice: row.references.target.referencePrice,
+    structuralInvalidationReferencePrice: structuralInv.invalidationPrice,
+    setupLifecycleStatus: setup?.status ?? null,
+    structuralInvalidationTriggered: structuralInv.triggered || setup?.status === "INVALID",
+    evaluationBarIndex: row.evaluationBarIndex,
+    evaluationPrice,
+    futureSafe: production?.futureSafe ?? false
+  });
   return {
     schemaVersion: WAVE_SCANNER_PRESENTATION_SCHEMA_VERSION,
     symbol: row.symbol,
@@ -5611,6 +6014,7 @@ function presentWaveScannerRow(row) {
     stopReference,
     targetReference,
     rr,
+    tradeEvaluation: mapTradeEvaluationPresentation(tradeEvaluation),
     readyForFurtherEvaluation: row.references.readyForFurtherEvaluation,
     displayStatus: displayStatusForRow(row),
     blockerStage,
@@ -5656,6 +6060,7 @@ function presentWaveScannerRow(row) {
       targetReference,
       rr,
       structuralTrace: trace,
+      tradeEvaluation,
       technicalDiagnosticsJson: JSON.stringify(technicalDiagnostics, null, 2)
     }
   };
@@ -5891,11 +6296,17 @@ function runProductionWaveScanner(input) {
     }
     rows.push(composed);
   }
+  const liveMap = input.liveMarketPriceBySymbol;
+  const liveMapProvided = liveMap !== void 0;
   return {
     schemaVersion: "1.0",
     timeframe: input.timeframeId,
     generatedAt,
-    rows: rows.map(presentWaveScannerRow),
+    rows: rows.map((composed) => {
+      const entryRef = composed.references.entry.referencePrice;
+      const liveMarketPrice = liveMapProvided ? liveMap[composed.symbol] ?? null : entryRef;
+      return presentWaveScannerRow(composed, { liveMarketPrice });
+    }),
     symbolErrors
   };
 }
@@ -6611,7 +7022,7 @@ function renderWaveScannerReport(report, options) {
       <td title="${row.stopReference.source ?? ""}">${WAVE_SCANNER_UI_LABELS.stopColumn}<br>${refCell(row.stopReference)}</td>
       <td title="${row.targetReference.source ?? ""}">${WAVE_SCANNER_UI_LABELS.targetColumn}<br>${refCell(row.targetReference)}</td>
       <td>${row.rr.status === "AVAILABLE" && row.rr.value !== null ? row.rr.value.toFixed(2) : "\u2014"}</td>
-      <td class="status-cell">${row.displayStatus}</td>
+      <td class="status-cell">${formatTradeEvaluationStatusColumn(row.displayStatus, row.tradeEvaluation)}</td>
       <td class="muted">${formatTime(row.evaluationBarTime)}</td>
     `;
     tr.addEventListener("click", () => {
@@ -6698,6 +7109,7 @@ function renderWaveScannerDetails(row) {
       <h3>RR</h3>
       <p>${d.rr.status === "AVAILABLE" && d.rr.value !== null ? d.rr.value.toFixed(2) : "\u2014"}</p>
     </section>
+    ${formatTradeEvaluationDetailsSection(d.tradeEvaluation)}
     <section class="detail-section">
       <h3>Structural trace</h3>
       <p>Completed endpoint idx ${trace.completedEndpointIndex ?? "\u2014"} \xB7 price ${formatPrice(trace.completedEndpointPrice)}</p>
@@ -6950,11 +7362,29 @@ async function loadAndRenderWaveScanner() {
         }
       }
     }
+    const liveMarketPriceBySymbol = {};
+    for (const symbol of DEFAULT_WATCHLIST_SYMBOLS) {
+      const candles = candlesBySymbol[symbol];
+      if (!candles?.length) {
+        liveMarketPriceBySymbol[symbol] = null;
+        continue;
+      }
+      if (source === "DEMO") {
+        liveMarketPriceBySymbol[symbol] = candles[candles.length - 1]?.close ?? null;
+        continue;
+      }
+      try {
+        liveMarketPriceBySymbol[symbol] = await provider.getTickerPrice(symbol);
+      } catch {
+        liveMarketPriceBySymbol[symbol] = null;
+      }
+    }
     const report = runProductionWaveScanner({
       symbols: [...DEFAULT_WATCHLIST_SYMBOLS],
       candlesBySymbol,
       timeframeId: SCANNER_TIMEFRAME,
-      engineOptions: source === "DEMO" ? DEMO_WAVE_ENGINE_OPTIONS : void 0
+      engineOptions: source === "DEMO" ? DEMO_WAVE_ENGINE_OPTIONS : void 0,
+      liveMarketPriceBySymbol
     });
     renderWaveScannerReport(
       report,

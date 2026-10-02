@@ -79,11 +79,31 @@ export async function loadAndRenderWaveScanner(): Promise<void> {
       }
     }
 
+    const liveMarketPriceBySymbol: Record<string, number | null> = {};
+    for (const symbol of DEFAULT_WATCHLIST_SYMBOLS) {
+      const candles = candlesBySymbol[symbol];
+      if (!candles?.length) {
+        liveMarketPriceBySymbol[symbol] = null;
+        continue;
+      }
+      if (source === "DEMO") {
+        liveMarketPriceBySymbol[symbol] =
+          candles[candles.length - 1]?.close ?? null;
+        continue;
+      }
+      try {
+        liveMarketPriceBySymbol[symbol] = await provider.getTickerPrice(symbol);
+      } catch {
+        liveMarketPriceBySymbol[symbol] = null;
+      }
+    }
+
     const report = runProductionWaveScanner({
       symbols: [...DEFAULT_WATCHLIST_SYMBOLS],
       candlesBySymbol,
       timeframeId: SCANNER_TIMEFRAME,
       engineOptions: source === "DEMO" ? DEMO_WAVE_ENGINE_OPTIONS : undefined,
+      liveMarketPriceBySymbol,
     });
     renderWaveScannerReport(
       report,

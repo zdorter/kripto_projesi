@@ -213,6 +213,22 @@ export {
 } from "./prospective-setup-production";
 export { evaluateProspectiveReferenceBundle } from "./prospective-reference-evaluation";
 export {
+  TRADE_EVALUATION_ENTRY_FRESHNESS_TOLERANCE,
+  TRADE_EVALUATION_MIN_RR,
+  TRADE_EVALUATION_SCHEMA_VERSION,
+} from "./trade-evaluation-contract";
+export { evaluateTradeEvaluation, tradeEvaluationCanonicalRr } from "./trade-evaluation";
+export {
+  formatTradeEvaluationDetailsSection,
+  formatTradeEvaluationStatusColumn,
+  mapTradeEvaluationPresentation,
+} from "./trade-evaluation-presentation";
+export type {
+  TradeEvaluationResult,
+  TradeEvaluationInput,
+  TradeEvaluationFirstFailureCode,
+} from "./trade-evaluation-types";
+export {
   PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY,
   PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY_LEGACY,
   describeProspectiveOpenLegDisplacementEqualityContract,

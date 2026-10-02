@@ -1,6 +1,10 @@
 import type { ProspectiveSetupProductionCandidate } from "./setup/prospective-setup-production-types";
 import type { ProspectiveReferenceEvaluation } from "./setup/prospective-reference-evaluation";
 import { normalizeProspectiveTargetPolicyId } from "./setup/prospective-open-leg-displacement-equality-policy";
+import { evaluateTradeEvaluation } from "./setup/trade-evaluation";
+import { resolveProspectiveStructuralInvalidation } from "./setup/prospective-structural-invalidation";
+import type { TradeEvaluationResult } from "./setup/trade-evaluation-types";
+import { mapTradeEvaluationPresentation } from "./setup/trade-evaluation-presentation";
 import type { SetupCandidate } from "./setup/setup-types";
 import {
   WAVE_SCANNER_PRESENTATION_SCHEMA_VERSION,
@@ -52,8 +56,13 @@ function displayStatusForRow(row: ProductionWaveScannerComposedRow): string {
   return "INSUFFICIENT_CONTEXT";
 }
 
+export interface PresentWaveScannerRowOptions {
+  liveMarketPrice?: number | null;
+}
+
 export function presentWaveScannerRow(
-  row: ProductionWaveScannerComposedRow
+  row: ProductionWaveScannerComposedRow,
+  options?: PresentWaveScannerRowOptions
 ): WaveScannerRowPresentation {
   const production = row.production;
   const contract = production?.contract;
@@ -134,6 +143,32 @@ export function presentWaveScannerRow(
       }
     : { loadError: row.loadError };
 
+  const evaluationPrice = row.references.entry.referencePrice;
+  const liveMarketPrice = options?.liveMarketPrice ?? null;
+  const structuralInv = setup
+    ? resolveProspectiveStructuralInvalidation(setup)
+    : { triggered: false, invalidationPrice: null as number | null };
+  const observedDir = production?.observedDirection;
+  const tradeEvaluation: TradeEvaluationResult = evaluateTradeEvaluation({
+    direction:
+      observedDir === "BULLISH" ||
+      observedDir === "BEARISH" ||
+      observedDir === "UNRESOLVED"
+        ? observedDir
+        : null,
+    entryReferencePrice: row.references.entry.referencePrice,
+    liveMarketPrice,
+    stopReferencePrice: row.references.stop.referencePrice,
+    targetReferencePrice: row.references.target.referencePrice,
+    structuralInvalidationReferencePrice: structuralInv.invalidationPrice,
+    setupLifecycleStatus: setup?.status ?? null,
+    structuralInvalidationTriggered:
+      structuralInv.triggered || setup?.status === "INVALID",
+    evaluationBarIndex: row.evaluationBarIndex,
+    evaluationPrice,
+    futureSafe: production?.futureSafe ?? false,
+  });
+
   return {
     schemaVersion: WAVE_SCANNER_PRESENTATION_SCHEMA_VERSION,
     symbol: row.symbol,
@@ -146,6 +181,7 @@ export function presentWaveScannerRow(
     stopReference,
     targetReference,
     rr,
+    tradeEvaluation: mapTradeEvaluationPresentation(tradeEvaluation),
     readyForFurtherEvaluation: row.references.readyForFurtherEvaluation,
     displayStatus: displayStatusForRow(row),
     blockerStage,
@@ -193,6 +229,7 @@ export function presentWaveScannerRow(
       targetReference,
       rr,
       structuralTrace: trace,
+      tradeEvaluation,
       technicalDiagnosticsJson: JSON.stringify(technicalDiagnostics, null, 2),
     },
   };

@@ -2,7 +2,10 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildBinanceFuturesKlinesUrl,
+  buildBinanceFuturesTickerPriceUrl,
   fetchBinanceFuturesKlines,
+  fetchBinanceFuturesTickerPrice,
+  parseBinanceTickerPriceResponse,
   filterClosedKlines,
   mapBinanceKlinesResponse,
   normalizeCandleOrder,
@@ -107,5 +110,26 @@ describe("binance-ohlcv", () => {
     assert.ok(url.includes("symbol=BTCUSDT"));
     assert.ok(url.includes("interval=1h"));
     assert.ok(url.includes("limit=500"));
+  });
+
+  it("parses ticker price response", () => {
+    assert.equal(parseBinanceTickerPriceResponse({ price: "42000.5" }), 42000.5);
+    assert.throws(() => parseBinanceTickerPriceResponse({}), /expected ticker/);
+  });
+
+  it("buildBinanceFuturesTickerPriceUrl encodes symbol", () => {
+    const url = buildBinanceFuturesTickerPriceUrl("ethusdt");
+    assert.ok(url.includes("symbol=ETHUSDT"));
+  });
+
+  it("fetchBinanceFuturesTickerPrice uses fetchFn", async () => {
+    const price = await fetchBinanceFuturesTickerPrice("BTCUSDT", {
+      fetchFn: async () =>
+        ({
+          ok: true,
+          json: async () => ({ price: "100" }),
+        }) as Response,
+    });
+    assert.equal(price, 100);
   });
 });

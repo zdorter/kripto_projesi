@@ -4,6 +4,9 @@ import type { OhlcvProvider } from "./ohlcv";
 export const BINANCE_FUTURES_KLINES_URL =
   "https://fapi.binance.com/fapi/v1/klines";
 
+export const BINANCE_FUTURES_TICKER_PRICE_URL =
+  "https://fapi.binance.com/fapi/v1/ticker/price";
+
 export const BINANCE_FUTURES_INTERVALS = new Set([
   "1m",
   "3m",
@@ -137,6 +140,49 @@ export function normalizeCandleOrder(candles: Candle[]): Candle[] {
   return sorted;
 }
 
+export function parseBinanceTickerPriceResponse(data: unknown): number {
+  if (!data || typeof data !== "object" || !("price" in data)) {
+    throw new Error("expected ticker price response");
+  }
+  const price = parseNumber((data as { price: unknown }).price, "price");
+  if (price <= 0) {
+    throw new Error("invalid ticker price");
+  }
+  return price;
+}
+
+export function buildBinanceFuturesTickerPriceUrl(symbol: string): string {
+  const v = validateOhlcvRequest(symbol, "1h", 1);
+  const params = new URLSearchParams({ symbol: v.symbol });
+  return `${BINANCE_FUTURES_TICKER_PRICE_URL}?${params.toString()}`;
+}
+
+export async function fetchBinanceFuturesTickerPrice(
+  symbol: string,
+  options?: { fetchFn?: FetchFn }
+): Promise<number> {
+  const fetchFn = options?.fetchFn ?? globalThis.fetch;
+  if (!fetchFn) {
+    throw new Error("fetch is not available");
+  }
+  const url = buildBinanceFuturesTickerPriceUrl(symbol);
+  const res = await fetchFn(url);
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      if (body && typeof body === "object" && "msg" in body) {
+        detail = String((body as { msg: string }).msg);
+      }
+    } catch {
+      /* ignore */
+    }
+    throw new Error(`HTTP ${res.status}: ${detail}`);
+  }
+  const json = await res.json();
+  return parseBinanceTickerPriceResponse(json);
+}
+
 export function buildBinanceFuturesKlinesUrl(
   symbol: string,
   interval: string,
@@ -197,5 +243,9 @@ export class BinanceFuturesOhlcvProvider implements OhlcvProvider {
     return fetchBinanceFuturesKlines(symbol, interval, limit, {
       fetchFn: this.fetchFn,
     });
+  }
+
+  getTickerPrice(symbol: string): Promise<number> {
+    return fetchBinanceFuturesTickerPrice(symbol, { fetchFn: this.fetchFn });
   }
 }

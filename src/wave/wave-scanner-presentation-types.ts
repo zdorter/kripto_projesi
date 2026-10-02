@@ -1,3 +1,10 @@
+import type {
+  TradeEvaluationCheckOutcome,
+  TradeEvaluationFirstFailureCode,
+  TradeEvaluationResult,
+  TradeEvaluationStatus,
+} from "./setup/trade-evaluation-types";
+
 export const WAVE_SCANNER_PRESENTATION_SCHEMA_VERSION = "1.0" as const;
 
 export type WaveScannerLayerStatus =
@@ -73,7 +80,18 @@ export interface WaveScannerRowDetailsPresentation {
   targetReference: WaveScannerReferencePresentation;
   rr: { status: WaveScannerLayerStatus; value: number | null };
   structuralTrace: WaveScannerStructuralTracePresentation;
+  tradeEvaluation: TradeEvaluationResult;
   technicalDiagnosticsJson: string | null;
+}
+
+export interface WaveScannerTradeEvaluationPresentation {
+  status: TradeEvaluationStatus;
+  passed: boolean;
+  firstFailure: TradeEvaluationFirstFailureCode;
+  entry: TradeEvaluationCheckOutcome;
+  stop: TradeEvaluationCheckOutcome;
+  target: TradeEvaluationCheckOutcome;
+  rr: TradeEvaluationCheckOutcome;
 }
 
 export interface WaveScannerRowPresentation {
@@ -88,6 +106,7 @@ export interface WaveScannerRowPresentation {
   stopReference: WaveScannerReferencePresentation;
   targetReference: WaveScannerReferencePresentation;
   rr: { status: WaveScannerLayerStatus; value: number | null };
+  tradeEvaluation: WaveScannerTradeEvaluationPresentation;
   readyForFurtherEvaluation: boolean;
   displayStatus: string;
   blockerStage: string | null;
