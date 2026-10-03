@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "tsx --test src/**/__tests__/**/*.test.ts",
-    "validate:real-market": "tsx scripts/validate-real-market.ts"
+    "validate:real-market": "tsx scripts/validate-real-market.ts",
+    "measure:historical": "tsx scripts/measure-historical.ts"
   },
   "dependencies": {
     "ws": "^8.18.0"

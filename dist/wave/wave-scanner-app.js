@@ -6302,6 +6302,7 @@ var WAVE_SCANNER_UI_LABELS = {
 };
 
 // src/wave/production-wave-scanner.ts
+var PRODUCTION_COMPOSE_LOAD_ERROR_EVALUATION_BAR_OUT_OF_RANGE = "EVALUATION_BAR_OUT_OF_RANGE";
 function emptyReference() {
   return {
     schemaVersion: "1.0",
@@ -6354,57 +6355,110 @@ function selectDisplayProspectiveCandidate(rows) {
     return a.production.id.localeCompare(b.production.id);
   })[0];
 }
-function composeProductionWaveScannerForSymbol(input) {
-  const { symbol, candles, timeframeId, engineOptions } = input;
-  if (!candles.length) {
-    return {
-      symbol,
-      timeframe: timeframeId,
-      loadError: "INSUFFICIENT_CANDLES",
-      historicalSetup: null,
-      production: null,
-      references: emptyReference(),
-      evaluationBarTime: null,
-      evaluationBarIndex: null,
-      candleCount: 0
-    };
+function resolveProductionComposeEvaluationBar(candles, explicitEvaluationBarIndex) {
+  if (explicitEvaluationBarIndex !== void 0) {
+    if (!Number.isFinite(explicitEvaluationBarIndex)) {
+      return {
+        ok: false,
+        loadError: PRODUCTION_COMPOSE_LOAD_ERROR_EVALUATION_BAR_OUT_OF_RANGE
+      };
+    }
+    const evaluationBarIndex = Math.floor(explicitEvaluationBarIndex);
+    if (evaluationBarIndex < 0 || evaluationBarIndex >= candles.length) {
+      return {
+        ok: false,
+        loadError: PRODUCTION_COMPOSE_LOAD_ERROR_EVALUATION_BAR_OUT_OF_RANGE
+      };
+    }
+    return { ok: true, evaluationBarIndex };
   }
   const boundary = resolveTradeSetupEvaluationBoundary({
     candles,
     closedSeriesOnly: true
   });
   if (!boundary.boundaryEstablished || boundary.evaluationBarIndex < 0) {
+    return { ok: false, loadError: "EVALUATION_BAR_NOT_ESTABLISHED" };
+  }
+  return { ok: true, evaluationBarIndex: boundary.evaluationBarIndex };
+}
+function productionCompositionFailureRow(symbol, timeframeId, loadError, evaluationBarTime, evaluationBarIndex, candleCount) {
+  return {
+    symbol,
+    timeframe: timeframeId,
+    loadError,
+    historicalSetup: null,
+    production: null,
+    references: emptyReference(),
+    evaluationBarTime,
+    evaluationBarIndex,
+    candleCount
+  };
+}
+function toComposedRow(meta, candidate) {
+  return {
+    symbol: meta.symbol,
+    timeframe: meta.timeframeId,
+    loadError: null,
+    historicalSetup: candidate.historicalSetup,
+    production: candidate.production,
+    references: candidate.references,
+    evaluationBarTime: meta.evaluationBarTime,
+    evaluationBarIndex: meta.evaluationBarIndex,
+    candleCount: meta.candleCount
+  };
+}
+function resolveProductionCompositionAtEvaluationBar(input) {
+  const { symbol, candles, timeframeId, engineOptions, composeOptions } = input;
+  if (!candles.length) {
     return {
-      symbol,
-      timeframe: timeframeId,
-      loadError: "EVALUATION_BAR_NOT_ESTABLISHED",
-      historicalSetup: null,
-      production: null,
-      references: emptyReference(),
-      evaluationBarTime: null,
-      evaluationBarIndex: null,
-      candleCount: candles.length
+      kind: "failure",
+      row: productionCompositionFailureRow(
+        symbol,
+        timeframeId,
+        "INSUFFICIENT_CANDLES",
+        null,
+        null,
+        0
+      )
     };
   }
-  const evaluationBarIndex = boundary.evaluationBarIndex;
+  const resolvedBar = resolveProductionComposeEvaluationBar(
+    candles,
+    composeOptions?.evaluationBarIndex
+  );
+  if (!resolvedBar.ok) {
+    return {
+      kind: "failure",
+      row: productionCompositionFailureRow(
+        symbol,
+        timeframeId,
+        resolvedBar.loadError,
+        null,
+        null,
+        candles.length
+      )
+    };
+  }
+  const evaluationBarIndex = resolvedBar.evaluationBarIndex;
   const evaluationBarTime = candles[evaluationBarIndex]?.time ?? null;
   try {
-    const scan = runWaveScan([{ symbol, candles }], {
+    const evaluationCandles = candles.slice(0, evaluationBarIndex + 1);
+    const scan = runWaveScan([{ symbol, candles: evaluationCandles }], {
       timeframe: timeframeId,
       engineOptions
     });
     const scanError = scan.errors.find((e) => e.symbol === symbol);
     if (scanError) {
       return {
-        symbol,
-        timeframe: timeframeId,
-        loadError: scanError.message,
-        historicalSetup: null,
-        production: null,
-        references: emptyReference(),
-        evaluationBarTime,
-        evaluationBarIndex,
-        candleCount: candles.length
+        kind: "failure",
+        row: productionCompositionFailureRow(
+          symbol,
+          timeframeId,
+          scanError.message,
+          evaluationBarTime,
+          evaluationBarIndex,
+          candles.length
+        )
       };
     }
     const tradeContext = buildTradeSetupEvaluationContext(
@@ -6418,7 +6472,10 @@ function composeProductionWaveScannerForSymbol(input) {
       },
       engineOptions
     );
-    const setupDetection = detectSetups({ scanReport: scan, tradeContext });
+    const setupDetection = detectSetups({
+      scanReport: tradeContext.scanReport,
+      tradeContext
+    });
     const historicalTradeSetups = setupDetection.candidates.filter(
       (c) => c.isTradeSetup
     );
@@ -6431,18 +6488,18 @@ function composeProductionWaveScannerForSymbol(input) {
     const bundle = tradeContext.bundlesBySymbol?.[symbol];
     if (!bundle) {
       return {
-        symbol,
-        timeframe: timeframeId,
-        loadError: "ANALYSIS_BUNDLE_UNAVAILABLE",
-        historicalSetup: null,
-        production: null,
-        references: emptyReference(),
-        evaluationBarTime,
-        evaluationBarIndex,
-        candleCount: candles.length
+        kind: "failure",
+        row: productionCompositionFailureRow(
+          symbol,
+          timeframeId,
+          "ANALYSIS_BUNDLE_UNAVAILABLE",
+          evaluationBarTime,
+          evaluationBarIndex,
+          candles.length
+        )
       };
     }
-    const composed = productionReport.candidates.map((production) => {
+    const candidates = productionReport.candidates.map((production) => {
       const historicalSetup = setupsById.get(production.sourceSetupId);
       const references = evaluateProspectiveReferenceBundle({
         production,
@@ -6452,45 +6509,50 @@ function composeProductionWaveScannerForSymbol(input) {
       });
       return { production, references, historicalSetup };
     });
-    const selected = selectDisplayProspectiveCandidate(composed);
-    if (!selected) {
-      return {
-        symbol,
-        timeframe: timeframeId,
-        loadError: null,
-        historicalSetup: null,
-        production: null,
-        references: emptyReference(),
-        evaluationBarTime,
-        evaluationBarIndex,
-        candleCount: candles.length
-      };
-    }
     return {
+      kind: "success",
       symbol,
-      timeframe: timeframeId,
-      loadError: null,
-      historicalSetup: selected.historicalSetup,
-      production: selected.production,
-      references: selected.references,
-      evaluationBarTime,
+      timeframeId,
       evaluationBarIndex,
-      candleCount: candles.length
+      evaluationBarTime,
+      candleCount: candles.length,
+      candidates
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return {
-      symbol,
-      timeframe: timeframeId,
-      loadError: message,
+      kind: "failure",
+      row: productionCompositionFailureRow(
+        symbol,
+        timeframeId,
+        message,
+        evaluationBarTime,
+        evaluationBarIndex,
+        candles.length
+      )
+    };
+  }
+}
+function composeProductionWaveScannerForSymbol(input) {
+  const resolved = resolveProductionCompositionAtEvaluationBar(input);
+  if (resolved.kind === "failure") {
+    return resolved.row;
+  }
+  const selected = selectDisplayProspectiveCandidate(resolved.candidates);
+  if (!selected) {
+    return {
+      symbol: resolved.symbol,
+      timeframe: resolved.timeframeId,
+      loadError: null,
       historicalSetup: null,
       production: null,
       references: emptyReference(),
-      evaluationBarTime,
-      evaluationBarIndex,
-      candleCount: candles.length
+      evaluationBarTime: resolved.evaluationBarTime,
+      evaluationBarIndex: resolved.evaluationBarIndex,
+      candleCount: resolved.candleCount
     };
   }
+  return toComposedRow(resolved, selected);
 }
 function runProductionWaveScanner(input) {
   const generatedAt = input.generatedAt ?? (/* @__PURE__ */ new Date()).toISOString();

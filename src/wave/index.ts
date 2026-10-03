@@ -183,13 +183,71 @@ export type {
 export {
   runProductionWaveScanner,
   composeProductionWaveScannerForSymbol,
+  composeProductionCandidateRowsForSymbol,
+  resolveProductionCompositionAtEvaluationBar,
   selectDisplayProspectiveCandidate,
   PRODUCTION_WAVE_SCANNER_SCHEMA_VERSION,
+  PRODUCTION_COMPOSE_LOAD_ERROR_EVALUATION_BAR_OUT_OF_RANGE,
 } from "./production-wave-scanner";
 export type {
   ProductionWaveScannerRunInput,
   ProductionWaveScannerSymbolInput,
+  ProductionWaveScannerSymbolComposeOptions,
+  ProductionComposedCandidate,
+  ProductionCompositionAtEvaluationBar,
 } from "./production-wave-scanner";
+export {
+  buildDisplayPickHistoricalCandidateMeasurement,
+  buildHistoricalCandidateMeasurementsAtEvaluationBar,
+  cohortsMatchingFilter,
+  countProductionCandidatesAtEvaluationBar,
+  resolveHistoricalMeasurementCohorts,
+} from "./historical-candidate-cohort";
+export type { BuildHistoricalCandidateMeasurementsInput } from "./historical-candidate-cohort";
+export {
+  HISTORICAL_AS_OF_EVAL_LIVE_MARKET_PRICE_POLICY,
+  resolveHistoricalAsOfEvalLiveMarketPrice,
+} from "./historical-production-compose-policy";
+export type { HistoricalAsOfEvalLiveMarketPricePolicy } from "./historical-production-compose-policy";
+export {
+  HISTORICAL_PRODUCTION_WALK_FORWARD_SCHEMA_VERSION,
+  runHistoricalProductionWalkForward,
+  validateHistoricalProductionWalkForwardRange,
+} from "./historical-production-walk-forward";
+export type {
+  HistoricalProductionWalkForwardInput,
+  HistoricalProductionWalkForwardResult,
+  HistoricalProductionWalkForwardRow,
+  HistoricalWalkForwardRangeError,
+} from "./historical-production-walk-forward";
+export {
+  buildHistoricalMeasurementRecord,
+  futureBarsAvailableAfterEvaluationBar,
+  runHistoricalMeasurementWalkForward,
+} from "./historical-measurement-assembly";
+export type {
+  BuildHistoricalMeasurementRecordInput,
+  HistoricalMeasurementWalkForwardInput,
+  HistoricalMeasurementWalkForwardResult,
+} from "./historical-measurement-assembly";
+export {
+  HISTORICAL_MEASUREMENT_ARTIFACT_DEFAULT_OUTPUT_DIR,
+  HistoricalMeasurementArtifactValidationError,
+  buildHistoricalMeasurementArtifact,
+  compareHistoricalMeasurementArtifactEntryOrder,
+  historicalMeasurementArtifactEntryFromBundle,
+  historicalMeasurementArtifactsEquivalent,
+  parseHistoricalMeasurementArtifact,
+  serializeHistoricalMeasurementArtifact,
+  sortHistoricalMeasurementArtifactEntries,
+  validateHistoricalMeasurementArtifact,
+} from "./historical-measurement-artifact";
+export type { BuildHistoricalMeasurementArtifactInput } from "./historical-measurement-artifact";
+export type {
+  HistoricalMeasurementArtifact,
+  HistoricalMeasurementArtifactDataset,
+  HistoricalMeasurementArtifactEntry,
+} from "./setup/historical-measurement-artifact-types";
 export {
   presentWaveScannerRow,
   WAVE_SCANNER_UI_LABELS,

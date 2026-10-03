@@ -253,6 +253,30 @@ export type {
   ProspectiveSetupOutcomeReplayStatus,
 } from "./prospective-setup-outcome-replay-types";
 export {
+  HISTORICAL_MEASUREMENT_COHORT_DEFINITIONS,
+  HISTORICAL_MEASUREMENT_COHORTS,
+  HISTORICAL_MEASUREMENT_DEFAULT_HORIZON_BARS,
+  HISTORICAL_MEASUREMENT_LOOKAHEAD_CONTRACT,
+  HISTORICAL_MEASUREMENT_SCHEMA_VERSION,
+  buildHistoricalMeasurementSnapshotId,
+  isHistoricalMeasurementCohort,
+} from "./historical-measurement-contract";
+export type {
+  HistoricalMeasurementCohort,
+  HistoricalMeasurementSnapshotIdInput,
+} from "./historical-measurement-contract";
+export type {
+  HistoricalCandidateMeasurementBundle,
+  HistoricalMeasurementEvaluationSnapshot,
+  HistoricalMeasurementOutcomeAttachment,
+  HistoricalMeasurementRecord,
+} from "./historical-measurement-types";
+export type {
+  HistoricalMeasurementArtifact,
+  HistoricalMeasurementArtifactDataset,
+  HistoricalMeasurementArtifactEntry,
+} from "./historical-measurement-artifact-types";
+export {
   PROSPECTIVE_OPEN_LEG_DISPLACEMENT_EQUALITY,
   PROSPECTIVE_OPEN_LEG_RANGE_EQUALITY_LEGACY,
   describeProspectiveOpenLegDisplacementEqualityContract,

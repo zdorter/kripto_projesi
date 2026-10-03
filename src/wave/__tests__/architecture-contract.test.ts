@@ -868,6 +868,185 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("BF — historical measurement artifact boundary (Phase B-8f)", () => {
+    it("schema 1.0, deterministic serialize, cohorts[], no fs/presentation/stats", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-measurement-artifact.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("serializeHistoricalMeasurementArtifact"));
+      assert.ok(mod.includes("validateHistoricalMeasurementArtifact"));
+      assert.ok(mod.includes("buildHistoricalCandidateMeasurementsAtEvaluationBar"));
+      assert.ok(mod.includes("cohorts"));
+      assert.ok(mod.includes("HISTORICAL_MEASUREMENT_SCHEMA_VERSION"));
+      assert.ok(mod.includes("buildHistoricalMeasurementSnapshotId"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("presentWaveScannerRow"));
+      assert.ok(!mod.includes("writeFileSync"));
+      assert.ok(!mod.includes("generatedAt"));
+      assert.ok(!mod.includes("Date.now"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("win rate"));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("BE — historical candidate cohort expansion (Phase B-8e)", () => {
+    it("uses production collection; cohort overlap; snapshotId unchanged", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-candidate-cohort.ts"),
+        "utf8"
+      );
+      const prod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/production-wave-scanner.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("resolveHistoricalMeasurementCohorts"));
+      assert.ok(mod.includes("buildHistoricalCandidateMeasurementsAtEvaluationBar"));
+      assert.ok(mod.includes("selectDisplayProspectiveCandidate"));
+      assert.ok(mod.includes("buildHistoricalMeasurementRecord"));
+      assert.ok(!mod.includes("detectProspectiveSetupProduction"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("formatOutcomeReplay"));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("writeFileSync"));
+      assert.ok(prod.includes("composeProductionCandidateRowsForSymbol"));
+      assert.ok(prod.includes("resolveProductionCompositionAtEvaluationBar"));
+      assert.ok(!mod.includes("snapshotId:"));
+    });
+  });
+
+  describe("BD — historical measurement assembly (Phase B-8d)", () => {
+    it("B-8b eval + B-7a mapper + B-6 replay; no presentation/alarm/stats", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const assembly = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-measurement-assembly.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(assembly.includes("buildHistoricalMeasurementRecord"));
+      assert.ok(assembly.includes("buildProspectiveSetupOutcomeReplayInput"));
+      assert.ok(assembly.includes("replayProspectiveSetupOutcome"));
+      assert.ok(assembly.includes("buildHistoricalMeasurementSnapshotId"));
+      assert.ok(assembly.includes("HISTORICAL_MEASUREMENT_SCHEMA_VERSION"));
+      assert.ok(assembly.includes("evaluateTradeEvaluation"));
+      assert.ok(!assembly.includes("enrichProspectiveSetupOutcomeReplay"));
+      assert.ok(!assembly.includes("mapProspectiveSetupOutcomeReplayPresentation"));
+      assert.ok(!assembly.includes("WaveScannerOutcomeReplayPresentation"));
+      assert.ok(!assembly.includes("formatOutcomeReplay"));
+      assert.ok(!assembly.includes("fetch("));
+      assert.ok(!assembly.includes("alarm"));
+      assert.ok(!assembly.includes("wave-scanner-page"));
+      assert.ok(!assembly.includes("win rate"));
+      assert.ok(!assembly.includes("writeFileSync"));
+    });
+  });
+
+  describe("BC — historical walk-forward runner (Phase B-8c)", () => {
+    it("explicit E loop, no replay/network/time/cohort/statistics", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const runner = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-production-walk-forward.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(runner.includes("runHistoricalProductionWalkForward"));
+      assert.ok(runner.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(runner.includes("evaluationBarIndex: e"));
+      assert.ok(!runner.includes("Date.now"));
+      assert.ok(!runner.includes("Math.random"));
+      assert.ok(!runner.includes("fetch("));
+      assert.ok(!runner.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!runner.includes("enrichProspectiveSetupOutcomeReplay"));
+      assert.ok(!runner.includes("cohort"));
+      assert.ok(!runner.includes("alarm"));
+      assert.ok(!runner.includes("wave-scanner-page"));
+      assert.ok(!runner.includes("presentWaveScannerRow"));
+      assert.ok(!runner.includes("evaluateTradeEvaluation"));
+    });
+  });
+
+  describe("BB — historical compose at evaluation bar (Phase B-8b)", () => {
+    it("explicit E, scoped prefix scan, no ticker/replay/alarm in compose path", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const prod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/production-wave-scanner.ts"),
+        "utf8"
+      );
+      const policy = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-production-compose-policy.ts"
+        ),
+        "utf8"
+      );
+      const composeCore = prod.slice(
+        prod.indexOf("export function resolveProductionCompositionAtEvaluationBar"),
+        prod.indexOf("export function composeProductionCandidateRowsForSymbol")
+      );
+      assert.ok(prod.includes("ProductionWaveScannerSymbolComposeOptions"));
+      assert.ok(prod.includes("composeOptions?.evaluationBarIndex"));
+      assert.ok(composeCore.includes("candles.slice(0, evaluationBarIndex + 1)"));
+      assert.ok(composeCore.includes("scanReport: tradeContext.scanReport"));
+      assert.ok(!composeCore.includes("enrichProspectiveSetupOutcomeReplay"));
+      assert.ok(!composeCore.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!prod.includes("fetch("));
+      assert.ok(!policy.includes("fetch("));
+      assert.ok(policy.includes("HISTORICAL_AS_OF_EVAL_LIVE_MARKET_PRICE_POLICY"));
+      assert.ok(policy.includes("resolveHistoricalAsOfEvalLiveMarketPrice"));
+      assert.ok(!policy.includes("alarm"));
+      assert.ok(!policy.includes("wave-scanner-page"));
+    });
+  });
+
+  describe("BA — historical measurement contract (Phase B-8a)", () => {
+    it("contract only; no browser, alarm, network, replay mutation, or UI canonical model", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const contract = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/setup/historical-measurement-contract.ts"
+        ),
+        "utf8"
+      );
+      const types = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/setup/historical-measurement-types.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(contract.includes("HISTORICAL_MEASUREMENT_SCHEMA_VERSION"));
+      assert.ok(contract.includes("buildHistoricalMeasurementSnapshotId"));
+      assert.ok(
+        contract.includes("PROSPECTIVE_SETUP_OUTCOME_REPLAY_DEFAULT_HORIZON_BARS")
+      );
+      assert.ok(!contract.includes("evaluateTradeEvaluation"));
+      assert.ok(!contract.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!contract.includes("fetch("));
+      assert.ok(!contract.includes("alarm"));
+      assert.ok(!types.includes("wave-scanner-presentation"));
+      assert.ok(!types.includes("WaveScannerRowPresentation"));
+      assert.ok(!types.includes("WaveScannerOutcomeReplayPresentation"));
+      assert.ok(types.includes("TradeEvaluationResult"));
+      assert.ok(types.includes("ProspectiveSetupOutcomeReplayResult"));
+      assert.ok(!types.includes("ProspectiveSetupOutcomeReplayStatus"));
+    });
+  });
+
   describe("AR — prospective setup outcome replay (Phase B-6)", () => {
     it("post-eval candles only; no lookahead; no network; isolated from trade eval", async () => {
       const fs = await import("node:fs");
