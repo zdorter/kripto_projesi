@@ -1,0 +1,108 @@
+{
+  "schemaVersion": "1.0",
+  "generatedNote": "B-23 per-symbol evidence stack fingerprints; full reports are runtime-only.",
+  "scopes": [
+    {
+      "scopeKey": "BTCUSDT:1H",
+      "symbol": "BTCUSDT",
+      "timeframe": "1H",
+      "datasetChecksum": "f0df8c41e3b62bf8e21fb574761be3c35e7bd54063a156ed18e074ea6fd534bc",
+      "candleCount": 3000,
+      "firstTimestamp": 1780466400000,
+      "lastTimestamp": 1791262800000,
+      "stackStatus": "PASS",
+      "failureCode": null,
+      "fingerprintDigest": "96680d8c544ef2a72cfbe5887aa97a7d35a0a194f238ea04bb8d231309fc2d22",
+      "reportAvailability": {
+        "b12ThroughB20": true,
+        "integratedEvidence": true,
+        "missingSectionsCount": 0
+      }
+    },
+    {
+      "scopeKey": "ETHUSDT:1H",
+      "symbol": "ETHUSDT",
+      "timeframe": "1H",
+      "datasetChecksum": "07dad17c19e8a60673f8be944f68bb25cd1dbc4d71f6e8789e998c835914c754",
+      "candleCount": 3000,
+      "firstTimestamp": 1780567200000,
+      "lastTimestamp": 1791363600000,
+      "stackStatus": "PASS",
+      "failureCode": null,
+      "fingerprintDigest": "b5252d6b4cf2e6bfdca6d2444c0d76fb27ae90664a57b2aedd600140b6e16e02",
+      "reportAvailability": {
+        "b12ThroughB20": true,
+        "integratedEvidence": true,
+        "missingSectionsCount": 0
+      }
+    },
+    {
+      "scopeKey": "BNBUSDT:1H",
+      "symbol": "BNBUSDT",
+      "timeframe": "1H",
+      "datasetChecksum": "dd3cb52be51517bf5f2f39d8d670ddd452e4c22b36cd9eb6524be6ddcff2dc7f",
+      "candleCount": 3000,
+      "firstTimestamp": 1780567200000,
+      "lastTimestamp": 1791363600000,
+      "stackStatus": "PASS",
+      "failureCode": null,
+      "fingerprintDigest": "dc15dee755a37c7cfb79ba8c0a52ed0e94f645b6b839b55fdda85a64a0d6c572",
+      "reportAvailability": {
+        "b12ThroughB20": true,
+        "integratedEvidence": true,
+        "missingSectionsCount": 0
+      }
+    },
+    {
+      "scopeKey": "SOLUSDT:1H",
+      "symbol": "SOLUSDT",
+      "timeframe": "1H",
+      "datasetChecksum": "5abaccd062472da3030e12176ccb6172c63c0569cbe10dc07bcd76d7e61b6f5a",
+      "candleCount": 3000,
+      "firstTimestamp": 1780567200000,
+      "lastTimestamp": 1791363600000,
+      "stackStatus": "PASS",
+      "failureCode": null,
+      "fingerprintDigest": "aeff0b266337fe7152760e30cf9288cb07c97d3e97a64fab5f1df6ea553d1d52",
+      "reportAvailability": {
+        "b12ThroughB20": true,
+        "integratedEvidence": true,
+        "missingSectionsCount": 0
+      }
+    },
+    {
+      "scopeKey": "XRPUSDT:1H",
+      "symbol": "XRPUSDT",
+      "timeframe": "1H",
+      "datasetChecksum": "05d6e541d7e467fc6db42ce95f2019216ca25afaaf37ac12ae31001aab57d6ff",
+      "candleCount": 3000,
+      "firstTimestamp": 1780567200000,
+      "lastTimestamp": 1791363600000,
+      "stackStatus": "PASS",
+      "failureCode": null,
+      "fingerprintDigest": "d60c4e775828d41c75cb6b8b8be2ba04f54cb70956d771130f526f9b3d652d9b",
+      "reportAvailability": {
+        "b12ThroughB20": true,
+        "integratedEvidence": true,
+        "missingSectionsCount": 0
+      }
+    },
+    {
+      "scopeKey": "ADAUSDT:1H",
+      "symbol": "ADAUSDT",
+      "timeframe": "1H",
+      "datasetChecksum": "bf970de0e9cac093e2b8d82932bddfff25bcb72449f2ac23bcc3398a0d50f87b",
+      "candleCount": 3000,
+      "firstTimestamp": 1780567200000,
+      "lastTimestamp": 1791363600000,
+      "stackStatus": "PASS",
+      "failureCode": null,
+      "fingerprintDigest": "bd5c03b403a44cdd36fe11e4c113c41dccfd9b30288b2a205470e7e275b23d7e",
+      "reportAvailability": {
+        "b12ThroughB20": true,
+        "integratedEvidence": true,
+        "missingSectionsCount": 0
+      }
+    }
+  ]
+}

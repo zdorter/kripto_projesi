@@ -11,6 +11,8 @@ await esbuild.build({
     "wave-analysis-app": "src/browser/wave-analysis-app.ts",
     "wave-scanner-app": "src/browser/wave-scanner-app.ts",
     "wave-scanner-page": "src/browser/wave-scanner-page.ts",
+    "market-structure-ui-app": "src/browser/market-structure-ui-app.ts",
+    "market-structure-ui-page": "src/browser/market-structure-ui-page.ts",
   },
   bundle: true,
   format: "esm",

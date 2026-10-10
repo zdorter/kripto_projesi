@@ -868,6 +868,2074 @@ describe("architecture contract", () => {
     });
   });
 
+  describe("CA — evaluator failure reason analysis (Phase B-12l)", () => {
+    it("consumes frozen lifecycle only; no evaluator/backtest/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-evaluator-failure-reason-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalEvaluatorFailureReasonAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("runRealHistoricalBacktest"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("DB — market structure zigzag internal/external (MSL-2)", () => {
+    it("zigzag module; no fetch/evaluator/scanner", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/market-structure/market-structure-zigzag.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureZigzagContext"));
+      assert.ok(mod.includes("MARKET_STRUCTURE_INTERNAL_EXTERNAL_RULE_ID"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+    });
+  });
+
+  describe("DL — market structure advanced liquidity interaction (MSL-7E)", () => {
+    it("advanced interaction + lifecycle; no fetch/evaluator/scanner/backtest/MSL-5/6/4 rebuild/detectSwings", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const advanced = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-liquidity-advanced-interaction.ts"
+        ),
+        "utf8"
+      );
+      const lifecycle = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-liquidity-lifecycle-derivation.ts"
+        ),
+        "utf8"
+      );
+      for (const mod of [advanced, lifecycle]) {
+        assert.ok(mod.includes("MARKET_STRUCTURE_LIQUIDITY_ADVANCED_INTERACTION_RESEARCH_RULE_ID") || mod.includes("MARKET_STRUCTURE_LIQUIDITY_LIFECYCLE_DERIVATION_RULE_ID"));
+        assert.ok(!mod.includes("detectSwings"));
+        assert.ok(!mod.includes("fetchBinance"));
+        assert.ok(!mod.includes("fetch("));
+        assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+        assert.ok(!mod.includes("trade-evaluation"));
+        assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+        assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+        assert.ok(!mod.includes("buildMarketStructureLiquidityContext"));
+        assert.ok(!mod.includes("buildMarketStructureBreakContext"));
+        assert.ok(!mod.includes("buildMarketStructureLiquidityInteractionContext"));
+      }
+      assert.ok(advanced.includes("buildMarketStructureLiquidityAdvancedInteractionContext"));
+      assert.ok(lifecycle.includes("deriveMarketStructureLiquidityLifecycle"));
+    });
+  });
+
+  describe("DV — native HTF parity research layer", () => {
+    it("parity comparator isolated; no fetch/network/production/UI", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/market-structure/native-htf-parity.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildNativeHtfParityReport"));
+      assert.ok(mod.includes("deriveHtfCandlesFromLtf"));
+      assert.ok(mod.includes("validateHistoricalOhlcvDataset"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("market-structure-ui"));
+      assert.ok(!mod.includes("market-structure-chart-overlay"));
+    });
+  });
+
+  describe("DU — market structure chart overlay (MSL-12)", () => {
+    it("chart module uses projection only; forbidden MSL builders", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const chart = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/market-structure-ui-chart.ts"),
+        "utf8"
+      );
+      const forbidden = [
+        "detectSwings",
+        "buildMarketStructureBreakContext",
+        "buildMarketStructureLiquidityContext",
+        "buildMarketStructureLiquidityInteractionContext",
+        "buildMarketStructureMssContext",
+        "buildMarketStructureMtfStructureAlignmentContext",
+      ];
+      for (const token of forbidden) {
+        assert.ok(!chart.includes(token), `forbidden in chart: ${token}`);
+      }
+      assert.ok(chart.includes("market-structure-chart-overlay"));
+    });
+  });
+
+  describe("DU — scenario interpretation (MSL-16)", () => {
+    it("read-model on 9F only; no fetch/scanner/evaluator/9A–9E rebuild", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-scenario-interpretation.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureScenarioInterpretationContext"));
+      assert.ok(!mod.includes("buildMarketStructureDescriptiveConfluenceSurfaceContext"));
+      assert.ok(!mod.includes("buildMarketStructureMtfStructureAlignmentContext"));
+      assert.ok(!mod.includes("buildMarketStructureMtfLiquidityAlignmentContext"));
+      assert.ok(!mod.includes("buildMarketStructureMtfEventOrderingContext"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("trade-evaluation"));
+      const presenter = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/market-structure-ui-presenter.ts"),
+        "utf8"
+      );
+      assert.ok(presenter.includes("buildMarketStructureScenarioInterpretationContext"));
+      assert.ok(!presenter.includes("buildMarketStructureDescriptiveConfluenceSurfaceContext"));
+    });
+  });
+
+  describe("DT — market structure research UI (MSL-11)", () => {
+    it("browser UI consumes 9F only; no MSL rebuild in presenter/page", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const app = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/market-structure-ui-app.ts"),
+        "utf8"
+      );
+      const presenter = fs.readFileSync(
+        path.join(process.cwd(), "src/browser/market-structure-ui-presenter.ts"),
+        "utf8"
+      );
+      assert.ok(app.includes("buildMarketStructureDescriptiveConfluenceSurfaceWithChartSource"));
+      assert.ok(!presenter.includes("buildMarketStructureDescriptiveConfluenceSurfaceContext"));
+      assert.ok(!presenter.includes("detectSwings"));
+      assert.ok(!app.includes("runProductionWaveScanner"));
+      assert.ok(!app.includes("trade-evaluation"));
+    });
+  });
+
+  describe("EB — MSL historical research measurement audit (MSL-14)", () => {
+    it("audit consumes Phase D + frozen datasets; no fetch/scanner/evaluator/MSL rebuild", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const root = path.join(process.cwd(), "src/wave/msl-historical-evidence");
+      const audit = fs.readFileSync(
+        path.join(root, "msl-historical-research-audit-run.ts"),
+        "utf8"
+      );
+      assert.ok(audit.includes("buildMslHistoricalResearchBatchReport"));
+      assert.ok(audit.includes("buildMslHistoricalResearchMeasurementAuditReport"));
+      assert.ok(!audit.includes("fetch("));
+      assert.ok(!audit.includes("trade-evaluation"));
+      assert.ok(!audit.includes("production-wave-scanner"));
+      assert.ok(!audit.includes("historical-backtest"));
+      assert.ok(!/detectSwings\s*\(/.test(audit));
+    });
+  });
+
+  describe("EA — MSL historical research pipeline (MSL-13 Phase D)", () => {
+    it("batch/export only; Phase A/B/C + frozen datasets; no fetch/scanner/evaluator/MSL rebuild", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const root = path.join(process.cwd(), "src/wave/msl-historical-evidence");
+      const batch = fs.readFileSync(
+        path.join(root, "msl-historical-research-pipeline-batch.ts"),
+        "utf8"
+      );
+      assert.ok(batch.includes("buildMslHistoricalEvidenceAtEvaluation"));
+      assert.ok(batch.includes("buildMslHistoricalCohortAnalyticsReport"));
+      assert.ok(!batch.includes("fetch("));
+      assert.ok(!batch.includes("trade-evaluation"));
+      assert.ok(!batch.includes("production-wave-scanner"));
+      assert.ok(!batch.includes("historical-backtest"));
+      assert.ok(!/detectSwings\s*\(/.test(batch));
+      assert.ok(!batch.includes("buildMarketStructureSnapshotAtBar"));
+    });
+  });
+
+  describe("DZ — MSL historical cohort analytics (MSL-13 Phase C)", () => {
+    it("read-model on Phase B records; stats only; no fetch/scanner/evaluator/MSL rebuild", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const root = path.join(process.cwd(), "src/wave/msl-historical-evidence");
+      const mod = fs.readFileSync(
+        path.join(root, "msl-historical-cohort-analytics.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMslHistoricalCohortAnalyticsReport"));
+      assert.ok(mod.includes("MslHistoricalEvidenceRecordV1"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("production-wave-scanner"));
+      assert.ok(!mod.includes("historical-backtest"));
+      assert.ok(!/detectSwings\s*\(/.test(mod));
+      assert.ok(!mod.includes("buildMarketStructureSnapshotAtBar"));
+    });
+  });
+
+  describe("DY — MSL historical evidence Phase B (MSL-13)", () => {
+    it("consumes MSL-6/7E/7C/7D + snapshot; no fetch/scanner/evaluator/detectSwings rebuild", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const root = path.join(process.cwd(), "src/wave/msl-historical-evidence");
+      const phaseB = fs.readFileSync(path.join(root, "msl-historical-evidence-phase-b.ts"), "utf8");
+      assert.ok(phaseB.includes("buildMarketStructureLiquidityInteractionContext"));
+      assert.ok(phaseB.includes("buildMarketStructureLiquidityAdvancedInteractionContext"));
+      assert.ok(phaseB.includes("buildMarketStructureLiquidityStructureAssociationContext"));
+      assert.ok(phaseB.includes("buildMarketStructureCrossTfLiquidityInteractionContext"));
+      assert.ok(phaseB.includes("buildMarketStructureSnapshotAtBar"));
+      assert.ok(!phaseB.includes("fetch("));
+      assert.ok(!phaseB.includes("trade-evaluation"));
+      assert.ok(!phaseB.includes("production-wave-scanner"));
+      assert.ok(!phaseB.includes("historical-backtest"));
+      assert.ok(!/detectSwings\s*\(/.test(phaseB));
+    });
+  });
+
+  describe("DX — MSL historical evidence (MSL-13 Phase A)", () => {
+    it("research-only; snapshot read + frozen loader; no fetch/evaluator/scanner/backtest/detectSwings", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const root = path.join(process.cwd(), "src/wave/msl-historical-evidence");
+      for (const file of [
+        "msl-historical-evidence-batch.ts",
+        "msl-historical-evidence-strict.ts",
+        "msl-historical-evidence-price.ts",
+        "msl-historical-evidence-forbidden.ts",
+        "msl-historical-evidence-phase-b.ts",
+        "msl-historical-evidence-cohort.ts",
+      ]) {
+        const mod = fs.readFileSync(path.join(root, file), "utf8");
+        assert.ok(!mod.includes("fetch("));
+        assert.ok(!mod.includes("trade-evaluation"));
+        assert.ok(!mod.includes("production-wave-scanner"));
+        assert.ok(!mod.includes("historical-backtest"));
+        assert.ok(!mod.includes("runProductionWaveScanner"));
+        assert.ok(!/detectSwings\s*\(/.test(mod));
+      }
+      const strict = fs.readFileSync(
+        path.join(root, "msl-historical-evidence-strict.ts"),
+        "utf8"
+      );
+      assert.ok(strict.includes("buildMarketStructureSnapshotAtBar"));
+      assert.ok(strict.includes("buildMarketStructureMssContext"));
+      assert.ok(!strict.includes("buildMarketStructureDescriptiveConfluenceSurfaceContext"));
+    });
+  });
+
+  describe("DW — presentation taxonomy (MSL-10 WP2)", () => {
+    it("taxonomy module is pure; no fetch/evaluator/scanner/7B semantic change", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-presentation-taxonomy.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildPresentationTaxonomy"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("deriveHtfCandlesFromLtf"));
+      assert.ok(!mod.includes("volume +="));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("production-wave-scanner"));
+    });
+  });
+
+  describe("DS — descriptive confluence surface (MSL-9F)", () => {
+    it("integrated surface; snapshot + child contexts; no fetch/evaluator/scanner/direct detectSwings", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-descriptive-confluence-surface.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(
+        mod.includes("buildMarketStructureDescriptiveConfluenceSurfaceContext")
+      );
+      assert.ok(
+        mod.includes("MARKET_STRUCTURE_DESCRIPTIVE_CONFLUENCE_SURFACE_RESEARCH_RULE_ID")
+      );
+      assert.ok(mod.includes("buildMarketStructureSnapshotAtBar"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("production-wave-scanner"));
+    });
+  });
+
+  describe("DR — MTF MSS / structure association (MSL-9E)", () => {
+    it("MTF MSS association; consumes MSL-9C only; no fetch/evaluator/9D/MSS rebuild", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-mtf-mss-association.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureMtfMssAssociationContext"));
+      assert.ok(mod.includes("MARKET_STRUCTURE_MTF_MSS_ASSOCIATION_RESEARCH_RULE_ID"));
+      assert.ok(mod.includes("buildMarketStructureMtfEventOrderingContext"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("buildMarketStructureMssContext"));
+      assert.ok(!mod.includes("buildMarketStructureBreakContext"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityInteractionContext"));
+      assert.ok(
+        !mod.includes("buildMarketStructureHtfLiquidityLtfStructureAssociationContext")
+      );
+      assert.ok(
+        !mod.includes("buildMarketStructureLiquidityStructureAssociationContext")
+      );
+      assert.ok(!mod.includes("resolveHtfToLtfOrderingRelation("));
+      assert.ok(!mod.includes("buildMarketStructureMtfStructureAlignmentContext"));
+      assert.ok(!mod.includes("buildMarketStructureMtfLiquidityAlignmentContext"));
+    });
+  });
+
+  describe("DQ — HTF liquidity → LTF structure association (MSL-9D)", () => {
+    it("cross-TF association; consumes MSL-9C only; no fetch/evaluator/scanner/7D/leg rebuild", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-htf-liquidity-ltf-structure-association.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(
+        mod.includes("buildMarketStructureHtfLiquidityLtfStructureAssociationContext")
+      );
+      assert.ok(
+        mod.includes(
+          "MARKET_STRUCTURE_HTF_LIQUIDITY_LTF_STRUCTURE_ASSOCIATION_RESEARCH_RULE_ID"
+        )
+      );
+      assert.ok(mod.includes("buildMarketStructureMtfEventOrderingContext"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(
+        !mod.includes("buildMarketStructureLiquidityStructureAssociationContext")
+      );
+      assert.ok(!mod.includes("buildMarketStructureBreakContext"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityInteractionContext"));
+      assert.ok(
+        !mod.includes("buildMarketStructureLiquidityAdvancedInteractionContext")
+      );
+      assert.ok(
+        !mod.includes("buildMarketStructureCrossTfLiquidityInteractionContext")
+      );
+      assert.ok(!mod.includes("buildMarketStructureMssContext"));
+      assert.ok(!mod.includes("resolveHtfToLtfOrderingRelation("));
+      assert.ok(!mod.includes("buildMarketStructureMtfStructureAlignmentContext"));
+      assert.ok(!mod.includes("buildMarketStructureMtfLiquidityAlignmentContext"));
+    });
+  });
+
+  describe("DP — market structure MTF event ordering (MSL-9C)", () => {
+    it("MTF event ordering; consumes MSL-7A + event contexts; no fetch/evaluator/scanner/7D/MSL-5-only rebuild", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-mtf-event-ordering.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureMtfEventOrderingContext"));
+      assert.ok(
+        mod.includes("MARKET_STRUCTURE_MTF_EVENT_ORDERING_RESEARCH_RULE_ID")
+      );
+      assert.ok(mod.includes("buildMarketStructureMtfAlignmentContext"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityContext"));
+      assert.ok(
+        !mod.includes("buildMarketStructureLiquidityStructureAssociationContext")
+      );
+      assert.ok(!mod.includes("buildMarketStructureMtfStructureAlignmentContext"));
+      assert.ok(!mod.includes("buildMarketStructureMtfLiquidityAlignmentContext"));
+    });
+  });
+
+  describe("DO — market structure MTF liquidity alignment (MSL-9B)", () => {
+    it("MTF liquidity alignment; consumes MSL-7A only; no fetch/evaluator/scanner/backtest/liquidity rebuild", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-mtf-liquidity-alignment.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureMtfLiquidityAlignmentContext"));
+      assert.ok(
+        mod.includes("MARKET_STRUCTURE_MTF_LIQUIDITY_ALIGNMENT_RESEARCH_RULE_ID")
+      );
+      assert.ok(mod.includes("buildMarketStructureMtfAlignmentContext"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityContext"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityInteractionContext"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityAdvancedInteractionContext"));
+      assert.ok(!mod.includes("buildMarketStructureCrossTfLiquidityInteractionContext"));
+      assert.ok(!mod.includes("buildMarketStructureMssContext"));
+    });
+  });
+
+  describe("DN — market structure MTF structure alignment (MSL-9A)", () => {
+    it("MTF structure alignment; consumes MSL-7A only; no fetch/evaluator/scanner/backtest/rebuild", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-mtf-structure-alignment.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureMtfStructureAlignmentContext"));
+      assert.ok(
+        mod.includes("MARKET_STRUCTURE_MTF_STRUCTURE_ALIGNMENT_RESEARCH_RULE_ID")
+      );
+      assert.ok(mod.includes("buildMarketStructureMtfAlignmentContext"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("buildMarketStructureBreakContext"));
+      assert.ok(!mod.includes("buildMarketStructureMssContext"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityContext"));
+    });
+  });
+
+  describe("DM — market structure MSS research layer (MSL-8)", () => {
+    it("MSS context; no fetch/evaluator/scanner/backtest/detectSwings/MSL-4 rebuild", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-mss.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureMssContext"));
+      assert.ok(mod.includes("MARKET_STRUCTURE_MSS_RESEARCH_RULE_ID"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("buildMarketStructureBreakContext"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityContext"));
+      assert.ok(!mod.includes("classifyEvents"));
+    });
+  });
+
+  describe("DK — market structure liquidity–structure association (MSL-7D)", () => {
+    it("association context; no fetch/evaluator/scanner/backtest/MSL-5/6 rebuild/detectSwings", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-liquidity-structure-association.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureLiquidityStructureAssociationContext"));
+      assert.ok(
+        mod.includes("MARKET_STRUCTURE_LIQUIDITY_STRUCTURE_ASSOCIATION_RESEARCH_RULE_ID")
+      );
+      assert.ok(mod.includes("buildMarketStructureLiquidityInteractionContext"));
+      assert.ok(mod.includes("buildMarketStructureBreakContext"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityContext"));
+      assert.ok(!mod.includes("classifyEvents"));
+    });
+  });
+
+  describe("DJ — market structure cross-TF liquidity interaction (MSL-7C)", () => {
+    it("cross-TF liquidity interaction; no fetch/evaluator/scanner/backtest/MSL-5/6 rebuild/detectSwings", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-cross-tf-liquidity-interaction.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureCrossTfLiquidityInteractionContext"));
+      assert.ok(
+        mod.includes("MARKET_STRUCTURE_CROSS_TF_LIQUIDITY_INTERACTION_RESEARCH_RULE_ID")
+      );
+      assert.ok(mod.includes("buildMarketStructureMtfAlignmentContext"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityContext"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityInteractionContext"));
+    });
+  });
+
+  describe("DI — market structure HTF derivation research layer (MSL-7B)", () => {
+    it("HTF derivation; no fetch/evaluator/scanner/backtest/wave MTF/MSL-5/6/direct detectSwings", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-htf-derivation.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("deriveHtfCandlesFromLtf"));
+      assert.ok(mod.includes("MARKET_STRUCTURE_HTF_DERIVATION_RESEARCH_RULE_ID"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("analyzeMultiTimeframe"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityContext"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityInteractionContext"));
+    });
+  });
+
+  describe("DH — market structure MTF alignment research layer (MSL-7A)", () => {
+    it("MTF alignment; no fetch/evaluator/scanner/backtest/wave MTF/direct detectSwings", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-mtf-alignment.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureMtfAlignmentContext"));
+      assert.ok(mod.includes("MARKET_STRUCTURE_MTF_ALIGNMENT_RESEARCH_RULE_ID"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("analyzeMultiTimeframe"));
+    });
+  });
+
+  describe("DF — market structure liquidity interaction research layer (MSL-6)", () => {
+    it("liquidity interaction context; no fetch/evaluator/scanner/backtest/OHLC rebuild/break", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/market-structure/market-structure-liquidity-interaction.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureLiquidityInteractionContext"));
+      assert.ok(mod.includes("MARKET_STRUCTURE_LIQUIDITY_INTERACTION_RESEARCH_RULE_ID"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("buildMarketStructureBreakContext"));
+      assert.ok(!mod.includes("buildMarketStructureLiquidityContext"));
+      assert.ok(!mod.includes("snapshot.break"));
+    });
+  });
+
+  describe("DE — market structure liquidity research layer (MSL-5)", () => {
+    it("liquidity context; no fetch/evaluator/scanner/backtest/OHLC/break", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/market-structure/market-structure-liquidity.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureLiquidityContext"));
+      assert.ok(mod.includes("MARKET_STRUCTURE_LIQUIDITY_RESEARCH_RULE_ID"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("buildMarketStructureBreakContext"));
+      assert.ok(!mod.includes("snapshot.break"));
+    });
+  });
+
+  describe("DD — market structure break research layer (MSL-4)", () => {
+    it("break context; no fetch/evaluator/scanner/backtest", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/market-structure/market-structure-break.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureBreakContext"));
+      assert.ok(mod.includes("MARKET_STRUCTURE_BREAK_RESEARCH_RULE_ID"));
+      assert.ok(!mod.includes("detectSwings"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+    });
+  });
+
+  describe("DC — market structure protected research layer (MSL-3)", () => {
+    it("protected context; no fetch/evaluator/scanner/backtest", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/market-structure/market-structure-protected.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureProtectedContext"));
+      assert.ok(mod.includes("MARKET_STRUCTURE_PROTECTED_LEVEL_RESEARCH_V1"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+    });
+  });
+
+  describe("DA — market structure snapshot foundation (MSL-1)", () => {
+    it("slice-first snapshot; no fetch/evaluator/scanner", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/market-structure/market-structure-snapshot.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildMarketStructureSnapshotAtBar"));
+      assert.ok(mod.includes("candles.slice(0, evaluationBarIndex + 1)"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("trade-evaluation"));
+    });
+  });
+
+  describe("CZ — phase B multisymbol frozen evidence stack (Phase B-23)", () => {
+    it("orchestrates frozen backtest/reports; no fetch/evaluator/scanner", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-phase-b-frozen-evidence-stack.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalPhaseBMultisymbolFrozenEvidenceStacks"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+    });
+  });
+
+  describe("CY — research frozen dataset freeze helper (Phase B-22)", () => {
+    it("freeze helper has no fetch; historical-frozen-ohlcv-dataset has no fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const freezeMod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-frozen-ohlcv-dataset-freeze.ts"),
+        "utf8"
+      );
+      assert.ok(freezeMod.includes("freezeHistoricalOhlcvDataset"));
+      assert.ok(!freezeMod.includes("fetchBinance"));
+      assert.ok(!freezeMod.includes("fetch("));
+      const loaderMod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-frozen-ohlcv-dataset.ts"),
+        "utf8"
+      );
+      assert.ok(!loaderMod.includes("fetchBinance"));
+      assert.ok(!loaderMod.includes("fetch("));
+    });
+  });
+
+  describe("CX — phase B multi-symbol regime validation (Phase B-21)", () => {
+    it("consumes frozen scope reports only; no evaluator/backtest/rebuild/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-phase-b-multi-symbol-regime-validation.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalPhaseBMultiSymbolRegimeValidation"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("from \"./setup/trade-evaluation\""));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("buildHistoricalPhaseBIntegratedEvidenceAudit"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("optimize("));
+    });
+  });
+
+  describe("CW — phase B integrated evidence audit (Phase B-20)", () => {
+    it("consumes frozen phase reports only; no evaluator/backtest/rebuild/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-phase-b-integrated-evidence-audit.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalPhaseBIntegratedEvidenceAudit"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("from \"./setup/trade-evaluation\""));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("buildHistoricalDelayedEntryResearch"));
+      assert.ok(!mod.includes("buildHistoricalDelayedEntryDecisionAudit"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("optimize("));
+    });
+  });
+
+  describe("CV — historical delayed entry decision audit (Phase B-19)", () => {
+    it("consumes B-18 frozen reports; no evaluator/backtest/B-18 rebuild/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-delayed-entry-decision-audit.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalDelayedEntryDecisionAudit"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("from \"./setup/trade-evaluation\""));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("buildHistoricalDelayedEntryResearch"));
+      assert.ok(!mod.includes("fetch("));
+    });
+  });
+
+  describe("CU — historical delayed entry research (Phase B-18)", () => {
+    it("consumes frozen lifecycle/B-12w candles; no evaluator/backtest/rebuild/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-delayed-entry-research.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalDelayedEntryResearch"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("from \"./setup/trade-evaluation\""));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("buildHistoricalAlternativeTargetReachabilityReplay"));
+      assert.ok(!mod.includes("fetch("));
+    });
+  });
+
+  describe("CT — entry context signal independence audit (Phase B-17)", () => {
+    it("consumes B-14/B-16 frozen reports; no evaluator/backtest/rebuild/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-entry-context-signal-independence-audit.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalEntryContextSignalIndependenceAudit"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("from \"./setup/trade-evaluation\""));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("buildHistoricalEntryContextFutureMoveAnalysis"));
+      assert.ok(!mod.includes("buildHistoricalEntryContextCombinationFutureMoveAnalysis"));
+      assert.ok(!mod.includes("fetch("));
+    });
+  });
+
+  describe("CS — entry context combination future move (Phase B-16)", () => {
+    it("consumes B-14 frozen reports; no evaluator/backtest/B-14 rebuild/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-entry-context-combination-future-move-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalEntryContextCombinationFutureMoveAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("from \"./setup/trade-evaluation\""));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("buildHistoricalEntryContextFutureMoveAnalysis"));
+      assert.ok(!mod.includes("measurePostEntryHorizonExcursion"));
+      assert.ok(!mod.includes("fetch("));
+    });
+  });
+
+  describe("CR — entry context future move predictiveness (Phase B-15)", () => {
+    it("consumes frozen B-14 report; no evaluator/backtest/rebuild/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-entry-context-future-move-predictiveness-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalEntryContextFutureMovePredictivenessAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("runRealHistoricalBacktest"));
+      assert.ok(!mod.includes("buildHistoricalEntryContextFutureMoveAnalysis"));
+      assert.ok(!mod.includes("measurePostEntryHorizonExcursion"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+    });
+  });
+
+  describe("CQ — entry context future move analysis (Phase B-14)", () => {
+    it("consumes frozen reports; no evaluator/backtest/lifecycle build/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-entry-context-future-move-analysis.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalEntryContextFutureMoveAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("runRealHistoricalBacktest"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("buildHistoricalDisplacementEqualityTargetMechanicsAnalysis"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+    });
+  });
+
+  describe("CP — entry context target research (Phase B-13)", () => {
+    it("consumes frozen reports; no evaluator/backtest/lifecycle build/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-entry-context-target-research.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalEntryContextTargetResearch"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("buildHistoricalAlternativeTargetReachabilityReplay"));
+      assert.ok(!mod.includes("computeTheoreticalTradeRMultiple"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("optimize("));
+    });
+  });
+
+  describe("CO — target distance reachability cost balance (Phase B-12z)", () => {
+    it("consumes frozen reports; no evaluator/backtest/lifecycle build/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-target-distance-reachability-cost-balance-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalTargetDistanceReachabilityCostBalanceAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("computeTheoreticalTradeRMultiple"));
+      assert.ok(!mod.includes("aggregateIndependentTradeRMultipleStatistics"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+    });
+  });
+
+  describe("CN — target distance structural context (Phase B-12y)", () => {
+    it("consumes frozen reports; no evaluator/backtest/lifecycle build/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-target-distance-structural-context-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalTargetDistanceStructuralContextAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runRealHistoricalBacktest"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("aggregateIndependentTradeStatistics"));
+      assert.ok(!mod.includes("computeTheoreticalTradeRMultiple"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("optimize("));
+    });
+  });
+
+  describe("CM — cost-aware counterfactual analysis (Phase B-12x)", () => {
+    it("consumes frozen reports; no evaluator/backtest/lifecycle build/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-cost-aware-counterfactual-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalCostAwareCounterfactualAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runRealHistoricalBacktest"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("aggregateIndependentTradeStatistics"));
+      assert.ok(!mod.includes("computeTheoreticalTradeRMultiple"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("optimize("));
+    });
+  });
+
+  describe("CL — alternative target reachability replay (Phase B-12w)", () => {
+    it("isolated OHLC replay; no production path/backtest/evaluator", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-alternative-target-reachability-replay.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalAlternativeTargetReachabilityReplay"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("aggregateIndependentTradeStatistics"));
+      assert.ok(!mod.includes("fetch("));
+    });
+  });
+
+  describe("CK — alternative target model counterfactual (Phase B-12v)", () => {
+    it("counterfactual analysis only; no evaluator/path/backtest/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-alternative-target-model-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalAlternativeTargetModelAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("aggregateIndependentTradeStatistics"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+    });
+  });
+
+  describe("CJ — structural extreme vs displacement target (Phase B-12u)", () => {
+    it("consumes frozen reports; no evaluator/path/backtest/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-structural-extreme-vs-displacement-target-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(
+        mod.includes("buildHistoricalStructuralExtremeVsDisplacementTargetAnalysis")
+      );
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("aggregateIndependentTradeStatistics"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+    });
+  });
+
+  describe("CI — displacement equality target mechanics (Phase B-12t)", () => {
+    it("consumes frozen reports; no evaluator/path/backtest/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-displacement-equality-target-mechanics-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(
+        mod.includes("buildHistoricalDisplacementEqualityTargetMechanicsAnalysis")
+      );
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("auditIndependentTradeTheoreticalREligibility"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+    });
+  });
+
+  describe("CH — target provenance & structural distance (Phase B-12s)", () => {
+    it("consumes frozen reports; no evaluator/path/backtest/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-target-provenance-structural-distance-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalTargetProvenanceStructuralDistanceAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("auditIndependentTradeTheoreticalREligibility"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+    });
+  });
+
+  describe("CG — entry price-move quality research (Phase B-12r)", () => {
+    it("consumes frozen reports only; no evaluator/path/backtest/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-entry-price-move-quality-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalEntryPriceMoveQualityAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("resolveHistoricalPositionPathV1"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("auditIndependentTradeTheoreticalREligibility"));
+      assert.ok(!mod.includes("buildHistoricalEvaluatorRrThresholdTheoreticalRAnalysis"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("CF — historical dataset freeze (Phase B-12q)", () => {
+    it("frozen loader + runner; no network/evaluator/path duplicate/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const dataset = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-frozen-ohlcv-dataset.ts"),
+        "utf8"
+      );
+      const runner = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/frozen-historical-backtest.ts"),
+        "utf8"
+      );
+      const hashMod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-frozen-ohlcv-dataset-hash.ts"),
+        "utf8"
+      );
+      assert.ok(dataset.includes("validateHistoricalOhlcvDataset"));
+      assert.ok(dataset.includes("assertHistoricalOhlcvDatasetValid"));
+      assert.ok(hashMod.includes("computeHistoricalFrozenOhlcvDatasetChecksum"));
+      assert.ok(runner.includes("runRealHistoricalBacktest"));
+      assert.ok(runner.includes("runFrozenHistoricalBacktest"));
+      assert.ok(!dataset.includes("fetch("));
+      assert.ok(!runner.includes("fetch("));
+      assert.ok(!dataset.includes("fetchBinance"));
+      assert.ok(!runner.includes("fetchBinance"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(dataset));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(runner));
+      assert.ok(!dataset.includes("resolveHistoricalPositionPathV1"));
+      assert.ok(!runner.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!dataset.includes("calculatePnL"));
+      assert.ok(!runner.includes("optimize("));
+      assert.ok(!dataset.includes("alarm"));
+      assert.ok(!dataset.includes("Date.now"));
+      assert.ok(!hashMod.includes("Date.now"));
+      assert.ok(!hashMod.includes("Math.random"));
+    });
+  });
+
+  describe("CE — RR threshold × theoretical R (Phase B-12p)", () => {
+    it("counterfactual RR + frozen B-12h R; no evaluator/path/R engine/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-evaluator-rr-threshold-theoretical-r-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalEvaluatorRrThresholdTheoreticalRAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation.ts"));
+      assert.ok(!mod.includes("computeTheoreticalTradeRMultiple"));
+      assert.ok(!mod.includes("aggregateIndependentTradeRMultipleStatistics"));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("optimize("));
+    });
+  });
+
+  describe("CD — RR threshold counterfactual (Phase B-12o)", () => {
+    it("counterfactual RR only; no evaluator/path/R aggregate/fetch", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-evaluator-rr-threshold-counterfactual.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalEvaluatorRrThresholdCounterfactual"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation.ts"));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("aggregateIndependentTradeStatistics"));
+      assert.ok(!mod.includes("aggregateIndependentTradeRMultipleStatistics"));
+      assert.ok(!mod.includes("computeTheoreticalTradeRMultiple"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("CC — failure reason deep diagnostic (Phase B-12n)", () => {
+    it("consumes B-12l frozen outputs; no evaluator/backtest/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-evaluator-failure-reason-deep-diagnostic.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(
+        mod.includes("buildHistoricalEvaluatorFailureReasonDeepDiagnostic")
+      );
+      assert.ok(mod.includes("buildHistoricalEvaluatorFailureReasonAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("trade-evaluation.ts"));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("runRealHistoricalBacktest"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("CB — evaluator diagnostic B-12l integration (Phase B-12m)", () => {
+    it("consumes B-12l via lifecycle; no evaluator/backtest/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-evaluator-rule-diagnostic-b12m-integration.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(
+        mod.includes("integrateB12lFailureReasonIntoEvaluatorRuleDiagnostic")
+      );
+      assert.ok(mod.includes("buildHistoricalEvaluatorFailureReasonAnalysis"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("runRealHistoricalBacktest"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("fetchBinance"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("BZ — evaluator rule diagnostic (Phase B-12k)", () => {
+    it("consumes B-12f/B-12c/B-12g/B-12j outputs; no evaluator/backtest/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-evaluator-rule-diagnostic.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalEvaluatorRuleDiagnostic"));
+      assert.ok(mod.includes("analyzeIndependentTradeEvaluatorDiagnostic"));
+      assert.ok(!/evaluateTradeEvaluation\s*\(/.test(mod));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("runRealHistoricalBacktest"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("aggregateIndependentTradeRMultipleStatistics"));
+      assert.ok(!mod.includes("buildHistoricalEntryReferenceQualityAnalysis"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("BY — entry reference quality analysis (Phase B-12j)", () => {
+    it("consumes B-12c/B-12g/B-12h/B-12i; no backtest/path/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-entry-reference-quality-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalEntryReferenceQualityAnalysis"));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("runRealHistoricalBacktest"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("aggregateIndependentTradeRMultipleStatistics"));
+      assert.ok(!mod.includes("auditIndependentTradeTheoreticalREligibility"));
+      assert.ok(!mod.includes("buildHistoricalTheoreticalPerformanceReport"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("BX — historical theoretical performance report (Phase B-12i)", () => {
+    it("consumes B-12g/B-12h only; no backtest/path/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-theoretical-performance-report.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildHistoricalTheoreticalPerformanceReport"));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("runRealHistoricalBacktest"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("aggregateIndependentTradeRMultipleStatistics"));
+      assert.ok(!mod.includes("auditIndependentTradeTheoreticalREligibility"));
+      assert.ok(!mod.includes("computeTheoreticalTradeRMultiple"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("BW — independent trade theoretical R eligibility audit (Phase B-12h)", () => {
+    it("audits lifecycle/B-12g only; no repair/path/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-independent-trade-r-eligibility-audit.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("auditIndependentTradeTheoreticalREligibility"));
+      assert.ok(mod.includes("computeTheoreticalTradeRMultiple"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("aggregateIndependentTradeRMultipleStatistics"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window."));
+    });
+  });
+
+  describe("BV — independent trade theoretical R-Multiple (Phase B-12g)", () => {
+    it("aggregates lifecycle references only; no path/evaluator/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-independent-trade-r-multiple-statistics.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("aggregateIndependentTradeRMultipleStatistics"));
+      assert.ok(mod.includes("computeTheoreticalTradeRMultiple"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("aggregateIndependentTradeStatistics"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("realizedPnl"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window."));
+    });
+  });
+
+  describe("BU — independent trade evaluator diagnostic (Phase B-12f)", () => {
+    it("diagnoses B-12c/e only; no evaluator/path/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-independent-trade-evaluator-diagnostic.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("analyzeIndependentTradeEvaluatorDiagnostic"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("aggregateIndependentTradeStatistics"));
+      assert.ok(!mod.includes("validateIndependentTradeStatistics"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window."));
+    });
+  });
+
+  describe("BT — independent trade statistical validation (Phase B-12e)", () => {
+    it("validates B-12c/B-12d only; no rebuild/path/PnL/optimization", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-independent-trade-statistical-validation.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("validateIndependentTradeStatistics"));
+      assert.ok(mod.includes("WILSON_SCORE_INTERVAL"));
+      assert.ok(!mod.includes("aggregateIndependentTradeStatistics"));
+      assert.ok(!mod.includes("analyzeIndependentTradeStatistics"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window."));
+    });
+  });
+
+  describe("BS — independent trade analysis (Phase B-12d)", () => {
+    it("analyzes B-12c only; no statistics rebuild/path/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-independent-trade-analysis.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("analyzeIndependentTradeStatistics"));
+      assert.ok(!mod.includes("aggregateIndependentTradeStatistics"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("resolveHistoricalPositionPathV1"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("computePnL"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window."));
+    });
+  });
+
+  describe("BR — independent trade statistics (Phase B-12c)", () => {
+    it("aggregates B-12b lifecycle only; no path/compose/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-independent-trade-statistics.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("aggregateIndependentTradeStatistics"));
+      assert.ok(mod.includes("classifyHistoricalPositionOutcomePolicy"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("resolveHistoricalPositionPathV1"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("computePnL"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window."));
+    });
+  });
+
+  describe("BQ — independent trade unit lifecycle (Phase B-12b)", () => {
+    it("lifecycle from B-10f report; no path/compose/PnL duplicate", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/independent-trade-unit-lifecycle.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("buildIndependentTradeLifecycleReport"));
+      assert.ok(mod.includes("classifyHistoricalPositionOutcomePolicy"));
+      assert.ok(mod.includes("pairHistoricalPositionOutcomeObservationsWithBatch"));
+      assert.ok(!mod.includes("resolveHistoricalPositionPathV1"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("computePnL"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window."));
+    });
+  });
+
+  describe("BP — independent trade unit design (Phase B-12a)", () => {
+    it("design contract only; no PnL/execution/optimization/semantics change", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/independent-trade-unit-design-contract.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("INDEPENDENT_TRADE_UNIT_DESIGN_SCHEMA_VERSION"));
+      assert.ok(mod.includes("INDEPENDENT_TRADE_UNIT_DECISION_CANDLE_RANGE"));
+      assert.ok(mod.includes("INDEPENDENT_TRADE_UNIT_DESIGN_NON_GOALS"));
+      assert.ok(!mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("resolveHistoricalPositionPathV1"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("optimize("));
+      assert.ok(!mod.includes("parameterSearch("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window."));
+      for (const token of [
+        "calculatePnL",
+        "computePnL",
+        "equityCurve",
+        "executionSimulation",
+      ]) {
+        assert.ok(!mod.includes(`function ${token}`));
+      }
+    });
+  });
+
+  describe("BO — historical backtest robustness audit (Phase B-11A)", () => {
+    it("audit/report only; reuses B-10f; no PnL/optimization/network", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-backtest-robustness-audit.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("auditHistoricalBacktestRobustness"));
+      assert.ok(mod.includes("runHistoricalBacktest"));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("computePnL"));
+      assert.ok(!mod.includes("equityCurve"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("optimize"));
+      assert.ok(!mod.includes("parameterSearch"));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window."));
+      assert.ok(!mod.includes("document"));
+      assert.ok(!mod.includes("resolveHistoricalPositionPathV1"));
+    });
+  });
+
+  describe("BN — real historical backtest dataset integration (Phase B-11)", () => {
+    it("loader + validation + B-10f; no duplicate engine/PnL/optimization", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const loader = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-ohlcv-dataset-loader.ts"),
+        "utf8"
+      );
+      const validation = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-ohlcv-dataset-validation.ts"
+        ),
+        "utf8"
+      );
+      const integration = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/real-historical-backtest.ts"),
+        "utf8"
+      );
+      assert.ok(loader.includes("fetchBinanceFuturesHistoricalCandles"));
+      assert.ok(validation.includes("validateHistoricalOhlcvDataset"));
+      assert.ok(integration.includes("runHistoricalBacktest"));
+      assert.ok(!integration.includes("resolveHistoricalPositionPathV1"));
+      assert.ok(!integration.includes("aggregateHistoricalPositionOutcomeStatistics"));
+      assert.ok(!integration.includes("calculatePnL"));
+      assert.ok(!integration.includes("computePnL"));
+      assert.ok(!integration.includes("equityCurve"));
+      assert.ok(!integration.includes("Date.now"));
+      assert.ok(!integration.includes("Math.random"));
+      assert.ok(!integration.includes("fetch("));
+      assert.ok(!integration.includes("optimize"));
+      assert.ok(!integration.includes("parameterSearch"));
+      assert.ok(!integration.includes("alarm"));
+      assert.ok(!integration.includes("document"));
+    });
+  });
+
+  describe("BM — historical backtest validation (Phase B-10g)", () => {
+    it("audits B-10f only; no compose/PnL/optimization", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-backtest-validation.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("auditHistoricalBacktestReport"));
+      assert.ok(mod.includes("runHistoricalBacktest") === false);
+      assert.ok(!mod.includes("resolveHistoricalPositionPathV1"));
+      assert.ok(!mod.includes("aggregateHistoricalPositionOutcomeStatistics"));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("computePnL"));
+      assert.ok(!mod.includes("equityCurve"));
+      assert.ok(!mod.includes("Date.now"));
+      assert.ok(!mod.includes("Math.random"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("ticker"));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window"));
+      assert.ok(!mod.includes("optimize"));
+      assert.ok(!mod.includes("parameterSearch"));
+    });
+  });
+
+  describe("BL — historical backtest runner/report (Phase B-10f)", () => {
+    it("B-8 artifact + B-10b path + B-10e stats; no PnL/live/network", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-backtest.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("runHistoricalBacktest"));
+      assert.ok(mod.includes("buildHistoricalMeasurementArtifact"));
+      assert.ok(mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(mod.includes("aggregateHistoricalPositionOutcomeStatistics"));
+      assert.ok(mod.includes("pairHistoricalPositionOutcomeObservationsWithBatch"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("computePnL"));
+      assert.ok(!mod.includes("equityCurve"));
+      assert.ok(!mod.includes("Date.now"));
+      assert.ok(!mod.includes("Math.random"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("ticker"));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window"));
+      assert.ok(!mod.includes("document"));
+      assert.ok(!mod.includes("optimize"));
+      assert.ok(!mod.includes("parameterSearch"));
+    });
+  });
+
+  describe("BK — historical position outcome statistics (Phase B-10e)", () => {
+    it("B-10d classification aggregation only; no path replay or PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-position-outcome-statistics.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("aggregateHistoricalPositionOutcomeStatistics"));
+      assert.ok(mod.includes("classifyHistoricalPositionOutcomePolicy"));
+      assert.ok(mod.includes("winRate_decisive"));
+      assert.ok(mod.includes("DECISIVE_RESOLUTIONS"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("resolveHistoricalPositionPathV1"));
+      assert.ok(!mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("computePnL"));
+      assert.ok(!mod.includes("Date.now"));
+      assert.ok(!mod.includes("Math.random"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window"));
+      assert.ok(!mod.includes("document"));
+    });
+  });
+
+  describe("BJ — historical position outcome policy mapper (Phase B-10d)", () => {
+    it("path outcome → policy classification only; no replay/stats/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-position-outcome-policy.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("classifyHistoricalPositionOutcomePolicy"));
+      assert.ok(
+        mod.includes(
+          "POSITION_OUTCOME_POLICY_REFERENCE_PATH_V1_DECISIVE_1_0_PATH_MAP"
+        )
+      );
+      assert.ok(mod.includes("pathResult.outcome"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("resolveHistoricalPositionPathV1"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("aggregateHistoricalMeasurementStatistics"));
+      assert.ok(!mod.includes("calculatePnL"));
+      assert.ok(!mod.includes("computePnL"));
+      assert.ok(!mod.includes("Date.now"));
+      assert.ok(!mod.includes("Math.random"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("window"));
+      assert.ok(!mod.includes("document"));
+    });
+  });
+
+  describe("BI — position outcome policy contract (Phase B-10c)", () => {
+    it("path outcome semantics only; no path mutation, stats, RR, or trade eval", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const contract = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-position-outcome-policy-contract.ts"
+        ),
+        "utf8"
+      );
+      const types = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-position-outcome-policy-types.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(
+        contract.includes(
+          "POSITION_OUTCOME_POLICY_REFERENCE_PATH_V1_DECISIVE_1_0_PATH_MAP"
+        )
+      );
+      assert.ok(
+        contract.includes("ProspectiveSetupOutcomeReplayStatus")
+      );
+      assert.ok(
+        !contract.includes("resolveHistoricalPositionPathV1")
+      );
+      assert.ok(!contract.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!contract.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!contract.includes("evaluateTradeEvaluation"));
+      assert.ok(!contract.includes("aggregateHistoricalMeasurementStatistics"));
+      assert.ok(!contract.includes("WinRate"));
+      assert.ok(!contract.includes("calculatePnL"));
+      assert.ok(!contract.includes("computePnL"));
+      assert.ok(!contract.includes("pnlAmount"));
+      assert.ok(!contract.includes("realizedPnl"));
+      assert.ok(!contract.includes("unrealizedPnl"));
+      assert.ok(!contract.includes("equityCurve"));
+      assert.ok(
+        !contract.includes('from "./setup/trade-evaluation-contract"')
+      );
+      assert.ok(!contract.includes("Date.now"));
+      assert.ok(!contract.includes("Math.random"));
+      assert.ok(!contract.includes("fetch("));
+      assert.ok(!contract.includes("alarm"));
+      assert.ok(!contract.includes("window"));
+      assert.ok(!contract.includes("document"));
+      assert.ok(
+        types.includes("ClassifyHistoricalPositionOutcomePolicy")
+      );
+      assert.ok(
+        !types.includes("function classifyHistoricalPositionOutcomePolicy")
+      );
+    });
+  });
+
+  describe("BH — batch historical position path (Phase B-10b)", () => {
+    it("artifact batch; B-10a + B-9b filter; no compose/evaluator/stats", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-position-path-batch.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("runHistoricalPositionPathBatch"));
+      assert.ok(mod.includes("resolveHistoricalPositionPathV1"));
+      assert.ok(mod.includes("selectHistoricalMeasurementEntries"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("presentWaveScannerRow"));
+      assert.ok(!mod.includes("Date.now"));
+      assert.ok(!mod.includes("Math.random"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("win rate"));
+      assert.ok(!mod.includes("PnL"));
+    });
+  });
+
+  describe("BG — historical position path V1 (Phase B-10a)", () => {
+    it("artifact entry + B-6 replay; no compose/evaluator/UI/PnL", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(process.cwd(), "src/wave/historical-position-path.ts"),
+        "utf8"
+      );
+      assert.ok(mod.includes("resolveHistoricalPositionPathV1"));
+      assert.ok(mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(mod.includes("resolveProspectiveStructuralInvalidation"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("runProductionWaveScanner"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("presentWaveScannerRow"));
+      assert.ok(!mod.includes("wave-scanner-page"));
+      assert.ok(!mod.includes("Date.now"));
+      assert.ok(!mod.includes("Math.random"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("leverage"));
+      assert.ok(!mod.includes("slippage"));
+      assert.ok(!mod.includes("profit"));
+      assert.ok(!mod.includes("PnL"));
+      assert.ok(!mod.includes("win rate"));
+    });
+  });
+
+  describe("B9e — historical measurement dimension statistics (Phase B-9e)", () => {
+    it("artifact dimension grouping; B-9b/c/d reuse; no PnL or pipeline", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-measurement-dimension-statistics.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(
+        mod.includes("aggregateHistoricalMeasurementDimensionStatistics")
+      );
+      assert.ok(mod.includes("selectHistoricalMeasurementEntries"));
+      assert.ok(mod.includes("resolveCrossOutcomeColumn"));
+      assert.ok(mod.includes("resolveHistoricalMeasurementRrBucketRow"));
+      assert.ok(mod.includes("evaluation.production?.familyId"));
+      assert.ok(!mod.includes("runProductionWaveScanner"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("Date.now"));
+      assert.ok(!mod.includes("Math.random"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("profit"));
+      assert.ok(!mod.includes("PnL"));
+      assert.ok(!mod.includes("win rate"));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("B9d — historical measurement RR statistics (Phase B-9d)", () => {
+    it("artifact RR buckets only; filter/outcome reuse; no PnL or pipeline", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-measurement-rr-statistics.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("aggregateHistoricalMeasurementRRStatistics"));
+      assert.ok(mod.includes("selectHistoricalMeasurementEntries"));
+      assert.ok(mod.includes("references.rr.ratio"));
+      assert.ok(mod.includes("resolveCrossOutcomeColumn"));
+      assert.ok(!mod.includes("runProductionWaveScanner"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("Date.now"));
+      assert.ok(!mod.includes("Math.random"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("profit"));
+      assert.ok(!mod.includes("PnL"));
+      assert.ok(!mod.includes("win rate"));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("B9c — historical measurement cross statistics (Phase B-9c)", () => {
+    it("artifact cross-tab only; B-9b filter reuse; no win/loss or pipeline", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-measurement-cross-statistics.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("aggregateHistoricalMeasurementCrossStatistics"));
+      assert.ok(mod.includes("selectHistoricalMeasurementEntries"));
+      assert.ok(mod.includes("NULL_OUTCOME"));
+      assert.ok(!mod.includes("runProductionWaveScanner"));
+      assert.ok(!mod.includes("buildHistoricalMeasurementArtifact"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("Date.now"));
+      assert.ok(!mod.includes("Math.random"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("win rate"));
+      assert.ok(!mod.includes("WIN"));
+      assert.ok(!mod.includes("LOSS"));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("B9b — historical measurement statistics filter (Phase B-9b)", () => {
+    it("artifact + B-9a reuse; cohorts[]; denominators; no pipeline", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-measurement-statistics-filter.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("aggregateHistoricalMeasurementStatisticsFiltered"));
+      assert.ok(mod.includes("aggregateHistoricalMeasurementStatistics"));
+      assert.ok(mod.includes("entry.cohorts.includes"));
+      assert.ok(mod.includes("denominatorId"));
+      assert.ok(!mod.includes("runProductionWaveScanner"));
+      assert.ok(!mod.includes("buildHistoricalMeasurementArtifact"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("resolveHistoricalMeasurementCohorts"));
+      assert.ok(!mod.includes("Date.now"));
+      assert.ok(!mod.includes("Math.random"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("win rate"));
+      assert.ok(!mod.includes("alarm"));
+    });
+  });
+
+  describe("B9 — historical measurement statistics core (Phase B-9a)", () => {
+    it("artifact-only aggregation; no pipeline rerun or mutation", async () => {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const mod = fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "src/wave/historical-measurement-statistics.ts"
+        ),
+        "utf8"
+      );
+      assert.ok(mod.includes("aggregateHistoricalMeasurementStatistics"));
+      assert.ok(mod.includes("isPathMeasuredOutcome"));
+      assert.ok(!mod.includes("runProductionWaveScanner"));
+      assert.ok(!mod.includes("composeProductionWaveScannerForSymbol"));
+      assert.ok(!mod.includes("buildHistoricalMeasurementArtifact"));
+      assert.ok(!mod.includes("buildHistoricalCandidateMeasurementsAtEvaluationBar"));
+      assert.ok(!mod.includes("replayProspectiveSetupOutcome"));
+      assert.ok(!mod.includes("evaluateTradeEvaluation"));
+      assert.ok(!mod.includes("runWaveScan"));
+      assert.ok(!mod.includes("presentWaveScannerRow"));
+      assert.ok(!mod.includes("wave-scanner-page"));
+      assert.ok(!mod.includes("Date.now"));
+      assert.ok(!mod.includes("Math.random"));
+      assert.ok(!mod.includes("fetch("));
+      assert.ok(!mod.includes("alarm"));
+      assert.ok(!mod.includes("win rate"));
+    });
+  });
+
   describe("BF — historical measurement artifact boundary (Phase B-8f)", () => {
     it("schema 1.0, deterministic serialize, cohorts[], no fs/presentation/stats", async () => {
       const fs = await import("node:fs");

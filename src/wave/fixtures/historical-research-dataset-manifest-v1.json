@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0",
+  "generatedNote": "B-22 research manifest; BTC checksum must match BTCUSDT_1H_RESEARCH_FROZEN_EXPECTED_DATASET_CHECKSUM when fixture present.",
+  "entries": [
+    {
+      "symbol": "BTCUSDT",
+      "timeframe": "1H",
+      "path": "src/wave/fixtures/btcusdt-1h-research-ohlcv-v1.json",
+      "checksum": "f0df8c41e3b62bf8e21fb574761be3c35e7bd54063a156ed18e074ea6fd534bc",
+      "candleCount": 3000,
+      "firstTimestamp": 1780466400000,
+      "lastTimestamp": 1791262800000,
+      "status": "DATASET_AVAILABLE"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "timeframe": "1H",
+      "path": "src/wave/fixtures/ethusdt-1h-research-ohlcv-v1.json",
+      "checksum": "07dad17c19e8a60673f8be944f68bb25cd1dbc4d71f6e8789e998c835914c754",
+      "candleCount": 3000,
+      "firstTimestamp": 1780567200000,
+      "lastTimestamp": 1791363600000,
+      "status": "DATASET_AVAILABLE"
+    },
+    {
+      "symbol": "BNBUSDT",
+      "timeframe": "1H",
+      "path": "src/wave/fixtures/bnbusdt-1h-research-ohlcv-v1.json",
+      "checksum": "dd3cb52be51517bf5f2f39d8d670ddd452e4c22b36cd9eb6524be6ddcff2dc7f",
+      "candleCount": 3000,
+      "firstTimestamp": 1780567200000,
+      "lastTimestamp": 1791363600000,
+      "status": "DATASET_AVAILABLE"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "timeframe": "1H",
+      "path": "src/wave/fixtures/solusdt-1h-research-ohlcv-v1.json",
+      "checksum": "5abaccd062472da3030e12176ccb6172c63c0569cbe10dc07bcd76d7e61b6f5a",
+      "candleCount": 3000,
+      "firstTimestamp": 1780567200000,
+      "lastTimestamp": 1791363600000,
+      "status": "DATASET_AVAILABLE"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "timeframe": "1H",
+      "path": "src/wave/fixtures/xrpusdt-1h-research-ohlcv-v1.json",
+      "checksum": "05d6e541d7e467fc6db42ce95f2019216ca25afaaf37ac12ae31001aab57d6ff",
+      "candleCount": 3000,
+      "firstTimestamp": 1780567200000,
+      "lastTimestamp": 1791363600000,
+      "status": "DATASET_AVAILABLE"
+    },
+    {
+      "symbol": "ADAUSDT",
+      "timeframe": "1H",
+      "path": "src/wave/fixtures/adausdt-1h-research-ohlcv-v1.json",
+      "checksum": "bf970de0e9cac093e2b8d82932bddfff25bcb72449f2ac23bcc3398a0d50f87b",
+      "candleCount": 3000,
+      "firstTimestamp": 1780567200000,
+      "lastTimestamp": 1791363600000,
+      "status": "DATASET_AVAILABLE"
+    }
+  ]
+}

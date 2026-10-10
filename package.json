@@ -10,7 +10,13 @@
     "dev": "tsx src/index.ts",
     "test": "tsx --test src/**/__tests__/**/*.test.ts",
     "validate:real-market": "tsx scripts/validate-real-market.ts",
-    "measure:historical": "tsx scripts/measure-historical.ts"
+    "measure:historical": "tsx scripts/measure-historical.ts",
+    "backtest:historical": "tsx scripts/backtest-historical.ts",
+    "freeze:btcusdt-1h-research": "tsx scripts/freeze-btcusdt-1h-research-dataset.ts",
+    "freeze:btcusdt-4h-native-research": "tsx scripts/freeze-btcusdt-4h-native-research-dataset.ts",
+    "freeze:multisymbol-1h-research": "tsx scripts/freeze-multisymbol-1h-research-dataset.ts",
+    "msl:historical-research": "tsx scripts/msl-historical-research.ts",
+    "msl:research-audit": "tsx scripts/msl-historical-research-audit.ts"
   },
   "dependencies": {
     "ws": "^8.18.0"
