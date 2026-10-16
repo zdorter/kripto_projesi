@@ -10,7 +10,7 @@ Mevcut Wave/MSL ekranları bu geliştirmede değiştirilmez.
 - Toplu ticker/24hr ve premiumIndex yanıtları sembole göre birleştirilir.
 - Futures fiyatı, 24 saatlik değişim/hacim ve funding yüzde olarak listelenir.
 - Hacme göre sıralama, sembol arama ve ön filtre görünümü vardır.
-- CP3 ile filtreler pozitif 24H yükseliş, negatif funding büyüklüğü ve minimum hacim olarak yönlü hale getirildi.
+- Ana mod pozitif 24H yükseliş ve minimum hacimdir; negatif funding ayrı bir moddur.
 - Eksik, eski veya geleceğe uyumsuz zaman damgalı veriler aday olamaz.
 - Yalnız seçilen coin için güncel OI ve mum verileri istenir; grafik varsayılanı 5m'dir.
 - Piyasa ve seçili coin, sayfa görünürken 60 saniyede bir yenilenir.
@@ -36,9 +36,9 @@ Mevcut Wave/MSL ekranları bu geliştirmede değiştirilmez.
 
 ## CP3 — Yönlü aday taraması ve otomatik izleme
 
-- Varsayılan araştırma eşikleri: 24H yükseliş en az %20, negatif funding
-  büyüklüğü en az %0,10 (yani funding en fazla -%0,10), hacim en az 30M USDT.
-  Sıfır/düşen fiyat veya pozitif/sıfır funding aday değildir. Kullanıcı eşikleri değiştirir.
+- Varsayılan araştırma eşikleri: 24H yükseliş en az %20 ve hacim en az 30M USDT.
+  Ana modda funding yönü serbesttir. Negatif funding modunda ayrıca funding
+  en fazla -%0,10 olmalıdır. Sıfır/düşen fiyat aday değildir. Eşikler değiştirilebilir.
 - Hacme göre ilk 5 uygun coin otomatik izlenir; iki işçi istekleri sınırlar.
 - İzlenen coin filtre dışına çıkarsa silinmez; durum değişimi gösterilir.
   Listeyi temizleme mevcut eşiklerle yeni aday seçer. Boş slotlar yeni adaylarla dolar.
@@ -59,6 +59,27 @@ Mevcut Wave/MSL ekranları bu geliştirmede değiştirilmez.
 - Kontrol sayfa görünürken dakikada birdir; anlık giriş/çıkış veya bildirim yoktur.
 - Kayıtlar sekmenin belleğindedir. Sayfa yenilemede silinir, kapalı tarayıcı veri toplamaz.
 
+## Konumlanma oranları ve iki tarama modu
+
+- “Yükseliş + hacim” varsayılan moddur. Pozitif funding adaylığı engellemez.
+  “Yükseliş + negatif funding” eski yaklaşımı ayrıca korur.
+- İzlenen en fazla 5 coin için üç ek endpoint kullanılır (`period=5m`, `limit=1`):
+  `/futures/data/globalLongShortAccountRatio`,
+  `/futures/data/topLongShortAccountRatio`,
+  `/futures/data/topLongShortPositionRatio`.
+- Genel hesap, büyük hesap ve büyük pozisyon short yüzdeleri ayrı gösterilir.
+  İlk ikisi hesap dağılımı, üçüncüsü ilgili grubun pozisyon büyüklüğü dağılımıdır.
+  Paydaları farklıdır; birleştirilmez ve tüm piyasanın net short miktarı sayılmaz.
+- Short açıklama eşiği varsayılan %60'tır. Bu değer aday seçimini değil
+  gözlem açıklamasını belirler; oranların eksik olduğu coinler dışlanmaz.
+- Örnekler sembol, sayısal alanlar, toplam pay ve zaman damgasına göre doğrulanır.
+  10 dakikadan eski örnekler kullanılamaz. Her grubun örnek zamanı ayrı yazılır.
+- Bir endpoint başarısızsa diğer gruplar gösterilmeye devam eder. Eksik veriyle
+  “short ağırlığı yok” sonucu üretilmez; bilinmiyor veya hata gösterilir.
+- Genel hesaplar short ağırlıklıyken büyük pozisyonlar long ağırlıklı olabilir;
+  tüm grupların short olma koşulu aranmaz. Sağlayıcıya özgü Market Exposure
+  hesaplaması taklit edilmez. Short squeeze veya yükseliş garantisi çıkarılmaz.
+
 ## Görüntüleme
 
 Bu dosyalar bilgisayarınıza aktarıldıktan sonra depo kökünde:
@@ -78,7 +99,7 @@ API anahtarı gerekmez. Binance bölgesel erişim kısıtları geçerlidir.
 node --test tests/futures-*.test.cjs
 ```
 
-CP1 için beş, CP2 için altı, CP3 için dört test vardır. CP1: sembol kapsamı/veri eşleştirme, funding yüzde dönüşümü ve filtre,
+CP1 için beş, CP2 için altı, CP3 için altı test vardır. CP1: sembol kapsamı/veri eşleştirme, funding yüzde dönüşümü ve filtre,
 eksik veri, eski/gelecek zaman damgaları, geçersiz sayılar ve hatalı API yanıtı.
 Chromium ile kontrollü API yanıtları kullanılarak tablo, filtre, arama,
 sembol seçimiyle detay yükleme ve HTTP 451 hata akışı ayrıca kontrol edildi.
