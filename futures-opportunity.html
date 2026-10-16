@@ -6,7 +6,7 @@
 </style></head><body>
 <header><div><h1>📊 Futures Opportunity Scanner</h1><small>Binance USDⓈ-M · Araştırma ekranı · Otomatik emir yok</small></div><span id="status" class="warn">Bağlanıyor...</span></header>
 <main>
-<section><b>Binance Futures · Piyasa ve 5m detay</b><p class="muted">USDT sürekli vadeli sözleşmeler · Aşağıdaki tablo tüm piyasayı listeler. OI ve mum istekleri yalnızca seçilen coin için yapılır.</p></section>
+<section><b>Binance Futures · Piyasa ve 5m detay</b><p class="muted">USDT sürekli vadeli sözleşmeler · Aşağıdaki tablo tüm piyasayı listeler. OI ve mum verileri seçilen coin ve en fazla 5 izleme adayı için alınır.</p></section>
 <section><div class="toolbar"><label for="symbol">Sembol</label><select id="symbol"><option>BTCUSDT</option><option>ETHUSDT</option></select><label for="tf">Zaman dilimi</label><select id="tf"><option value="4h">4H</option><option value="1h">1H</option><option value="15m">15M</option><option value="5m" selected>5M</option></select><button id="refresh">Yenile</button><span class="muted" id="updated"></span></div></section>
 <div class="cards" id="metrics"></div>
 <section><h2>Futures OHLCV grafiği</h2><div id="chart"></div><div id="volume"></div><p class="legend">Kapanmamış son mum değerlendirmeye alınmaz. Grafik Binance Futures verisidir. Zaman UTC.</p></section>
@@ -15,16 +15,24 @@
 <p id="detail-status" role="status">Coin seçimi bekleniyor</p>
 <div class="table-wrap"><table><thead><tr><th>Süre</th><th>Fiyat değişimi</th><th>Hacim USDT</th><th>Hacim değişimi</th><th>OI değişimi</th><th>Veri açıklaması</th></tr></thead><tbody id="detail-results"></tbody></table></div>
 <p id="detail-time" class="muted"></p>
-<p class="muted">OI artışı tek başına long veya short yönünü göstermez. Bu ölçümler henüz tarama filtrelerine dahil değildir.</p>
+<p class="muted">OI artışı tek başına long veya short yönünü göstermez. İzleme tablosunda fiyat, hacim ve OI birlikte açıklanır; OI artışı zorunlu tutulmaz.</p>
 </section>
 <section><h2>Veri doğrulama</h2><div id="quality" class="muted">Kontrol ediliyor...</div><p id="errors" class="bad"></p></section>
 <section><h2>Scanner · Ön filtre</h2><p class="muted">Bu tarama yalnızca aday keşfidir; giriş sinyali, stop veya kâr hedefi değildir. OI yönü tek başına pozisyon yönünü göstermez.</p>
-<div class="filters"><label>Min 24H hacim (milyon USDT)<input id="minVolume" type="number" min="0" value="30"></label><label>Min |24H değişim| (%)<input id="minChange" type="number" min="0" value="10"></label><label>Min |Funding| (%)<input id="minFunding" type="number" min="0" step="0.01" value="0.05"></label><label>Sembol ara<input id="search" type="search" placeholder="Örn. SOL"></label><label>Görünüm<select id="view"><option value="all">Tüm sözleşmeler</option><option value="candidates">Yalnız ön filtreyi geçenler</option></select></label></div>
+<div class="filters"><label>Min 24H hacim (milyon USDT)<input id="minVolume" type="number" min="0" value="30"></label><label>Min 24H yükseliş (%)<input id="minChange" type="number" min="0" value="20"></label><label>Negatif funding büyüklüğü ≥ (%)<input id="minFunding" type="number" min="0" step="0.01" value="0.10"></label><label>Sembol ara<input id="search" type="search" placeholder="Örn. SOL"></label><label>Görünüm<select id="view"><option value="all">Tüm sözleşmeler</option><option value="candidates">Yalnız ön filtreyi geçenler</option></select></label></div>
 <p class="toolbar"><button id="scan">Piyasayı yenile</button><span id="scanStatus" class="muted"></span></p><div class="table-wrap"><table><thead><tr><th aria-sort="none"><button type="button" class="sort-button" data-sort="symbol">Sembol <span aria-hidden="true">↕</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-sort="price">Futures fiyatı <span aria-hidden="true">↕</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-sort="change">24H % <span aria-hidden="true">↕</span></button></th><th aria-sort="descending"><button type="button" class="sort-button" data-sort="volume">Hacim USDT <span aria-hidden="true">▼</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-sort="funding">Funding % <span aria-hidden="true">↕</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-sort="quality">Veri durumu <span aria-hidden="true">↕</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-sort="result">Sonuç <span aria-hidden="true">↕</span></button></th></tr></thead><tbody id="results"><tr><td colspan="7">Tarama bekleniyor</td></tr></tbody></table></div></section>
+<section><h2>Fırsat adayları · Otomatik izleme</h2>
+<p class="muted">Pozitif 24H değişim + negatif funding + hacim eşiği. Varsayılan eşikler araştırma amaçlıdır. En yüksek hacimli ilk 5 aday izlemeye alınır; filtre dışına çıkanlar da koşul bozulmasını görmek için listede kalır. Listeyi temizlemek yeni adaylara yer açar.</p>
+<div class="toolbar"><label><input id="useSpot" type="checkbox"> Spot primini kontrol et</label><label>Min spot primi (%) <input id="minPremium" type="number" min="0" value="0.5" step="0.1"></label><button id="watch-refresh">İzlemeyi yenile</button><button id="watch-clear">Listeyi temizle ve adayları yeniden seç</button></div>
+<p id="watch-status" role="status">Piyasa bekleniyor</p>
+<div class="table-wrap"><table><thead><tr><th>Coin</th><th>İlk tespit UTC</th><th>İlk fiyat</th><th>İlk funding</th><th>Funding</th><th>Funding farkı</th><th>15m fiyat</th><th>15m hacim değişimi</th><th>15m OI</th><th>Spot primi</th><th>Durum / referans</th><th>Ortak dönem bitişi UTC</th><th>Kontrol UTC</th></tr></thead><tbody id="watch-results"></tbody></table></div>
+<p class="muted">Fiyat/hacim, son OI örneğiyle aynı 15m döneme hizalanır. Spot primi yaklaşık eşzamanlı alış/satış orta fiyatlarıyla hesaplanır; uygulanabilir işlem fiyatı değildir. Funding farkı ilk tespite göre yüzde puandır; her sözleşmenin ödeme aralığı aynı varsayılmaz. İlk izleme 5m dibi sabit gözlem referansıdır, emir/stop değildir. Giriş sinyali üretilmez. Kontrol dakikada birdir; anlık hareketler kaçabilir. Kayıtlar bu sekmenin belleğindedir, yenilemede silinir ve tarayıcı kapalıyken izleme sürmez.</p>
+</section>
 </main><footer>Bilgilendirme amaçlıdır; finansal tavsiye değildir. API erişimi tarayıcı, ağ ve Binance bölgesel kısıtlarına bağlıdır. Her veri UTC damgasıyla kontrol edilir.</footer>
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script src="./futures/market-data.js"></script>
 <script src="./futures/detail-data.js"></script>
+<script src="./futures/opportunity.js"></script>
 <script>
 'use strict';
 const FUT='https://fapi.binance.com', $=id=>document.getElementById(id);
@@ -83,10 +91,10 @@ const filters={volume:num('minVolume'),change:num('minChange'),funding:num('minF
 const search=$('search').value.trim().toUpperCase();
 const stale=Date.now()-marketLoadedAt>180000;
 const quality=d=>stale?'Eski veri':d.valid?'Güncel':d.reason;
-const result=d=>!stale&&FuturesMarket.matches(d,filters)?'Ön filtre geçti · incele':stale||!d.valid?'Değerlendirilemedi':'Filtre dışı';
+const result=d=>!stale&&FuturesOpportunity.qualifies(d,filters)?'Ön filtre geçti · incele':stale||!d.valid?'Değerlendirilemedi':'Filtre dışı';
 const value=d=>marketSort.key==='quality'?quality(d):marketSort.key==='result'?result(d):d[marketSort.key];
 const numeric=['price','change','volume','funding'].includes(marketSort.key);
-const rows=market.filter(d=>d.symbol.includes(search)).filter(d=>$('view').value!=='candidates'||(!stale&&FuturesMarket.matches(d,filters))).sort((a,b)=>{
+const rows=market.filter(d=>d.symbol.includes(search)).filter(d=>$('view').value!=='candidates'||(!stale&&FuturesOpportunity.qualifies(d,filters))).sort((a,b)=>{
 const left=value(a),right=value(b);
 if(numeric){const leftMissing=!Number.isFinite(left),rightMissing=!Number.isFinite(right);if(leftMissing!==rightMissing)return leftMissing?1:-1;}
 const compared=numeric?(Number.isFinite(left)&&Number.isFinite(right)?left-right:0):String(left).localeCompare(String(right),'tr');
@@ -103,7 +111,7 @@ const values=[d.symbol,fmt(d.price,8),pct(d.change),fmt(d.volume/1e6,2)+'M',pct(
 for(const value of values){const td=document.createElement('td');td.textContent=value;tr.append(td)}
 $('results').append(tr)}
 if(!rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='Görünüme uygun sözleşme yok';tr.append(td);$('results').append(tr)}
-const count=market.filter(d=>!stale&&FuturesMarket.matches(d,filters)).length;
+const count=market.filter(d=>!stale&&FuturesOpportunity.qualifies(d,filters)).length;
 $('scanStatus').textContent=marketLoadedAt?`${market.length} sözleşme · ${rows.length} gösterilen · ${count} ön filtre geçti · ${market.filter(d=>!d.valid).length} geçersiz/eksik · ${utc(marketLoadedAt)}${stale?' · ESKİ VERİ':''}`:'Henüz piyasa verisi alınmadı';
 }
 async function scan(){const button=$('scan');if(button.disabled)return;button.disabled=true;$('scanStatus').textContent='Binance Futures piyasası alınıyor...';
@@ -116,7 +124,9 @@ for(const row of market){const option=document.createElement('option');option.va
 $('symbol').value=market.some(d=>d.symbol===selected)?selected:market[0].symbol;
 renderMarket();
 }catch(error){market=[];marketLoadedAt=0;renderMarket();$('scanStatus').textContent='Piyasa alınamadı: '+String(error.message||error)+' · Yenile ile tekrar deneyin';}
-finally{button.disabled=false}}
+finally{button.disabled=false}
+if(!state.seq&&market.length)load();
+await updateWatch();}
 for(const button of document.querySelectorAll('[data-sort]'))button.addEventListener('click',()=>{
 const key=button.dataset.sort;marketSort={key,direction:marketSort.key===key?(marketSort.direction==='asc'?'desc':'asc'):['symbol','quality','result'].includes(key)?'asc':'desc'};renderMarket();
 });
@@ -125,5 +135,7 @@ $('refresh').onclick=load;$('symbol').onchange=load;$('tf').onchange=load;$('sca
 $('results').onclick=e=>{const tr=e.target.closest('tr[data-symbol]');if(tr){$('symbol').value=tr.dataset.symbol;load()}};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 state.refreshTimer=setInterval(()=>{if(!document.hidden){scan();load()}},60000);
-scan().then(()=>{if(market.length)load()});
-</script></body></html>
+
+</script>
+<script src="./futures/watch.js"></script>
+<script>scan();</script></body></html>

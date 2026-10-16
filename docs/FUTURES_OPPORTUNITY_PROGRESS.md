@@ -10,7 +10,7 @@ Mevcut Wave/MSL ekranları bu geliştirmede değiştirilmez.
 - Toplu ticker/24hr ve premiumIndex yanıtları sembole göre birleştirilir.
 - Futures fiyatı, 24 saatlik değişim/hacim ve funding yüzde olarak listelenir.
 - Hacme göre sıralama, sembol arama ve ön filtre görünümü vardır.
-- Filtreler mutlak fiyat değişimi/funding ve minimum hacim içindir; yönlü strateji henüz yoktur.
+- CP3 ile filtreler pozitif 24H yükseliş, negatif funding büyüklüğü ve minimum hacim olarak yönlü hale getirildi.
 - Eksik, eski veya geleceğe uyumsuz zaman damgalı veriler aday olamaz.
 - Yalnız seçilen coin için güncel OI ve mum verileri istenir; grafik varsayılanı 5m'dir.
 - Piyasa ve seçili coin, sayfa görünürken 60 saniyede bir yenilenir.
@@ -32,7 +32,32 @@ Mevcut Wave/MSL ekranları bu geliştirmede değiştirilmez.
 - Coin değiştirildiğinde önceki coinin ölçümleri temizlenir; geç gelen yanıtlar atılır.
 - 5m grafikte aynı mum isteği yeniden kullanılır. Diğer grafik aralıklarında yalnız
   seçilen coin için ek 5m isteği yapılır; tüm piyasaya OI isteği yapılmaz.
-- OI ölçümleri bu aşamada tarama filtresine dahil değildir.
+- OI artışı bir ön filtre zorunluluğu değildir; CP3 izleme değerlendirmesinde yönü ayrıca açıklanır.
+
+## CP3 — Yönlü aday taraması ve otomatik izleme
+
+- Varsayılan araştırma eşikleri: 24H yükseliş en az %20, negatif funding
+  büyüklüğü en az %0,10 (yani funding en fazla -%0,10), hacim en az 30M USDT.
+  Sıfır/düşen fiyat veya pozitif/sıfır funding aday değildir. Kullanıcı eşikleri değiştirir.
+- Hacme göre ilk 5 uygun coin otomatik izlenir; iki işçi istekleri sınırlar.
+- İzlenen coin filtre dışına çıkarsa silinmez; durum değişimi gösterilir.
+  Listeyi temizleme mevcut eşiklerle yeni aday seçer. Boş slotlar yeni adaylarla dolar.
+- Her adayda ilk tespit zamanı, ilk fiyat/funding, güncel funding ve ilk tespite
+  göre funding farkı (yüzde puan) gösterilir. Funding geçmişi endpoint'i kullanılmaz;
+  farklı sözleşmelerin ödeme aralıkları aynı varsayılmaz.
+- Son OI örneğinin bittiği noktaya hizalı 15m fiyat, hacim değişimi ve OI kullanılır.
+  OI artışı ve azalışı ayrı açıklanır; short squeeze kesinliği iddia edilmez.
+- İlk güncel kapanmış 5m mumun dibi sabit gözlem referansıdır; fiyat bunun altına
+  inerse referans kaybı yazılır. Bu referans giriş/stop emri değildir.
+- Fiyatın yükselmemesi, önceki eşit döneme göre hacim azalması, ön filtre kaybı
+  ve eksik/eski veri ayrı durumlar olarak gösterilir.
+- İsteğe bağlı spot primi: spot exchangeInfo ile birebir baseAsset/USDT eşleşmesi
+  doğrulanır. Sözleşme çarpanları tahmin edilmez. Eşleşme yoksa veri eksik kalır.
+- Spot ve Futures bookTicker istekleri birlikte yapılır. 10 saniyeyi aşan yanıtlar
+  kabul edilmez; prim bid/ask orta fiyatlarının farkıdır, işlem yapılabilir getiri değildir.
+  Spot veri kaynağı api.binance.com'dur; engellenirse hata açıkça yazılır.
+- Kontrol sayfa görünürken dakikada birdir; anlık giriş/çıkış veya bildirim yoktur.
+- Kayıtlar sekmenin belleğindedir. Sayfa yenilemede silinir, kapalı tarayıcı veri toplamaz.
 
 ## Görüntüleme
 
@@ -44,7 +69,7 @@ python3 -m http.server 8000 --bind 127.0.0.1
 
 Tarayıcıda yerel sunucunun 8000 portundaki `/futures-opportunity.html` sayfasını açın.
 Node derlemesi bu bağımsız sayfa için gerekli değildir. Sadece HTML dosyasını değil,
-`futures/market-data.js` ve `futures/detail-data.js` dosyalarını da aynı dizin düzeninde bulundurun.
+`futures/` klasöründeki JavaScript dosyalarını da aynı dizin düzeninde bulundurun.
 API anahtarı gerekmez. Binance bölgesel erişim kısıtları geçerlidir.
 
 ## Doğrulama
@@ -53,7 +78,7 @@ API anahtarı gerekmez. Binance bölgesel erişim kısıtları geçerlidir.
 node --test tests/futures-*.test.cjs
 ```
 
-CP1 için beş, CP2 için altı test vardır. CP1: sembol kapsamı/veri eşleştirme, funding yüzde dönüşümü ve filtre,
+CP1 için beş, CP2 için altı, CP3 için dört test vardır. CP1: sembol kapsamı/veri eşleştirme, funding yüzde dönüşümü ve filtre,
 eksik veri, eski/gelecek zaman damgaları, geçersiz sayılar ve hatalı API yanıtı.
 Chromium ile kontrollü API yanıtları kullanılarak tablo, filtre, arama,
 sembol seçimiyle detay yükleme ve HTTP 451 hata akışı ayrıca kontrol edildi.
@@ -65,9 +90,13 @@ eksik/eski/hatalı veriyi, tam zaman aralıklı OI örneklerini ve sıfır taban
 Chromium'da kontrollü yanıtlarla 5m ölçümler, OI değişimleri, farklı grafik
 zaman diliminde ölçümlerin korunması ve OI HTTP 403 kısmi hata akışı kontrol edilir.
 
+CP3 tarayıcı kontrolleri kontrollü API yanıtlarıyla: yönlü seçim, beş slot,
+OI artışı/azalışı, isteğe bağlı spot primi, koşulu bozulan adayın listede tutulması,
+eksik OI/spot, liste temizleme ve yeniden seçim. Bu yeni akışın canlı erişimi
+bulut ortamındaki Binance konum kısıtları nedeniyle doğrulanmış değildir.
+
 ## Sonraki checkpoint'ler
 
-- CP3: Funding, fiyat, hacim ve OI birleşimli, yönü açık fırsat kuralları.
 - CP4: Gerektiğinde IndexedDB kayıtları ve ileriye dönük gözlem.
 
 Backtest ve otomatik emir kapsam dışındadır.
