@@ -2,6 +2,7 @@
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Futures Opportunity Scanner</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,Segoe UI,Arial;background:#0b1220;color:#e2e8f0}*{box-sizing:border-box}body{margin:0}header{padding:20px 4%;border-bottom:1px solid #293548;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}h1{font-size:22px;margin:0}small,.muted{color:#94a3b8}main{max-width:1450px;margin:auto;padding:20px 4%}button,select,input{background:#172439;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:10px;font:inherit}button{cursor:pointer}button.active{background:#1d4ed8}button:disabled{opacity:.5}section{background:#111c2d;border:1px solid #293548;border-radius:12px;padding:16px;margin:16px 0}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}.card{background:#18263a;border-radius:9px;padding:13px}.card b{display:block;font-size:19px;margin-top:6px;overflow-wrap:anywhere}.label{font-size:12px;color:#94a3b8}#chart{height:400px}#volume{height:110px;margin-top:8px}table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:11px;border-bottom:1px solid #293548}th{color:#94a3b8}tr[data-symbol]{cursor:pointer}tr[data-symbol]:hover{background:#1e293b}.table-wrap{overflow-x:auto}.good{color:#34d399}.bad{color:#fb7185}.warn{color:#fbbf24}.pill{display:inline-block;padding:3px 7px;border-radius:5px;background:#243349}#status{font-size:13px}footer{padding:20px 4%;color:#94a3b8;font-size:12px}.filters{display:flex;flex-wrap:wrap;gap:12px}.filters label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#94a3b8}.filters input{width:120px}#errors{white-space:pre-wrap}.legend{font-size:12px;color:#94a3b8}
+.sort-button{border:0;background:transparent;padding:0;color:inherit;font:inherit;font-weight:600;white-space:nowrap}.sort-button:hover{color:#e2e8f0}.sort-button:focus-visible{outline:2px solid #60a5fa;outline-offset:5px}
 </style></head><body>
 <header><div><h1>📊 Futures Opportunity Scanner</h1><small>Binance USDⓈ-M · Araştırma ekranı · Otomatik emir yok</small></div><span id="status" class="warn">Bağlanıyor...</span></header>
 <main>
@@ -19,7 +20,7 @@
 <section><h2>Veri doğrulama</h2><div id="quality" class="muted">Kontrol ediliyor...</div><p id="errors" class="bad"></p></section>
 <section><h2>Scanner · Ön filtre</h2><p class="muted">Bu tarama yalnızca aday keşfidir; giriş sinyali, stop veya kâr hedefi değildir. OI yönü tek başına pozisyon yönünü göstermez.</p>
 <div class="filters"><label>Min 24H hacim (milyon USDT)<input id="minVolume" type="number" min="0" value="30"></label><label>Min |24H değişim| (%)<input id="minChange" type="number" min="0" value="10"></label><label>Min |Funding| (%)<input id="minFunding" type="number" min="0" step="0.01" value="0.05"></label><label>Sembol ara<input id="search" type="search" placeholder="Örn. SOL"></label><label>Görünüm<select id="view"><option value="all">Tüm sözleşmeler</option><option value="candidates">Yalnız ön filtreyi geçenler</option></select></label></div>
-<p class="toolbar"><button id="scan">Piyasayı yenile</button><span id="scanStatus" class="muted"></span></p><div class="table-wrap"><table><thead><tr><th>Sembol</th><th>Futures fiyatı</th><th>24H %</th><th>Hacim USDT</th><th>Funding %</th><th>Veri durumu</th><th>Sonuç</th></tr></thead><tbody id="results"><tr><td colspan="7">Tarama bekleniyor</td></tr></tbody></table></div></section>
+<p class="toolbar"><button id="scan">Piyasayı yenile</button><span id="scanStatus" class="muted"></span></p><div class="table-wrap"><table><thead><tr><th aria-sort="none"><button type="button" class="sort-button" data-sort="symbol">Sembol <span aria-hidden="true">↕</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-sort="price">Futures fiyatı <span aria-hidden="true">↕</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-sort="change">24H % <span aria-hidden="true">↕</span></button></th><th aria-sort="descending"><button type="button" class="sort-button" data-sort="volume">Hacim USDT <span aria-hidden="true">▼</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-sort="funding">Funding % <span aria-hidden="true">↕</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-sort="quality">Veri durumu <span aria-hidden="true">↕</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-sort="result">Sonuç <span aria-hidden="true">↕</span></button></th></tr></thead><tbody id="results"><tr><td colspan="7">Tarama bekleniyor</td></tr></tbody></table></div></section>
 </main><footer>Bilgilendirme amaçlıdır; finansal tavsiye değildir. API erişimi tarayıcı, ağ ve Binance bölgesel kısıtlarına bağlıdır. Her veri UTC damgasıyla kontrol edilir.</footer>
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script src="./futures/market-data.js"></script>
@@ -34,6 +35,7 @@ const utc=t=>new Date(t).toISOString().replace('T',' ').slice(0,19)+' UTC';
 async function api(base,path,params={}){const url=new URL(base+path);Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),12000);try{const res=await fetch(url,{signal:ctrl.signal});if(!res.ok)throw Error(path+' HTTP '+res.status+(res.status===451?' · Binance bu konumdan erişime izin vermiyor':res.status===429?' · İstek sınırı; daha sonra tekrar deneyin':''));return await res.json()}finally{clearTimeout(timer)}}
 const fut=(p,q)=>api(FUT,p,q);
 let market = [], exchangeInfo = null, marketLoadedAt = 0;
+let marketSort = {key:'volume',direction:'desc'};
 function showMetrics(items){$('metrics').innerHTML=items.map(([name,val])=>'<div class="card"><span class="label">'+name+'</span><b>'+val+'</b></div>').join('')}
 function destroyCharts(){if(state.chart){state.chart.remove();state.chart=null}if(state.volChart){state.volChart.remove();state.volChart=null}}
 function renderChart(bars){destroyCharts();if(!window.LightweightCharts)throw Error('Grafik kütüphanesi yüklenemedi; ağ erişimini kontrol edin.');
@@ -80,11 +82,24 @@ function renderMarket(){
 const filters={volume:num('minVolume'),change:num('minChange'),funding:num('minFunding')};
 const search=$('search').value.trim().toUpperCase();
 const stale=Date.now()-marketLoadedAt>180000;
-const rows=market.filter(d=>d.symbol.includes(search)).filter(d=>$('view').value!=='candidates'||(!stale&&FuturesMarket.matches(d,filters)));
+const quality=d=>stale?'Eski veri':d.valid?'Güncel':d.reason;
+const result=d=>!stale&&FuturesMarket.matches(d,filters)?'Ön filtre geçti · incele':stale||!d.valid?'Değerlendirilemedi':'Filtre dışı';
+const value=d=>marketSort.key==='quality'?quality(d):marketSort.key==='result'?result(d):d[marketSort.key];
+const numeric=['price','change','volume','funding'].includes(marketSort.key);
+const rows=market.filter(d=>d.symbol.includes(search)).filter(d=>$('view').value!=='candidates'||(!stale&&FuturesMarket.matches(d,filters))).sort((a,b)=>{
+const left=value(a),right=value(b);
+if(numeric){const leftMissing=!Number.isFinite(left),rightMissing=!Number.isFinite(right);if(leftMissing!==rightMissing)return leftMissing?1:-1;}
+const compared=numeric?(Number.isFinite(left)&&Number.isFinite(right)?left-right:0):String(left).localeCompare(String(right),'tr');
+return (marketSort.direction==='asc'?compared:-compared)||a.symbol.localeCompare(b.symbol);
+});
+for(const button of document.querySelectorAll('[data-sort]')){
+const active=button.dataset.sort===marketSort.key;
+button.closest('th').setAttribute('aria-sort',active?(marketSort.direction==='asc'?'ascending':'descending'):'none');
+button.querySelector('span').textContent=active?(marketSort.direction==='asc'?'▲':'▼'):'↕';
+}
 $('results').replaceChildren();
 for(const d of rows){const tr=document.createElement('tr');tr.dataset.symbol=d.symbol;
-const pass=!stale&&FuturesMarket.matches(d,filters);
-const values=[d.symbol,fmt(d.price,8),pct(d.change),fmt(d.volume/1e6,2)+'M',pct(d.funding),stale?'Eski veri':d.valid?'Güncel':d.reason,pass?'Ön filtre geçti · incele':stale||!d.valid?'Değerlendirilemedi':'Filtre dışı'];
+const values=[d.symbol,fmt(d.price,8),pct(d.change),fmt(d.volume/1e6,2)+'M',pct(d.funding),quality(d),result(d)];
 for(const value of values){const td=document.createElement('td');td.textContent=value;tr.append(td)}
 $('results').append(tr)}
 if(!rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='Görünüme uygun sözleşme yok';tr.append(td);$('results').append(tr)}
@@ -102,6 +117,9 @@ $('symbol').value=market.some(d=>d.symbol===selected)?selected:market[0].symbol;
 renderMarket();
 }catch(error){market=[];marketLoadedAt=0;renderMarket();$('scanStatus').textContent='Piyasa alınamadı: '+String(error.message||error)+' · Yenile ile tekrar deneyin';}
 finally{button.disabled=false}}
+for(const button of document.querySelectorAll('[data-sort]'))button.addEventListener('click',()=>{
+const key=button.dataset.sort;marketSort={key,direction:marketSort.key===key?(marketSort.direction==='asc'?'desc':'asc'):['symbol','quality','result'].includes(key)?'asc':'desc'};renderMarket();
+});
 for(const id of ['minVolume','minChange','minFunding','search','view'])$(id).addEventListener('input',renderMarket);
 $('refresh').onclick=load;$('symbol').onchange=load;$('tf').onchange=load;$('scan').onclick=scan;
 $('results').onclick=e=>{const tr=e.target.closest('tr[data-symbol]');if(tr){$('symbol').value=tr.dataset.symbol;load()}};
