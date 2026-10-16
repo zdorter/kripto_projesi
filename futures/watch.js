@@ -8,13 +8,13 @@ function renderWatch(){
   const stale=!entry.checkedAt||Date.now()-entry.checkedAt>180000;
   const data=entry.data;
  const positioningStale=Object.values(entry.positioning||{}).some(group=>Date.now()-group.time>600000);
-  cellRow(body,[entry.symbol,utc(entry.firstSeen),fmt(entry.firstPrice,8),pct(entry.firstFunding),
+  cellRow(body,[entry.symbol,turkeyTime(entry.firstSeen),fmt(entry.firstPrice,8),pct(entry.firstFunding),
    !stale&&data?pct(data.funding):'—',!stale&&data?pct(data.funding-entry.firstFunding)+' puan':'—',
    !stale?pct(entry.price?.priceChange):'—',!stale?pct(entry.price?.volumeChange):'—',!stale?pct(entry.oi?.change):'—',
    !stale?pct(entry.premium):'—',
    ...['general','topAccounts','topPositions'].map(key=>!stale&&entry.positioning?.[key]&&Date.now()-entry.positioning[key].time<=600000?pct(entry.positioning[key].short):'—'),
    stale?'—':positioningStale?'Konumlanma örneği eski':(entry.positioningText||'Konumlanma bekleniyor'),stale?'Veri eski/bekleniyor':entry.status,
-   entry.oi?.end?utc(entry.oi.end):'—',entry.checkedAt?utc(entry.checkedAt):'—'],entry.symbol);
+   entry.oi?.end?turkeyTime(entry.oi.end):'—',entry.checkedAt?turkeyTime(entry.checkedAt):'—'],entry.symbol);
  }
  if(!watchEntries.size)cellRow(body,['Henüz yönlü ön filtreyi geçen aday yok. Eşikleri değiştirebilirsiniz.']);
 }
@@ -47,7 +47,7 @@ async function checkEntry(entry,run,filters,useSpot,minPremium){
   catch(error){groupErrors.push(groupNames[i]+': '+String(error.message||error))}
  }
  entry.positioningText=FuturesOpportunity.positioningSummary(entry.positioning,shortThreshold);
- for(const key of groupKeys)if(entry.positioning[key])entry.positioningText+=' · '+groupNames[groupKeys.indexOf(key)]+' '+utc(entry.positioning[key].time);
+ for(const key of groupKeys)if(entry.positioning[key])entry.positioningText+=' · '+groupNames[groupKeys.indexOf(key)]+' '+turkeyTime(entry.positioning[key].time);
  if(groupErrors.length)entry.positioningText+=' · '+groupErrors.join(' · ');
  entry.status=FuturesOpportunity.assess(row,filters,entry.price,entry.oi,entry.reference);
  if(useSpot){
@@ -81,7 +81,7 @@ async function updateWatch(){
   const queue=[...watchEntries.values()];
   async function worker(){while(queue.length&&run===watchRun){const entry=queue.shift();await checkEntry(entry,run,filters,useSpot,minPremium);if(run===watchRun)renderWatch()}}
   await Promise.all([worker(),worker()]);
-  if(run===watchRun){renderWatch();$('watch-status').textContent=`${watchEntries.size}/5 izlenen · Son kontrol: ${utc(Date.now())} · ${useSpot?'Spot kontrolü açık':'Spot kontrolü kapalı'}`}
+  if(run===watchRun){renderWatch();$('watch-status').textContent=`${watchEntries.size}/5 izlenen · Son kontrol: ${turkeyTime(Date.now())} · ${useSpot?'Spot kontrolü açık':'Spot kontrolü kapalı'}`}
  }finally{watchBusy=false;$('watch-refresh').disabled=false;if(watchResetPending){watchResetPending=false;updateWatch()}}
 }
 $('watch-refresh').onclick=()=>scan();

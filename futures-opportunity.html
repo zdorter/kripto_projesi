@@ -10,7 +10,7 @@
 <section><b>Binance Futures · Piyasa ve 5m detay</b><p class="muted">USDT sürekli vadeli sözleşmeler · Aşağıdaki tablo tüm piyasayı listeler. OI ve mum verileri seçilen coin ve en fazla 5 izleme adayı için alınır.</p></section>
 <section><div class="toolbar"><label for="symbol">Sembol</label><select id="symbol"><option>BTCUSDT</option><option>ETHUSDT</option></select><label for="tf">Zaman dilimi</label><select id="tf"><option value="4h">4H</option><option value="1h">1H</option><option value="15m">15M</option><option value="5m" selected>5M</option></select><button id="refresh">Yenile</button><span class="muted" id="updated"></span></div></section>
 <div class="cards" id="metrics"></div>
-<section><h2>Futures OHLCV grafiği</h2><div id="chart"></div><div id="volume"></div><p class="legend">Kapanmamış son mum değerlendirmeye alınmaz. Grafik Binance Futures verisidir. Zaman UTC.</p></section>
+<section><h2>Futures OHLCV grafiği</h2><div id="chart"></div><div id="volume"></div><p class="legend">Kapanmamış son mum değerlendirmeye alınmaz. Grafik Binance Futures verisidir. Saatler Türkiye saatidir (UTC+3).</p></section>
 <section><h2>Seçilen coin · Kısa vadeli ölçümler</h2>
 <p class="muted">Grafik zaman diliminden bağımsız olarak kapanmış 5m mumları kullanılır. Fiyat: dönem açılışından kapanışına. Hacim: USDT toplamı; değişim önceki eşit süreye göredir. OI: Binance'in 5m geçmiş örneklerinin değişimi; mumlarla aynı anda oluşmayabilir.</p>
 <p id="detail-status" role="status">Coin seçimi bekleniyor</p>
@@ -26,10 +26,10 @@
 <p class="muted">Ana mod: pozitif 24H değişim + hacim eşiği; funding yönü serbest. Negatif funding modu ayrıca seçilebilir. Varsayılan eşikler araştırma amaçlıdır. En yüksek hacimli ilk 5 aday izlemeye alınır; filtre dışına çıkanlar da koşul bozulmasını görmek için listede kalır. Listeyi temizlemek yeni adaylara yer açar.</p>
 <div class="toolbar"><label><input id="useSpot" type="checkbox"> Spot primini kontrol et</label><label>Min spot primi (%) <input id="minPremium" type="number" min="0" value="0.5" step="0.1"></label><label>Short ağırlığı eşiği (%) <input id="minShort" type="number" min="50" max="100" value="60" step="1"></label><button id="watch-refresh">İzlemeyi yenile</button><button id="watch-clear">Listeyi temizle ve adayları yeniden seç</button></div>
 <p id="watch-status" role="status">Piyasa bekleniyor</p>
-<div class="table-wrap"><table><thead><tr><th>Coin</th><th>İlk tespit UTC</th><th>İlk fiyat</th><th>İlk funding</th><th>Funding</th><th>Funding farkı</th><th>15m fiyat</th><th>15m hacim değişimi</th><th>15m OI</th><th>Spot primi</th><th>Genel hesap short %</th><th>Büyük hesap short %</th><th>Büyük pozisyon short %</th><th>Konumlanma / örnek UTC</th><th>Durum / referans</th><th>Ortak dönem bitişi UTC</th><th>Kontrol UTC</th></tr></thead><tbody id="watch-results"></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>Coin</th><th>İlk tespit TSİ</th><th>İlk fiyat</th><th>İlk funding</th><th>Funding</th><th>Funding farkı</th><th>15m fiyat</th><th>15m hacim değişimi</th><th>15m OI</th><th>Spot primi</th><th>Genel hesap short %</th><th>Büyük hesap short %</th><th>Büyük pozisyon short %</th><th>Konumlanma / örnek TSİ</th><th>Durum / referans</th><th>Ortak dönem bitişi TSİ</th><th>Kontrol TSİ</th></tr></thead><tbody id="watch-results"></tbody></table></div>
 <p class="muted">Genel hesap ve büyük hesap oranları hesap dağılımıdır; büyük pozisyon oranı ilgili grubun pozisyon büyüklüklerini ölçer. Oranlar ayrı gruplardır ve toplanmaz. Short eşiği aday seçimini değil açıklamayı belirler; eksik gruplar bilinmiyor olarak kalır. Sağlayıcıya özel “Market Exposure” üretilmez. Fiyat/hacim, son OI örneğiyle aynı 15m döneme hizalanır. Spot primi yaklaşık eşzamanlı alış/satış orta fiyatlarıyla hesaplanır; uygulanabilir işlem fiyatı değildir. Funding farkı ilk tespite göre yüzde puandır; her sözleşmenin ödeme aralığı aynı varsayılmaz. İlk izleme 5m dibi sabit gözlem referansıdır, emir/stop değildir. Giriş sinyali üretilmez. Kontrol dakikada birdir; anlık hareketler kaçabilir. Kayıtlar bu sekmenin belleğindedir, yenilemede silinir ve tarayıcı kapalıyken izleme sürmez.</p>
 </section>
-</main><footer>Bilgilendirme amaçlıdır; finansal tavsiye değildir. API erişimi tarayıcı, ağ ve Binance bölgesel kısıtlarına bağlıdır. Her veri UTC damgasıyla kontrol edilir.</footer>
+</main><footer>Bilgilendirme amaçlıdır; finansal tavsiye değildir. API erişimi tarayıcı, ağ ve Binance bölgesel kısıtlarına bağlıdır. Zaman damgaları Türkiye saatiyle (UTC+3) gösterilir.</footer>
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script src="./futures/market-data.js"></script>
 <script src="./futures/detail-data.js"></script>
@@ -40,7 +40,10 @@ const FUT='https://fapi.binance.com', $=id=>document.getElementById(id);
 const state={seq:0,chart:null,volChart:null,stream:null,symbol:'BTCUSDT',tf:'5m',refreshTimer:null};
 const fmt=(v,d=4)=>Number.isFinite(Number(v))?Number(v).toLocaleString('tr-TR',{maximumFractionDigits:d}):'—';
 const pct=v=>Number.isFinite(v)?fmt(v,4)+'%':'—';
-const utc=t=>new Date(t).toISOString().replace('T',' ').slice(0,19)+' UTC';
+const turkeyDateTime=new Intl.DateTimeFormat('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+const turkeyTime=t=>turkeyDateTime.format(new Date(t))+' TSİ';
+const chartDate=t=>typeof t==='number'?new Date(t*1000):typeof t==='string'?new Date(t):new Date(Date.UTC(t.year,t.month-1,t.day));
+const chartTick=(t,type)=>new Intl.DateTimeFormat('tr-TR',{timeZone:'Europe/Istanbul',...(type===0?{year:'numeric'}:type===1?{month:'short'}:type===2?{day:'2-digit',month:'2-digit'}:{hour:'2-digit',minute:'2-digit',...(type===4?{second:'2-digit'}:{}),hourCycle:'h23'})}).format(chartDate(t));
 async function api(base,path,params={}){const url=new URL(base+path);Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),12000);try{const res=await fetch(url,{signal:ctrl.signal});if(!res.ok)throw Error(path+' HTTP '+res.status+(res.status===451?' · Binance bu konumdan erişime izin vermiyor':res.status===429?' · İstek sınırı; daha sonra tekrar deneyin':''));return await res.json()}finally{clearTimeout(timer)}}
 const fut=(p,q)=>api(FUT,p,q);
 let market = [], exchangeInfo = null, marketLoadedAt = 0;
@@ -48,7 +51,7 @@ let marketSort = {key:'volume',direction:'desc'};
 function showMetrics(items){$('metrics').innerHTML=items.map(([name,val])=>'<div class="card"><span class="label">'+name+'</span><b>'+val+'</b></div>').join('')}
 function destroyCharts(){if(state.chart){state.chart.remove();state.chart=null}if(state.volChart){state.volChart.remove();state.volChart=null}}
 function renderChart(bars){destroyCharts();if(!window.LightweightCharts)throw Error('Grafik kütüphanesi yüklenemedi; ağ erişimini kontrol edin.');
-const opts={layout:{background:{color:'#111c2d'},textColor:'#aebed1'},grid:{vertLines:{color:'#1c293b'},horzLines:{color:'#1c293b'}},timeScale:{timeVisible:true,secondsVisible:false},autoSize:true};
+const opts={localization:{locale:'tr-TR',timeFormatter:t=>turkeyTime(chartDate(t).getTime())},layout:{background:{color:'#111c2d'},textColor:'#aebed1'},grid:{vertLines:{color:'#1c293b'},horzLines:{color:'#1c293b'}},timeScale:{timeVisible:true,secondsVisible:false,tickMarkFormatter:chartTick},autoSize:true};
 state.chart=LightweightCharts.createChart($('chart'),opts);const candle=state.chart.addCandlestickSeries({upColor:'#10b981',downColor:'#ef4444',borderVisible:false,wickUpColor:'#10b981',wickDownColor:'#ef4444'});candle.setData(bars.map(b=>({time:b.time,open:b.open,high:b.high,low:b.low,close:b.close})));state.chart.timeScale().fitContent();
 state.volChart=LightweightCharts.createChart($('volume'),{...opts,rightPriceScale:{visible:false},timeScale:{visible:false},crosshair:{mode:0}});const vol=state.volChart.addHistogramSeries({priceFormat:{type:'volume'},priceScaleId:''});vol.setData(bars.map(b=>({time:b.time,value:b.quoteVolume,color:b.close>=b.open?'#047857':'#b91c1c'})));state.volChart.timeScale().fitContent()}
 async function snapshot(symbol){
@@ -71,7 +74,7 @@ const values=[minutes+' dk',pct(price?.priceChange),price?.quoteVolume==null?'�
 for(const value of values){const td=document.createElement('td');td.textContent=value;tr.append(td)}$('detail-results').append(tr);
 }
 const latest=windows.find(row=>row.minutes===5),lastOi=oi.find(row=>row.minutes===5);
-$('detail-time').textContent=[latest?.end?'Son kapanmış 5m mum: '+utc(latest.end):'',lastOi?.end?'Son OI örneği: '+utc(lastOi.end):''].filter(Boolean).join(' · ');
+$('detail-time').textContent=[latest?.end?'Son kapanmış 5m mum: '+turkeyTime(latest.end):'',lastOi?.end?'Son OI örneği: '+turkeyTime(lastOi.end):''].filter(Boolean).join(' · ');
 const incomplete=windows.length!==3||oi.length!==3||windows.some(row=>row.reason||row.volumeReason)||oi.some(row=>row.reason);
 $('detail-status').textContent=symbol+' · '+(warnings.length?'Kısmi veri / veri alınamadı: '+warnings.join(' · '):incomplete?'Bazı ölçümler için yeterli güncel veri yok':'5m ölçümleri güncel');
 }
@@ -81,9 +84,9 @@ const detailRequest=loadDetail(symbol,tf==='5m'?chartRequest:fut('/fapi/v1/kline
 try{const [data,klines]=await Promise.all([snapshot(symbol),chartRequest]);if(seq!==state.seq)return;
 const now=Date.now(),ms={'5m':300000,'15m':900000,'1h':3600000,'4h':14400000}[tf];const closed=klines.filter(k=>Number(k[6])<now).map(k=>({time:Math.floor(Number(k[0])/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],quoteVolume:+k[7]}));
 if(closed.length<2||closed.some(b=>![b.open,b.high,b.low,b.close,b.quoteVolume].every(Number.isFinite)))throw Error('Mum verisi eksik veya geçersiz');
-renderChart(closed);showMetrics([['Futures',fmt(data.f,6)],['24H hacim',fmt(data.volume/1e6,2)+'M USDT'],['24H değişim',pct(data.change)],['Funding',pct(data.funding)],['Open Interest',fmt(data.oi,2)+' '+symbol.replace('USDT','')],['Sonraki funding',data.nextFunding?utc(data.nextFunding):'Bilinmiyor']]);
-const checks=[['Borsa','Binance USDⓈ-M'],['Sembol',symbol],['Mumlar',closed.length+' kapanmış'],['Son kapanan mum',utc(closed.at(-1).time*1000)],['Mark zaman damgası',data.time?utc(data.time):'Yok'],['OI zaman damgası',data.oiTime?utc(data.oiTime):'Yok'],['Funding periyodu','Borsa tarafından bildirilen sonraki ödeme zamanı'],['Veri kalitesi',(data.time&&Math.abs(now-data.time)<180000&&data.oiTime&&Math.abs(now-data.oiTime)<180000&&now-(closed.at(-1).time*1000+ms)<ms*2)?'VALID':'STALE / CHECK']];
-$('quality').innerHTML=checks.map(([k,v])=>'<span class="pill">'+k+': '+v+'</span>').join(' ');$('updated').textContent='Alındı: '+utc(data.received);$('status').textContent='Veri alındı · '+symbol+' '+tf;
+renderChart(closed);showMetrics([['Futures',fmt(data.f,6)],['24H hacim',fmt(data.volume/1e6,2)+'M USDT'],['24H değişim',pct(data.change)],['Funding',pct(data.funding)],['Open Interest',fmt(data.oi,2)+' '+symbol.replace('USDT','')],['Sonraki funding',data.nextFunding?turkeyTime(data.nextFunding):'Bilinmiyor']]);
+const checks=[['Borsa','Binance USDⓈ-M'],['Sembol',symbol],['Mumlar',closed.length+' kapanmış'],['Son kapanan mum',turkeyTime(closed.at(-1).time*1000)],['Mark zaman damgası',data.time?turkeyTime(data.time):'Yok'],['OI zaman damgası',data.oiTime?turkeyTime(data.oiTime):'Yok'],['Funding periyodu','Borsa tarafından bildirilen sonraki ödeme zamanı'],['Veri kalitesi',(data.time&&Math.abs(now-data.time)<180000&&data.oiTime&&Math.abs(now-data.oiTime)<180000&&now-(closed.at(-1).time*1000+ms)<ms*2)?'VALID':'STALE / CHECK']];
+$('quality').innerHTML=checks.map(([k,v])=>'<span class="pill">'+k+': '+v+'</span>').join(' ');$('updated').textContent='Alındı: '+turkeyTime(data.received);$('status').textContent='Veri alındı · '+symbol+' '+tf;
 }catch(err){if(seq!==state.seq)return;$('status').textContent='Veri hatası';$('errors').textContent=String(err.message||err);$('quality').textContent='INVALID — önceki veriler güncel kabul edilmez';showMetrics([['Durum','Veri yok']]);destroyCharts()}
 await detailRequest;}
 function num(id){return Math.max(0,Number($(id).value)||0)}
@@ -113,7 +116,7 @@ for(const value of values){const td=document.createElement('td');td.textContent=
 $('results').append(tr)}
 if(!rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.textContent='Görünüme uygun sözleşme yok';tr.append(td);$('results').append(tr)}
 const count=market.filter(d=>!stale&&FuturesOpportunity.qualifies(d,filters)).length;
-$('scanStatus').textContent=marketLoadedAt?`${market.length} sözleşme · ${rows.length} gösterilen · ${count} ön filtre geçti · ${market.filter(d=>!d.valid).length} geçersiz/eksik · ${utc(marketLoadedAt)}${stale?' · ESKİ VERİ':''}`:'Henüz piyasa verisi alınmadı';
+$('scanStatus').textContent=marketLoadedAt?`${market.length} sözleşme · ${rows.length} gösterilen · ${count} ön filtre geçti · ${market.filter(d=>!d.valid).length} geçersiz/eksik · ${turkeyTime(marketLoadedAt)}${stale?' · ESKİ VERİ':''}`:'Henüz piyasa verisi alınmadı';
 }
 async function scan(){const button=$('scan');if(button.disabled)return;button.disabled=true;$('scanStatus').textContent='Binance Futures piyasası alınıyor...';
 try{
