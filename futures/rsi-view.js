@@ -1,7 +1,7 @@
 'use strict';
 let rsiChart=null,rsiSyncCleanup=[];
 function destroyRsiChart(){for(const cleanup of rsiSyncCleanup)cleanup();rsiSyncCleanup=[];if(rsiChart){rsiChart.remove();rsiChart=null}}
-function renderRsiChart(bars,options,candle){
+function renderRsiChart(bars,options,candle,vol){
  destroyRsiChart();
  const source=bars.map(b=>({...b,time:b.time*1000}));
  const step={'5m':300000,'15m':900000,'1h':3600000,'4h':14400000}[state.tf];
@@ -19,8 +19,35 @@ function renderRsiChart(bars,options,candle){
   segment.setData([event.first,event.second].map(i=>({time:bars[i].time,value:values[i]})));
  }
  const sorted=markers.sort((a,b)=>a.time-b.time);line.setMarkers(sorted);candle.setMarkers(sorted);
- const charts=[state.chart,state.volChart,rsiChart];let syncing=false;
- for(const chart of charts){const handler=range=>{if(!range||syncing)return;syncing=true;try{for(const other of charts)if(other!==chart)other.timeScale().setVisibleLogicalRange(range)}finally{syncing=false}};chart.timeScale().subscribeVisibleLogicalRangeChange(handler);rsiSyncCleanup.push(()=>chart.timeScale().unsubscribeVisibleLogicalRangeChange(handler))}
+ const charts=[state.chart,state.volChart,rsiChart];let syncing=false,disposed=false;
+ // All plots reserve the same right-axis width; equal logical ranges alone do not align pixels.
+ let axisWidth=0;
+ function alignAxes(){
+  if(disposed)return;
+  const width=Math.max(80,...charts.map(chart=>chart.priceScale('right').width()));
+  if(width!==axisWidth){axisWidth=width;for(const chart of charts)chart.applyOptions({rightPriceScale:{minimumWidth:width}})}
+ }
+ let axisFrame=0;
+ function scheduleAxes(){cancelAnimationFrame(axisFrame);axisFrame=requestAnimationFrame(alignAxes)}
+ for(const chart of charts){const handler=range=>{if(!range||syncing)return;syncing=true;try{for(const other of charts)if(other!==chart)other.timeScale().setVisibleLogicalRange(range)}finally{syncing=false}scheduleAxes()};chart.timeScale().subscribeVisibleLogicalRangeChange(handler);rsiSyncCleanup.push(()=>chart.timeScale().unsubscribeVisibleLogicalRangeChange(handler))}
+ const series=[candle,vol,line],indexByTime=new Map(bars.map((bar,index)=>[bar.time,index]));let crosshairSyncing=false;
+ for(const chart of charts){
+  const handler=param=>{
+   if(crosshairSyncing)return;crosshairSyncing=true;
+   try{
+    const index=indexByTime.get(param.time);
+    const prices=index===undefined?[]:[bars[index].close,bars[index].quoteVolume,values[index]];
+    for(let target=0;target<charts.length;target++)if(charts[target]!==chart){
+     if(index===undefined||!Number.isFinite(prices[target]))charts[target].clearCrosshairPosition();
+     else charts[target].setCrosshairPosition(prices[target],param.time,series[target]);
+    }
+   }finally{crosshairSyncing=false}
+  };
+  chart.subscribeCrosshairMove(handler);rsiSyncCleanup.push(()=>chart.unsubscribeCrosshairMove(handler));
+ }
+ const resize=new ResizeObserver(scheduleAxes);for(const id of ['chart','volume','rsi-chart'])resize.observe($(id));
+ rsiSyncCleanup.push(()=>{disposed=true;cancelAnimationFrame(axisFrame);resize.disconnect()});
+ scheduleAxes();
  rsiChart.timeScale().fitContent();
 }
 function renderFiveMinuteRsi(rows,symbol){

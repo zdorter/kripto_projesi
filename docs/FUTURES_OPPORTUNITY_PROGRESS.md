@@ -189,3 +189,12 @@ RSI referans değerleri, yatay/yükselen/düşen seri, 30 çıkışı, dip teyid
 onay gecikmesi, iki yönde uyumsuzluk ve geçersizleşme test edildi. Chromium'da
 gerçek Lightweight Charts 4.2.3 ile RSI çizimi, zaman ekseni eşleme, zaman dilimi
 geçişi ve 5m API hatası kontrol edildi; Binance yanıtları kontrollü örneklerdi.
+
+### Fiyat/hacim/RSI hizalama düzeltmesi
+
+Hacim ayrı bir overlay ölçeği yerine sağ eksene bağlandı. Üç panelin sağ eksen
+boşluğu ölçülerek eşitlenir; yeniden boyutlandırmada güncellenir. Görünür mantıksal
+zaman aralığı ve dikey imleç üç panelde çift yönlü eşlenir. Panel kaldırıldığında
+abonelikler ve ResizeObserver temizlenir. Gerçek grafik kütüphanesiyle aynı mumun
+x koordinatları en fazla 1 piksel farkla doğrulandı; hacim panelini fareyle sürükleme,
+çift yönlü imleç, zaman dilimi değiştirme ve grafik yeniden oluşturma kontrol edildi.
