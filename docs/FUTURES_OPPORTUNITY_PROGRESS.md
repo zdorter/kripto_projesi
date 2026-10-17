@@ -121,3 +121,40 @@ bulut ortamındaki Binance konum kısıtları nedeniyle doğrulanmış değildir
 - CP4: Gerektiğinde IndexedDB kayıtları ve ileriye dönük gözlem.
 
 Backtest ve otomatik emir kapsam dışındadır.
+
+## Scalp araştırması — geri çekilme ve dönüş
+
+Yeni `futures/scalp-setup.js` modülü, mevcut iki tarama modunun yanında,
+izlenen adayları ayrı bir tabloda değerlendirir. Otomatik emir ve backtest yoktur.
+
+- Sıralama kayan 24H değişime göre, geçerli USDT perpetual verileri içinde yapılır.
+  Varsayılan ilk 20 sınırı kullanıcı tarafından değiştirilebilir. Yeni izleme slotlarında
+  bu aralıktaki adaylar önceliklidir; her grup içinde hacim sırası korunur.
+  Mevcut izleme slotları otomatik silinmez; yeni seçim için liste temizlenebilir.
+- Ortam: yükseliş/hacim eşiği, pozitif 15m OI değişimi, negatif ve daha negatifleşen
+  funding, genel short hesap payının eşiği geçmesi ve 15m içinde artması.
+- Short değişimi `globalLongShortAccountRatio` endpoint'inin 4 adet 5m örneğinden
+  tam 15 dakika arayla hesaplanır. Diğer iki oran da 4 örnekle alınır ama stratejide
+  kullanılmaz. Short ve OI son örnek zamanları eşleşmezse değerlendirme bekler.
+- Funding geçmiş ödemelerden hesaplanmaz. Sayfa açıkken gözlenen mark zamanlı güncel
+  funding oranları 30 dakika bellekte tutulur. En az 15 dakika gerekir; 15–17 dakika
+  önceki gözlem karşılaştırılır, 3 dakikadan büyük gözlem boşluğu kabul edilmez.
+  Kıyas başlangıç/bitişi Türkiye saatiyle gösterilir. Funding farkı yüzde puandır.
+- Bu yaklaşımda “FR artışı” daha negatif hale gelmek olarak tanımlanmıştır:
+  örneğin -%0,10'dan -%0,20'ye geçiş. Negatifliğin azalması ortam koşulunu geçmez.
+- Yapı son 20 kapanmış ve ardışık 5m mumunda aranır: önceki tepeye göre en az
+  %0,3 geri çekilme, her iki yanında birer mumla onaylı iki dip, daha yüksek ikinci
+  dip, aradaki tepenin önceki ana tepeden aşağıda olması ve bu ara tepe üstünde
+  en son mumun yeni kapanışı. Dip ve ara tepe seviyeleri tabloda yazılır.
+- İlk dip kaybedilirse yapı geçersizdir. Kırılım önceki mumda gerçekleşmişse
+  eski kırılım olarak işaretlenir; tekrar yeni tetik üretilmez.
+- Bütün ortam koşulları ve yeni kırılım birlikte varsa “Long inceleme adayı”
+  gösterilir. Eksik veri, eski mum, eksik gözlem veya hizasız örneklerde aday üretilmez.
+- Bu başlangıç araştırma tanımı hocanın kurallarının birebir kopyası veya doğrulanmış
+  kârlı strateji değildir. Spread, komisyon, slippage, hedef ve RR hesabı henüz yoktur.
+  İzleme dakikada birdir; tarayıcı kapalıyken sürmez, sayfa yenilenince gözlemler silinir.
+
+Doğrulama: `node --test tests/futures-*.test.cjs` toplam 22 test içerir.
+Chromium'da kontrollü API yanıtları ve simüle edilmiş funding gözlemleriyle
+ilk bekleme, tüm koşullar + yeni kırılımda aday, geçmiş silinince bekleme ve liste
+sıfırlama kontrol edildi. Bu kontrol canlı 15 dakika izleme veya backtest değildir.
