@@ -158,3 +158,34 @@ Doğrulama: `node --test tests/futures-*.test.cjs` toplam 22 test içerir.
 Chromium'da kontrollü API yanıtları ve simüle edilmiş funding gözlemleriyle
 ilk bekleme, tüm koşullar + yeni kırılımda aday, geçmiş silinince bekleme ve liste
 sıfırlama kontrol edildi. Bu kontrol canlı 15 dakika izleme veya backtest değildir.
+
+## RSI paneli ve 5m uyumsuzluk gözlemi
+
+- `futures/rsi.js`: Wilder RSI(14), başlangıçta 14 değişimin ortalaması ve devamında
+  Wilder yumuşatması. Düz seride 50, yalnız yükselişte 100, yalnız düşüşte 0.
+- Grafik altındaki RSI paneli seçilen zaman dilimini izler. 30/50/70 referansları
+  ve 0–100 ölçeği vardır; fiyat/hacim/RSI yatay kaydırma ve yakınlaştırması eşlenir.
+- Seçilen coinin ayrı metin değerlendirmesi daima kapanmış 5m verisini kullanır.
+  Diğer grafik aralıklarında da 300 adet 5m mum istenir. Canlı son mum dışlanır.
+- 30 altında yükseliş, 30 yukarı kesişimi ve yeni kesişim olmadan RSI yükselişi
+  ayrı açıklanır. Son sekiz mumda iki yanlı ikişer mumla doğrulanan ve korunmuş RSI
+  dibi varsa, son RSI da yükseliyorsa dipten yükseliş ayrıca belirtilir.
+- Klasik pozitif uyumsuzluk: ardışık iki doğrulanmış fiyat dibi daha aşağıdayken
+  aynı mumlardaki RSI daha yukarıdadır. Negatif uyumsuzluk bunun tepe karşılığıdır.
+- Fiyat pivotları sağda/solda ikişer kapalı mumla doğrulanır. Araları 3–60 mumdur.
+  Dolayısıyla pivot anında değil, iki mum sonra bilinir; onay zamanı metinde verilir.
+- Son üç olay fiyat ve RSI üzerinde Bull/Bear okları ve RSI bağlantı çizgileriyle
+  gösterilir. Sonraki fiyat referansı aşmışsa olay gri ve geçmiş olarak işaretlenir.
+  Geçerli görünen eski olaylar da yeni tetik olarak sunulmaz; olay tarihleri gösterilir.
+- Uyumsuzluk ile aşırı satım ayrı gözlemlerdir: pozitif uyumsuzluk için RSI'ın 30
+  altında olması şart değildir. Gizli uyumsuzluk yoktur. RSI mevcut scalp koşuluna
+  otomatik eklenmemiştir; işlem emri veya kârlılık iddiası üretilmez.
+- Eksik/eski/aralıklı 5m verisinde değerlendirme yapılmaz. Yeni coin yüklemesinde
+  eski grafik ve RSI özeti temizlenir. 300 mumla başlatılan RSI, daha uzun geçmişle
+  hesaplanan başka ekranlardan küçük farklılık gösterebilir.
+
+Doğrulama: 28 Futures testi (RSI için 6 test dahil) ve 645 mevcut test geçti.
+RSI referans değerleri, yatay/yükselen/düşen seri, 30 çıkışı, dip teyidi, pivot
+onay gecikmesi, iki yönde uyumsuzluk ve geçersizleşme test edildi. Chromium'da
+gerçek Lightweight Charts 4.2.3 ile RSI çizimi, zaman ekseni eşleme, zaman dilimi
+geçişi ve 5m API hatası kontrol edildi; Binance yanıtları kontrollü örneklerdi.
