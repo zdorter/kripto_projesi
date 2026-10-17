@@ -5,7 +5,7 @@
 .sort-button{border:0;background:transparent;padding:0;color:inherit;font:inherit;font-weight:600;white-space:nowrap}.sort-button:hover{color:#e2e8f0}.sort-button:focus-visible{outline:2px solid #60a5fa;outline-offset:5px}
 #scanner-panel>summary{cursor:pointer;font-size:1.5em;font-weight:700}#scanner-panel>summary h2{display:inline;font-size:inherit}#scanner-panel[open]>summary{margin-bottom:16px}#scanner-panel>summary:focus-visible{outline:2px solid #60a5fa;outline-offset:5px}
 </style></head><body>
-<header><div><h1>📊 Futures Opportunity Scanner</h1><small>Binance USDⓈ-M · Araştırma ekranı · Otomatik emir yok</small></div><span id="status" class="warn">Bağlanıyor...</span></header>
+<header><div><h1>📊 Futures Opportunity Scanner</h1><small>Binance USDⓈ-M · Araştırma ekranı · Otomatik emir yok</small><br><small id="app-version">Sürüm: RSI/Hacim v2</small></div><span id="status" class="warn">Bağlanıyor...</span></header>
 <main>
 <section><b>Binance Futures · Piyasa ve 5m detay</b><p class="muted">USDT sürekli vadeli sözleşmeler · Aşağıdaki tablo tüm piyasayı listeler. OI ve mum verileri seçilen coin ve en fazla 5 izleme adayı için alınır.</p></section>
 <section><div class="toolbar"><label for="symbol">Sembol</label><select id="symbol"><option>BTCUSDT</option><option>ETHUSDT</option></select><label for="tf">Zaman dilimi</label><select id="tf"><option value="4h">4H</option><option value="1h">1H</option><option value="15m">15M</option><option value="5m" selected>5M</option></select><button id="refresh">Yenile</button><span class="muted" id="updated"></span></div></section>
@@ -36,11 +36,11 @@
 </section>
 </main><footer>Bilgilendirme amaçlıdır; finansal tavsiye değildir. API erişimi tarayıcı, ağ ve Binance bölgesel kısıtlarına bağlıdır. Zaman damgaları Türkiye saatiyle (UTC+3) gösterilir.</footer>
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
-<script src="./futures/market-data.js"></script>
-<script src="./futures/detail-data.js"></script>
-<script src="./futures/opportunity.js"></script>
-<script src="./futures/scalp-setup.js"></script>
-<script src="./futures/rsi.js"></script>
+<script src="./futures/market-data.js?v=rsi-volume-v2"></script>
+<script src="./futures/detail-data.js?v=rsi-volume-v2"></script>
+<script src="./futures/opportunity.js?v=rsi-volume-v2"></script>
+<script src="./futures/scalp-setup.js?v=rsi-volume-v2"></script>
+<script src="./futures/rsi.js?v=rsi-volume-v2"></script>
 <script>
 'use strict';
 const FUT='https://fapi.binance.com', $=id=>document.getElementById(id);
@@ -150,6 +150,6 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 state.refreshTimer=setInterval(()=>{if(!document.hidden){scan();load()}},60000);
 
 </script>
-<script src="./futures/rsi-view.js"></script>
-<script src="./futures/watch.js"></script>
+<script src="./futures/rsi-view.js?v=rsi-volume-v2"></script>
+<script src="./futures/watch.js?v=rsi-volume-v2"></script>
 <script>scan();</script></body></html>

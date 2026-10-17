@@ -198,3 +198,16 @@ zaman aralığı ve dikey imleç üç panelde çift yönlü eşlenir. Panel kald
 abonelikler ve ResizeObserver temizlenir. Gerçek grafik kütüphanesiyle aynı mumun
 x koordinatları en fazla 1 piksel farkla doğrulandı; hacim panelini fareyle sürükleme,
 çift yönlü imleç, zaman dilimi değiştirme ve grafik yeniden oluşturma kontrol edildi.
+
+### Güncel sayfayı doğru klasörden sunma
+
+```powershell
+py .\scripts\serve-futures.py
+```
+
+Önce önceki sunucuyu Ctrl+C ile durdurun. Bu sunucu çalışma dizini yerine kendi
+bulunduğu deponun kökünü sunar ve no-store başlıkları ekler. Başlangıçta sunulan
+klasörü yazar. Varsayılan port 8000, alternatif `--port 8001` kullanılabilir.
+Sayfa başında “Sürüm: RSI/Hacim v2” görünmelidir. Yerel JavaScript dosyalarının
+URL'leri sürümlenmiştir. Başlık yoksa güncel HTML sunulmuyordur; önce branch,
+çekilen commit ve çalışan sunucunun klasörü kontrol edilmelidir.
